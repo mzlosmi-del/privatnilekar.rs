@@ -12,6 +12,7 @@
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://privatnilekar.rs">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   .map-picker-wrap { border-radius: 12px; overflow: hidden; border: 1.5px solid var(--gray-100); margin-top: 8px; position: relative; }
   .map-picker-wrap .leaflet-container { height: 260px; width: 100%; cursor: crosshair; }
@@ -1216,22 +1217,23 @@ function openRegister(type) {
       </div>
       <div id="tabDoc" class="profile-panel active">
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Ime</label><input class="form-input" placeholder="npr. Ana"></div>
-          <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" placeholder="npr. Marković"></div>
+          <div class="form-group"><label class="form-label">Ime</label><input class="form-input" id="docFirstName" placeholder="npr. Ana"></div>
+          <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" id="docLastName" placeholder="npr. Marković"></div>
         </div>
-        <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" type="email" placeholder="lekar@email.com"></div>
-        <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" type="password" placeholder="Minimalno 8 znakova"></div>
+        <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" id="docEmail" type="email" placeholder="lekar@email.com"></div>
+        <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" id="docPassword" type="password" placeholder="Minimalno 8 znakova"></div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Specijalnost</label>
-            <select class="form-input"><option>Odaberite…</option>${specOptions}</select>
+            <select class="form-input" id="docSpecialty"><option>Odaberite…</option>${specOptions}</select>
           </div>
           <div class="form-group"><label class="form-label">Grad</label>
-            <select class="form-input"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
+            <select class="form-input" id="docCity"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Broj licence Lekarske komore Srbije</label><input class="form-input" placeholder="npr. LKS-12345"></div>
-        <button class="submit-btn" onclick="alert('Registracija uspešna! Profil se kreira...');closeModal('registerModal')">Kreiranje profila →</button>
+        <div class="form-group"><label class="form-label">Broj licence Lekarske komore Srbije</label><input class="form-input" id="docLicense" placeholder="npr. LKS-12345"></div>
+        <div id="docRegError" style="display:none;color:#e05a2b;font-size:0.85rem;padding:8px 12px;background:#fff5f0;border-radius:8px;margin-bottom:8px"></div>
+        <button class="submit-btn" id="docRegBtn" onclick="submitDoctorRegister()">Kreiranje profila →</button>
       </div>
       <div id="tabServices" class="profile-panel">
         <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:16px">Dodajte usluge koje nudite. Svaka usluga ima naziv, trajanje i cenu.</p>
@@ -1260,22 +1262,23 @@ function openRegister(type) {
   } else {
     document.getElementById('registerBody').innerHTML = `
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Ime</label><input class="form-input" placeholder="Vaše ime"></div>
-        <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" placeholder="Prezime"></div>
+        <div class="form-group"><label class="form-label">Ime</label><input class="form-input" id="patFirstName" placeholder="Vaše ime"></div>
+        <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" id="patLastName" placeholder="Prezime"></div>
       </div>
-      <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" type="email" placeholder="vas@email.com"></div>
-      <div class="form-group"><label class="form-label">Broj telefona</label><input class="form-input" type="tel" placeholder="+381 6x xxx xxxx"></div>
-      <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" type="password" placeholder="Minimalno 8 znakova"></div>
+      <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" id="patEmail" type="email" placeholder="vas@email.com"></div>
+      <div class="form-group"><label class="form-label">Broj telefona</label><input class="form-input" id="patPhone" type="tel" placeholder="+381 6x xxx xxxx"></div>
+      <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" id="patPassword" type="password" placeholder="Minimalno 8 znakova"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Datum rođenja</label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Datum rođenja</label><input class="form-input" id="patDob" type="date"></div>
         <div class="form-group"><label class="form-label">Grad</label>
-          <select class="form-input"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
+          <select class="form-input" id="patCity"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
         </div>
       </div>
       <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.83rem;color:var(--gray-500);margin-bottom:16px;cursor:pointer">
-        <input type="checkbox" style="margin-top:2px"> Prihvatam <a href="#" style="color:var(--primary)">Uslove korišćenja</a> i <a href="#" style="color:var(--primary)">Politiku privatnosti</a> platforme PrivatniLekar
+        <input type="checkbox" id="patTerms" style="margin-top:2px"> Prihvatam <a href="#" style="color:var(--primary)">Uslove korišćenja</a> i <a href="#" style="color:var(--primary)">Politiku privatnosti</a> platforme PrivatniLekar
       </label>
-      <button class="submit-btn" onclick="alert('Dobrodošli na PrivatniLekar! Proverite email za potvrdu naloga.');closeModal('registerModal')">Kreiraj nalog →</button>
+      <div id="patRegError" style="display:none;color:#e05a2b;font-size:0.85rem;padding:8px 12px;background:#fff5f0;border-radius:8px;margin-bottom:8px"></div>
+      <button class="submit-btn" id="patRegBtn" onclick="submitPatientRegister()">Kreiraj nalog →</button>
       <p style="text-align:center;font-size:0.85rem;color:var(--gray-500);margin-top:14px">Već imate nalog? <a href="#" style="color:var(--primary);font-weight:600">Prijavite se</a></p>
     `;
   }
@@ -1478,7 +1481,201 @@ function openDoctorProfile(name, specialty, services, rating, city) {
 
 // ── PATCH: add "Lokacija" tab to doctor registration ──────────────────────
 
-const _origOpenRegister = openRegister;
+// ═══════════════════════════════════════════════
+// SUPABASE INTEGRATION
+// ═══════════════════════════════════════════════
+const SUPABASE_URL = 'https://vuwjngaeimzeraytfqyp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1d2puZ2FlaW16ZXJheXRmcXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDIxMjcsImV4cCI6MjA4ODQ3ODEyN30.G1iw4_Expb2ey11LTbpQoSj6OecC2NLN5saPFGHfMaM';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── HELPERS ──────────────────────────────────────
+function showError(elId, msg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.style.display = 'none';
+}
+function setLoading(btnId, loading, defaultText) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Molimo sačekajte...' : defaultText;
+}
+
+// ── DOCTOR REGISTRATION ──────────────────────────
+async function submitDoctorRegister() {
+  hideError('docRegError');
+
+  const firstName = document.getElementById('docFirstName')?.value?.trim();
+  const lastName  = document.getElementById('docLastName')?.value?.trim();
+  const email     = document.getElementById('docEmail')?.value?.trim();
+  const password  = document.getElementById('docPassword')?.value;
+  const specialty = document.getElementById('docSpecialty')?.value;
+  const city      = document.getElementById('docCity')?.value;
+  const license   = document.getElementById('docLicense')?.value?.trim();
+
+  if (!firstName || !lastName) return showError('docRegError', 'Unesite ime i prezime.');
+  if (!email) return showError('docRegError', 'Unesite email adresu.');
+  if (!password || password.length < 8) return showError('docRegError', 'Lozinka mora imati najmanje 8 znakova.');
+  if (!specialty || specialty === 'Odaberite…') return showError('docRegError', 'Odaberite specijalnost.');
+
+  setLoading('docRegBtn', true, 'Kreiranje profila →');
+
+  try {
+    // 1. Create auth user
+    const { data: authData, error: authError } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { role: 'doctor', full_name: `${firstName} ${lastName}` } }
+    });
+
+    if (authError) throw authError;
+
+    // 2. Insert into doctors table
+    const { error: dbError } = await sb.from('doctors').insert({
+      id: authData.user.id,
+      email,
+      full_name: `${firstName} ${lastName}`,
+      specialty,
+      city,
+      license_number: license,
+      avatar_initials: `${firstName[0]}${lastName[0]}`.toUpperCase()
+    });
+
+    if (dbError) throw dbError;
+
+    // Success!
+    setLoading('docRegBtn', false, 'Kreiranje profila →');
+    document.getElementById('registerBody').innerHTML = `
+      <div class="success-state">
+        <div class="success-icon">✅</div>
+        <h3>Profil kreiran!</h3>
+        <p>Dobrodošli, ${firstName}! Proverite vaš email <strong>${email}</strong> i kliknite na link za potvrdu naloga.</p>
+        <p style="font-size:0.85rem;color:var(--gray-300);margin-top:8px">Nakon potvrde možete se prijaviti i popuniti profil.</p>
+        <button class="submit-btn" onclick="closeModal('registerModal')" style="margin-top:16px">Zatvori</button>
+      </div>`;
+  } catch (err) {
+    setLoading('docRegBtn', false, 'Kreiranje profila →');
+    const msg = err.message?.includes('already registered')
+      ? 'Ova email adresa je već registrovana.'
+      : (err.message || 'Greška pri registraciji. Pokušajte ponovo.');
+    showError('docRegError', msg);
+  }
+}
+
+// ── PATIENT REGISTRATION ─────────────────────────
+async function submitPatientRegister() {
+  hideError('patRegError');
+
+  const firstName = document.getElementById('patFirstName')?.value?.trim();
+  const lastName  = document.getElementById('patLastName')?.value?.trim();
+  const email     = document.getElementById('patEmail')?.value?.trim();
+  const phone     = document.getElementById('patPhone')?.value?.trim();
+  const password  = document.getElementById('patPassword')?.value;
+  const dob       = document.getElementById('patDob')?.value;
+  const city      = document.getElementById('patCity')?.value;
+  const terms     = document.getElementById('patTerms')?.checked;
+
+  if (!firstName || !lastName) return showError('patRegError', 'Unesite ime i prezime.');
+  if (!email) return showError('patRegError', 'Unesite email adresu.');
+  if (!password || password.length < 8) return showError('patRegError', 'Lozinka mora imati najmanje 8 znakova.');
+  if (!terms) return showError('patRegError', 'Morate prihvatiti uslove korišćenja.');
+
+  setLoading('patRegBtn', true, 'Kreiraj nalog →');
+
+  try {
+    // 1. Create auth user
+    const { data: authData, error: authError } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { role: 'patient', full_name: `${firstName} ${lastName}` } }
+    });
+
+    if (authError) throw authError;
+
+    // 2. Insert into patients table
+    const { error: dbError } = await sb.from('patients').insert({
+      id: authData.user.id,
+      email,
+      full_name: `${firstName} ${lastName}`,
+      phone,
+      city,
+      date_of_birth: dob || null
+    });
+
+    if (dbError) throw dbError;
+
+    // Success!
+    setLoading('patRegBtn', false, 'Kreiraj nalog →');
+    document.getElementById('registerBody').innerHTML = `
+      <div class="success-state">
+        <div class="success-icon">✅</div>
+        <h3>Nalog kreiran!</h3>
+        <p>Dobrodošli, ${firstName}! Poslali smo email potvrdu na <strong>${email}</strong>.</p>
+        <p style="font-size:0.85rem;color:var(--gray-300);margin-top:8px">Kliknite na link u emailu da aktivirate nalog i možete početi sa zakazivanjem.</p>
+        <button class="submit-btn" onclick="closeModal('registerModal')" style="margin-top:16px">Zatvori</button>
+      </div>`;
+  } catch (err) {
+    setLoading('patRegBtn', false, 'Kreiraj nalog →');
+    const msg = err.message?.includes('already registered')
+      ? 'Ova email adresa je već registrovana.'
+      : (err.message || 'Greška pri registraciji. Pokušajte ponovo.');
+    showError('patRegError', msg);
+  }
+}
+
+// ── SAVE BOOKING ─────────────────────────────────
+const _origSubmitBooking = submitBooking;
+submitBooking = async function() {
+  const name  = document.getElementById('patientName')?.value?.trim();
+  const date  = document.getElementById('bookDate')?.value;
+  const email = document.getElementById('bookEmail')?.value?.trim();
+
+  if (!selectedService) { alert('Molimo odaberite uslugu.'); return; }
+  if (!selectedTime)    { alert('Molimo odaberite termin.'); return; }
+  if (!name)            { alert('Molimo unesite vaše ime.'); return; }
+
+  // Save to Supabase (best-effort, no auth required for now)
+  try {
+    await sb.from('appointments').insert({
+      appointment_date: date,
+      appointment_time: selectedTime,
+      note: document.getElementById('bookNote')?.value || '',
+      status: 'pending'
+    });
+  } catch(e) {
+    // Non-blocking — UI success shown regardless
+    console.warn('Booking save error:', e.message);
+  }
+
+  // Show success UI (existing logic)
+  const dateFormatted = new Date(date).toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('bookingBody').innerHTML = `
+    <div class="success-state">
+      <div class="success-icon">✅</div>
+      <h3>Zahtev je poslat!</h3>
+      <p>Vaš zahtev za termin je uspešno prosleđen. Lekar će potvrditi termin u roku od 1–2 sata.</p>
+      <div class="confirm-details">
+        <div class="confirm-row"><span class="label">Lekar</span><span class="value">${currentDoctor.name}</span></div>
+        <div class="confirm-row"><span class="label">Specijalnost</span><span class="value">${currentDoctor.specialty}</span></div>
+        <div class="confirm-row"><span class="label">Usluga</span><span class="value">${selectedService}</span></div>
+        <div class="confirm-row"><span class="label">Datum</span><span class="value">${dateFormatted}</span></div>
+        <div class="confirm-row"><span class="label">Vreme</span><span class="value">${selectedTime}h</span></div>
+        <div class="confirm-row"><span class="label">Pacijent</span><span class="value">${name}</span></div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--gray-300)">📧 Potvrda će biti poslata na ${email || 'vaš email'}</p>
+      <button class="submit-btn" onclick="closeModal('bookingModal')" style="margin-top:16px">Zatvori</button>
+    </div>`;
+  setTimeout(() => {
+    addNotification('📅', `Zahtev za pregled – ${currentDoctor.name}`,
+      `${selectedService} • ${new Date(date).toLocaleDateString('sr-RS',{day:'numeric',month:'short'})} u ${selectedTime}h`, 'new');
+  }, 500);
+};
+
 openRegister = function(type) {
   _origOpenRegister(type);
   if (type !== 'doctor') return;
