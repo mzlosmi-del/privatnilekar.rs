@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrivatniLekar – Zakazivanje Lekarskih Pregleda Online | Srbija</title>
+<meta name="description" content="PrivatniLekar je vodeća platforma za zakazivanje lekarskih pregleda u Srbiji. Pronađite specijaliste, zakažite pregled online i dobijte potvrdu u roku od nekoliko minuta.">
+<meta name="keywords" content="zakazivanje pregleda, lekar online, specijalista Srbija, medicinski pregled, zdravlje Srbija, doktor online">
+<meta property="og:title" content="PrivatniLekar – Zakazivanje Lekarskih Pregleda Online">
+<meta property="og:description" content="Pronađite i zakažite pregled kod najboljeg lekara u Srbiji. Brzo, jednostavno, pouzdano.">
+<meta property="og:type" content="website">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://privatnilekar.rs">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  .map-picker-wrap { border-radius: 12px; overflow: hidden; border: 1.5px solid var(--gray-100); margin-top: 8px; position: relative; }
+  .map-picker-wrap .leaflet-container { height: 260px; width: 100%; cursor: crosshair; }
+  .map-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .map-search-row input { flex: 1; }
+  .map-search-row button { background: var(--primary); color: white; border: none; padding: 0 16px; border-radius: 10px; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+  .map-search-row button:hover { background: var(--primary-light); }
+  .map-coords-display { display: flex; gap: 8px; margin-top: 10px; align-items: center; font-size: 0.82rem; color: var(--gray-500); background: var(--gray-50); padding: 8px 12px; border-radius: 8px; }
+  .map-coords-display strong { color: var(--primary); }
+  .map-pin-hint { font-size: 0.82rem; color: var(--gray-300); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+  /* Profile map display */
+  .profile-map-wrap { border-radius: 14px; overflow: hidden; border: 1.5px solid var(--gray-100); margin-top: 14px; }
+  .profile-map-wrap .leaflet-container { height: 220px; width: 100%; }
+  .profile-address-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px; background: var(--gray-50); border-top: 1px solid var(--gray-100); font-size: 0.85rem; color: var(--gray-700); }
+  .profile-address-row span { line-height: 1.4; }
+</style>
+<style>
+  :root {
+    --primary: #1a6fb5;
+    --primary-light: #2e8dd4;
+    --primary-pale: #e8f4fd;
+    --primary-mid: #b8daf4;
+    --accent: #00b4d8;
+    --accent-light: #90e0ef;
+    --white: #ffffff;
+    --off-white: #f7fbff;
+    --gray-50: #f0f7ff;
+    --gray-100: #daeaf8;
+    --gray-300: #94b8d4;
+    --gray-500: #6b8faa;
+    --gray-700: #3d5a70;
+    --gray-900: #1a2f3e;
+    --success: #0ea472;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --shadow-sm: 0 2px 8px rgba(26,111,181,0.08);
+    --shadow-md: 0 4px 20px rgba(26,111,181,0.12);
+    --shadow-lg: 0 8px 40px rgba(26,111,181,0.18);
+    --radius: 12px;
+    --radius-lg: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--gray-900);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--gray-100);
+    padding: 0 5%;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 68px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .nav-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 18px;
+  }
+  .nav-logo-text { font-family: 'DM Sans', sans-serif; font-size: 1.35rem; color: #3a5a8c; font-weight: 400; letter-spacing: -0.01em; }
+  .nav-logo-text strong { font-weight: 700; color: #1a3a6e; }
+  .nav-links { display: flex; align-items: center; gap: 8px; }
+  .nav-link { color: var(--gray-700); text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 8px 14px; border-radius: 8px; transition: all 0.2s; }
+  .nav-link:hover { color: var(--primary); background: var(--primary-pale); }
+  .nav-cta { background: var(--primary); color: white; padding: 9px 20px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
+  .nav-cta:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f4fd 40%, #d0ecff 100%);
+    padding: 80px 5% 90px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(0,180,216,0.12), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; bottom: -80px; left: 10%;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(26,111,181,0.08), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; position: relative; z-index: 1; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid var(--primary-mid); color: var(--primary); padding: 6px 14px; border-radius: 100px; font-size: 0.8rem; font-weight: 500; margin-bottom: 20px; }
+  .hero-badge-dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+  h1 { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gray-900); line-height: 1.15; margin-bottom: 20px; }
+  h1 span { color: var(--primary); }
+  .hero-sub { font-size: 1.1rem; color: var(--gray-500); max-width: 460px; margin-bottom: 36px; }
+  .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-primary { background: var(--primary); color: white; padding: 14px 28px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .btn-secondary { background: white; color: var(--primary); padding: 14px 28px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; text-decoration: none; border: 2px solid var(--primary-mid); cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-secondary:hover { border-color: var(--primary); background: var(--primary-pale); transform: translateY(-2px); }
+
+  /* SEARCH BOX */
+  .search-box {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--gray-100);
+  }
+  .search-box h3 { font-size: 1rem; font-weight: 600; color: var(--gray-700); margin-bottom: 16px; }
+  .search-fields { display: flex; flex-direction: column; gap: 12px; }
+  .search-field { display: flex; align-items: center; gap: 10px; background: var(--gray-50); border: 1.5px solid var(--gray-100); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; }
+  .search-field:hover { border-color: var(--primary-mid); background: var(--primary-pale); }
+  .search-field-icon { font-size: 1.1rem; }
+  .search-field-label { font-size: 0.8rem; color: var(--gray-300); }
+  .search-field-value { font-size: 0.95rem; font-weight: 500; color: var(--gray-700); }
+  .search-field select, .search-field input { border: none; background: transparent; font-family: inherit; font-size: 0.95rem; color: var(--gray-700); outline: none; width: 100%; font-weight: 500; }
+  .search-btn { width: 100%; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+  .search-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,111,181,0.3); }
+
+  /* STATS */
+  .stats { background: white; padding: 40px 5%; border-bottom: 1px solid var(--gray-100); }
+  .stats-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
+  .stat { text-align: center; padding: 20px; }
+  .stat-number { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; color: var(--primary); line-height: 1; }
+  .stat-label { font-size: 0.85rem; color: var(--gray-500); margin-top: 4px; }
+
+  /* SECTION */
+  section { padding: 80px 5%; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 52px; }
+  .section-tag { display: inline-block; background: var(--primary-pale); color: var(--primary); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 14px; border-radius: 100px; margin-bottom: 14px; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: var(--gray-900); margin-bottom: 14px; }
+  .section-sub { color: var(--gray-500); font-size: 1.05rem; max-width: 560px; margin: 0 auto; }
+
+  /* SPECIALTIES */
+  .specialties-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+  .specialty-card {
+    background: white;
+    border: 1.5px solid var(--gray-100);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+    display: block;
+  }
+  .specialty-card:hover { border-color: var(--primary-light); background: var(--primary-pale); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .specialty-icon { font-size: 2.2rem; margin-bottom: 12px; }
+  .specialty-name { font-weight: 600; color: var(--gray-900); font-size: 0.95rem; }
+  .specialty-count { font-size: 0.8rem; color: var(--gray-300); margin-top: 4px; }
+
+  /* DOCTORS */
+  .doctors-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+  .doctor-card {
+    background: white;
+    border: 1.5px solid var(--gray-100);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all 0.25s;
+    cursor: pointer;
+  }
+  .doctor-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-mid); }
+  .doctor-card-top { background: linear-gradient(135deg, var(--primary-pale), var(--gray-50)); padding: 28px 24px 20px; display: flex; align-items: flex-start; gap: 16px; }
+  .doctor-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.6rem; font-weight: 700; flex-shrink: 0; }
+  .doctor-info h3 { font-size: 1.05rem; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+  .doctor-specialty { color: var(--primary); font-size: 0.85rem; font-weight: 500; }
+  .doctor-rating { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .stars { color: #f59e0b; font-size: 0.85rem; }
+  .rating-num { font-size: 0.82rem; font-weight: 600; color: var(--gray-700); }
+  .rating-count { font-size: 0.8rem; color: var(--gray-300); }
+  .doctor-card-body { padding: 18px 24px; }
+  .services-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .service-tag { background: var(--primary-pale); color: var(--primary); font-size: 0.76rem; padding: 4px 10px; border-radius: 100px; font-weight: 500; }
+  .service-tag.more { background: var(--gray-50); color: var(--gray-500); }
+  .doctor-meta { display: flex; gap: 14px; margin-bottom: 16px; }
+  .doctor-meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--gray-500); }
+  .book-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+  .book-btn:hover { background: var(--primary-light); }
+
+  /* HOW IT WORKS */
+  .how-section { background: linear-gradient(135deg, #f0f8ff, #e8f4fd); }
+  .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+  .step-card { text-align: center; padding: 32px 20px; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); position: relative; }
+  .step-number { width: 44px; height: 44px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; margin: 0 auto 16px; }
+  .step-icon { font-size: 2rem; margin-bottom: 12px; }
+  .step-title { font-weight: 600; font-size: 1rem; color: var(--gray-900); margin-bottom: 8px; }
+  .step-desc { font-size: 0.87rem; color: var(--gray-500); line-height: 1.5; }
+  .step-connector { position: absolute; top: 56px; right: -28px; width: 28px; height: 2px; background: var(--primary-mid); }
+
+  /* NOTIFICATIONS DEMO */
+  .notification-demo {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-100);
+    max-width: 400px;
+  }
+  .notif-header { font-weight: 600; font-size: 0.9rem; color: var(--gray-700); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .notif-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+  .notif-item { display: flex; gap: 12px; padding: 12px; border-radius: 10px; margin-bottom: 8px; transition: all 0.2s; }
+  .notif-item.new { background: var(--primary-pale); border: 1px solid var(--primary-mid); }
+  .notif-item.confirmed { background: #ecfdf5; border: 1px solid #a7f3d0; }
+  .notif-icon-wrap { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+  .notif-icon-wrap.blue { background: var(--primary-pale); }
+  .notif-icon-wrap.green { background: #ecfdf5; }
+  .notif-content p { font-size: 0.85rem; font-weight: 600; color: var(--gray-900); }
+  .notif-content span { font-size: 0.8rem; color: var(--gray-500); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,30,50,0.5); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 20px; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: white; border-radius: var(--radius-lg); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { padding: 24px 28px 0; display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--gray-900); }
+  .modal-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--gray-50); cursor: pointer; font-size: 1.1rem; color: var(--gray-500); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .modal-close:hover { background: var(--gray-100); }
+  .modal-body { padding: 20px 28px 28px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+  .form-input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-100); border-radius: 10px; font-family: inherit; font-size: 0.95rem; color: var(--gray-900); background: var(--gray-50); outline: none; transition: all 0.2s; }
+  .form-input:focus { border-color: var(--primary-light); background: white; box-shadow: 0 0 0 3px rgba(26,111,181,0.08); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .time-slots { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 6px; }
+  .time-slot { padding: 9px 6px; border: 1.5px solid var(--gray-100); border-radius: 8px; text-align: center; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.2s; background: white; color: var(--gray-700); }
+  .time-slot:hover { border-color: var(--primary-light); color: var(--primary); background: var(--primary-pale); }
+  .time-slot.selected { background: var(--primary); color: white; border-color: var(--primary); }
+  .time-slot.disabled { opacity: 0.4; cursor: not-allowed; background: var(--gray-50); }
+  .service-select-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .service-select-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1.5px solid var(--gray-100); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+  .service-select-item:hover, .service-select-item.selected { border-color: var(--primary-light); background: var(--primary-pale); }
+  .service-select-item .service-name { font-weight: 500; font-size: 0.92rem; }
+  .service-select-item .service-duration { font-size: 0.8rem; color: var(--gray-500); }
+  .service-select-item .service-price { font-weight: 600; color: var(--primary); font-size: 0.92rem; }
+  .submit-btn { width: 100%; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; margin-top: 8px; }
+  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,111,181,0.3); }
+
+  /* SUCCESS STATE */
+  .success-state { text-align: center; padding: 20px 0; }
+  .success-icon { width: 72px; height: 72px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 20px; }
+  .success-state h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--gray-900); margin-bottom: 10px; }
+  .success-state p { color: var(--gray-500); font-size: 0.95rem; margin-bottom: 24px; }
+  .confirm-details { background: var(--gray-50); border-radius: 12px; padding: 16px; text-align: left; margin-bottom: 20px; }
+  .confirm-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--gray-100); font-size: 0.88rem; }
+  .confirm-row:last-child { border: none; }
+  .confirm-row .label { color: var(--gray-500); }
+  .confirm-row .value { font-weight: 600; color: var(--gray-900); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; background: var(--gray-50); border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+  .tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 0.9rem; font-weight: 500; color: var(--gray-500); transition: all 0.2s; }
+  .tab.active { background: white; color: var(--primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+
+  /* DOCTOR PROFILE PANEL */
+  .profile-panel { display: none; }
+  .profile-panel.active { display: block; }
+  .profile-avatar-lg { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5rem; font-weight: 700; margin: 0 auto 16px; }
+  .profile-rating-big { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .rating-bar-container { margin-bottom: 12px; }
+  .rating-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; }
+  .rating-bar-label { width: 20px; text-align: right; color: var(--gray-500); }
+  .rating-bar-track { flex: 1; height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden; }
+  .rating-bar-fill { height: 100%; background: linear-gradient(to right, var(--primary), var(--accent)); border-radius: 4px; }
+  .rating-bar-count { width: 24px; color: var(--gray-500); }
+
+  /* REVIEWS */
+  .review-item { padding: 14px 0; border-bottom: 1px solid var(--gray-100); }
+  .review-item:last-child { border: none; }
+  .review-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .reviewer-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--primary-pale); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--primary); }
+  .reviewer-name { font-weight: 600; font-size: 0.88rem; color: var(--gray-900); }
+  .review-date { font-size: 0.78rem; color: var(--gray-300); margin-left: auto; }
+  .review-text { font-size: 0.88rem; color: var(--gray-500); line-height: 1.5; }
+
+  /* FOOTER */
+  footer {
+    background: var(--gray-900);
+    color: var(--gray-300);
+    padding: 60px 5% 40px;
+  }
+  .footer-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+  .footer-brand p { font-size: 0.88rem; margin-top: 12px; line-height: 1.7; color: var(--gray-500); }
+  .footer-col h4 { color: white; font-size: 0.9rem; font-weight: 600; margin-bottom: 16px; }
+  .footer-col a { display: block; color: var(--gray-500); text-decoration: none; font-size: 0.87rem; margin-bottom: 8px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--accent-light); }
+  .footer-bottom { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; color: var(--gray-500); }
+  .footer-logo-text { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: white; }
+
+  /* NOTIFICATIONS PANEL */
+  .notif-panel { position: fixed; top: 68px; right: 20px; width: 360px; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-100); z-index: 150; display: none; max-height: 480px; overflow-y: auto; }
+  .notif-panel.show { display: block; animation: slideIn 0.2s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+  .notif-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; }
+  .notif-panel-header h4 { font-weight: 600; font-size: 0.95rem; color: var(--gray-900); }
+  .notif-badge { background: var(--primary); color: white; font-size: 0.7rem; padding: 2px 7px; border-radius: 100px; font-weight: 600; }
+  .notif-panel-item { padding: 14px 20px; border-bottom: 1px solid var(--gray-100); display: flex; gap: 12px; transition: background 0.2s; cursor: pointer; }
+  .notif-panel-item:hover { background: var(--gray-50); }
+  .notif-panel-item.unread { background: var(--primary-pale); }
+  .notif-panel-item .ni-icon { width: 38px; height: 38px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; border: 1px solid var(--gray-100); }
+  .notif-panel-item .ni-content p { font-size: 0.87rem; font-weight: 500; color: var(--gray-900); }
+  .notif-panel-item .ni-content span { font-size: 0.78rem; color: var(--gray-300); }
+  .notif-btn { position: relative; background: none; border: none; cursor: pointer; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--gray-500); transition: all 0.2s; }
+  .notif-btn:hover { background: var(--gray-50); color: var(--primary); }
+  .notif-badge-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; background: var(--danger); border-radius: 50%; border: 2px solid white; }
+
+  /* SPECIALTIES GRID - extended */
+  .specialties-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
+  .specialty-card-hidden { display: none !important; }
+  .show-more-btn { display: block; margin: 24px auto 0; background: white; border: 2px solid var(--primary-mid); color: var(--primary); padding: 12px 32px; border-radius: var(--radius); font-family: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .show-more-btn:hover { background: var(--primary-pale); border-color: var(--primary); }
+  @media (max-width: 900px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+    .doctors-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .stats-inner { grid-template-columns: repeat(2,1fr); }
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 2.2rem; }
+    .nav-links .nav-link { display: none; }
+    .notif-panel { width: calc(100vw - 40px); }
+  }
+  @media (max-width: 600px) {
+    .steps-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .time-slots { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showHome()">
+    <svg width="42" height="42" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="navBg" x1="0" y1="0" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#e4f2fc"/><stop offset="100%" stop-color="#cce4f6"/>
+        </linearGradient>
+        <linearGradient id="navTube" x1="4" y1="4" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1a6fb5"/><stop offset="100%" stop-color="#0aaddd"/>
+        </linearGradient>
+      </defs>
+      <!-- Tile -->
+      <rect width="54" height="54" rx="14" fill="url(#navBg)"/>
+      <!-- Left earpiece -->
+      <circle cx="12" cy="12" r="3.5" fill="url(#navTube)"/>
+      <!-- Right earpiece -->
+      <circle cx="42" cy="12" r="3.5" fill="url(#navTube)"/>
+      <!-- Headband arc -->
+      <path d="M12 12 Q27 3 42 12" stroke="url(#navTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <!-- Left tube drops, curves in -->
+      <path d="M12 15.5 C12 15.5 11 29 17 37" stroke="url(#navTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <!-- Right tube drops, curves in -->
+      <path d="M42 15.5 C42 15.5 43 29 37 37" stroke="url(#navTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <!-- SMILE arc — bottom of tubes form the smile -->
+      <path d="M17 37 Q27 49 37 37" stroke="url(#navTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      <!-- Coral chest-piece — the "nose" of the face -->
+      <circle cx="27" cy="28" r="6.5" fill="#e05a2b"/>
+      <circle cx="27" cy="28" r="3.5" fill="white" opacity="0.4"/>
+    </svg>
+    <span class="nav-logo-text">Privatni<strong>Lekar</strong></span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#specialties">Specijalnosti</a>
+    <a class="nav-link" href="#doctors">Lekari</a>
+    <a class="nav-link" href="#how-it-works">Kako funkcioniše</a>
+    <button class="notif-btn" onclick="toggleNotifications()" title="Obaveštenja">
+      🔔
+      <span class="notif-badge-dot" id="notifDot"></span>
+    </button>
+    <button class="btn-secondary" onclick="openRegister('doctor')" style="padding:9px 16px;font-size:0.88rem;">Za lekare</button>
+    <a class="nav-cta" href="#" onclick="openRegister('patient');return false;">Registracija</a>
+  </div>
+</nav>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-header">
+    <h4>Obaveštenja</h4>
+    <span class="notif-badge" id="notifCount">3</span>
+  </div>
+  <div id="notifList">
+    <div class="notif-panel-item unread" onclick="markRead(this)">
+      <div class="ni-icon">✅</div>
+      <div class="ni-content">
+        <p>Pregled potvrđen – Dr. Marković</p>
+        <span>Pregled: Opšti pregled • 15. jul, 10:00h</span>
+      </div>
+    </div>
+    <div class="notif-panel-item unread" onclick="markRead(this)">
+      <div class="ni-icon">📅</div>
+      <div class="ni-content">
+        <p>Podsetnik: sutra u 14:30h</p>
+        <span>Dr. Nikolić – Kardiologija</span>
+      </div>
+    </div>
+    <div class="notif-panel-item unread" onclick="markRead(this)">
+      <div class="ni-icon">⭐</div>
+      <div class="ni-content">
+        <p>Ocenite posetu – Dr. Petrović</p>
+        <span>Poseta obavljena 10. jula</span>
+      </div>
+    </div>
+    <div class="notif-panel-item" onclick="markRead(this)">
+      <div class="ni-icon">🩺</div>
+      <div class="ni-content">
+        <p>Novi termin dostupan</p>
+        <span>Dr. Jovanović – slobodni termini ove nedelje</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge"><span class="hero-badge-dot"></span> Dostupno 24/7 u celoj Srbiji</div>
+      <h1>Zakažite pregled<br>kod <span>najboljeg lekara</span><br>brzo i lako</h1>
+      <p class="hero-sub">Povežite se sa više od 1.200 proverenih specijalista širom Srbije. Zakazivanje za samo 60 sekundi, potvrda odmah.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="document.getElementById('doctors').scrollIntoView({behavior:'smooth'})">🔍 Pronađi lekara</button>
+        <button class="btn-secondary" onclick="openRegister('doctor')">👩‍⚕️ Prijavite se kao lekar</button>
+      </div>
+    </div>
+    <div>
+      <div class="search-box">
+        <h3>🔍 Brza pretraga</h3>
+        <div class="search-fields">
+          <div class="search-field">
+            <span class="search-field-icon">🏥</span>
+            <div style="flex:1">
+              <div class="search-field-label">Specijalnost</div>
+              <select id="searchSpec">
+                <option value="">Sve specijalnosti</option>
+                <option>Alergologija i klinička imunologija</option>
+                <option>Anesteziologija i reanimatologija</option>
+                <option>Audiologija</option>
+                <option>Dermatovenerologija</option>
+                <option>Endokrinologija i dijabetes</option>
+                <option>Fizikalna medicina i rehabilitacija</option>
+                <option>Gastroenterologija</option>
+                <option>Ginekologija i akušerstvo</option>
+                <option>Hematologija</option>
+                <option>Hepatologija</option>
+                <option>Hirurgija – abdominalna</option>
+                <option>Hirurgija – grudna</option>
+                <option>Hirurgija – plastična i rekonstruktivna</option>
+                <option>Hirurgija – vaskularna</option>
+                <option>Infektologija</option>
+                <option>Interna medicina</option>
+                <option>Kardiologija</option>
+                <option>Kardiohirurgija</option>
+                <option>Maksilofacijalna hirurgija</option>
+                <option>Nefrologija</option>
+                <option>Neonatologija</option>
+                <option>Neurohirurgija</option>
+                <option>Neurologija</option>
+                <option>Nuklearna medicina</option>
+                <option>Oftalmologija</option>
+                <option>Onkologija – radioterapija</option>
+                <option>Ortopedija i traumatologija</option>
+                <option>Otorinolaringologija</option>
+                <option>Palijativna medicina</option>
+                <option>Pedijatrija</option>
+                <option>Pedijatrijska hirurgija</option>
+                <option>Pneumoftiziologija</option>
+                <option>Psihijatrija</option>
+                <option>Psihologija – klinička</option>
+                <option>Radiologija</option>
+                <option>Reumatologija</option>
+                <option>Sportska medicina</option>
+                <option>Stomatologija – opšta</option>
+                <option>Stomatologija – ortodoncija</option>
+                <option>Stomatologija – oralna hirurgija</option>
+                <option>Transfuziologija</option>
+                <option>Urgentna medicina</option>
+                <option>Urologija</option>
+              </select>
+            </div>
+          </div>
+          <div class="search-field">
+            <span class="search-field-icon">📍</span>
+            <div style="flex:1">
+              <div class="search-field-label">Grad</div>
+              <select id="searchCity">
+                <option value="">Svi gradovi</option>
+                <optgroup label="Vojvodina">
+                  <option>Novi Sad</option>
+                  <option>Subotica</option>
+                  <option>Zrenjanin</option>
+                  <option>Pančevo</option>
+                  <option>Sombor</option>
+                  <option>Kikinda</option>
+                  <option>Vršac</option>
+                  <option>Ruma</option>
+                  <option>Sremska Mitrovica</option>
+                  <option>Bačka Palanka</option>
+                  <option>Bačka Topola</option>
+                  <option>Novi Bečej</option>
+                  <option>Inđija</option>
+                  <option>Stara Pazova</option>
+                  <option>Temerin</option>
+                  <option>Žabalj</option>
+                  <option>Ada</option>
+                  <option>Kanjiža</option>
+                  <option>Senta</option>
+                  <option>Apatin</option>
+                  <option>Odžaci</option>
+                  <option>Srbobran</option>
+                  <option>Bečej</option>
+                  <option>Titel</option>
+                </optgroup>
+                <optgroup label="Beograd i okolina">
+                  <option>Beograd</option>
+                  <option>Zemun</option>
+                  <option>Novi Beograd</option>
+                  <option>Surčin</option>
+                  <option>Obrenovac</option>
+                  <option>Lazarevac</option>
+                  <option>Barajevo</option>
+                  <option>Mladenovac</option>
+                  <option>Sopot</option>
+                  <option>Grocka</option>
+                  <option>Palilula</option>
+                  <option>Rakovica</option>
+                  <option>Čukarica</option>
+                  <option>Voždovac</option>
+                  <option>Zvezdara</option>
+                </optgroup>
+                <optgroup label="Centralna Srbija">
+                  <option>Kragujevac</option>
+                  <option>Niš</option>
+                  <option>Čačak</option>
+                  <option>Kraljevo</option>
+                  <option>Smederevo</option>
+                  <option>Kruševac</option>
+                  <option>Leskovac</option>
+                  <option>Valjevo</option>
+                  <option>Šabac</option>
+                  <option>Zaječar</option>
+                  <option>Jagodina</option>
+                  <option>Požarevac</option>
+                  <option>Novi Pazar</option>
+                  <option>Vranje</option>
+                  <option>Pirot</option>
+                  <option>Prokuplje</option>
+                  <option>Bor</option>
+                  <option>Negotin</option>
+                  <option>Kladovo</option>
+                  <option>Paraćin</option>
+                  <option>Ćuprija</option>
+                  <option>Despotovac</option>
+                  <option>Svetozarevo</option>
+                  <option>Aranđelovac</option>
+                  <option>Topola</option>
+                  <option>Rača</option>
+                  <option>Lapovo</option>
+                  <option>Batočina</option>
+                  <option>Knić</option>
+                  <option>Vrnjačka Banja</option>
+                  <option>Trstenik</option>
+                  <option>Aleksandrovac</option>
+                  <option>Brus</option>
+                  <option>Ražanj</option>
+                  <option>Surdulica</option>
+                  <option>Vladičin Han</option>
+                  <option>Lebane</option>
+                  <option>Medveđa</option>
+                  <option>Bojnik</option>
+                  <option>Babušnica</option>
+                  <option>Dimitrovgrad</option>
+                  <option>Bela Palanka</option>
+                  <option>Gadžin Han</option>
+                  <option>Doljevac</option>
+                  <option>Merošina</option>
+                  <option>Aleksinac</option>
+                  <option>Sokobanja</option>
+                  <option>Knjaževac</option>
+                  <option>Boljevac</option>
+                  <option>Majdanpek</option>
+                  <option>Kučevo</option>
+                  <option>Petrovac na Mlavi</option>
+                  <option>Žagubica</option>
+                  <option>Žabari</option>
+                  <option>Malo Crniće</option>
+                  <option>Golubac</option>
+                  <option>Velika Plana</option>
+                  <option>Smederevska Palanka</option>
+                  <option>Kosmaj</option>
+                  <option>Mladenovac</option>
+                  <option>Lajkovac</option>
+                  <option>Mionica</option>
+                  <option>Osečina</option>
+                  <option>Koceljeva</option>
+                  <option>Vladimirci</option>
+                  <option>Bogatić</option>
+                  <option>Krupanj</option>
+                  <option>Mali Zvornik</option>
+                  <option>Ljubovija</option>
+                  <option>Bajina Bašta</option>
+                  <option>Užice</option>
+                  <option>Požega</option>
+                  <option>Arilje</option>
+                  <option>Ivanjica</option>
+                  <option>Guča</option>
+                  <option>Lučani</option>
+                  <option>Gornji Milanovac</option>
+                  <option>Preljina</option>
+                  <option>Mladenovac</option>
+                  <option>Brusa</option>
+                  <option>Blace</option>
+                  <option>Kuršumlija</option>
+                  <option>Žitorađa</option>
+                  <option>Doljevac</option>
+                  <option>Svrljig</option>
+                  <option>Niška Banja</option>
+                  <option>Bujanovac</option>
+                  <option>Preševo</option>
+                  <option>Bosilegrad</option>
+                  <option>Surdulic</option>
+                </optgroup>
+                <optgroup label="Kosovo i Metohija">
+                  <option>Kosovska Mitrovica</option>
+                  <option>Leposavić</option>
+                  <option>Zvečan</option>
+                  <option>Zubin Potok</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+          <div class="search-field">
+            <span class="search-field-icon">📅</span>
+            <div style="flex:1">
+              <div class="search-field-label">Datum</div>
+              <input type="date" id="searchDate" min="">
+            </div>
+          </div>
+          <button class="search-btn" onclick="document.getElementById('doctors').scrollIntoView({behavior:'smooth'})">Pretraži lekare →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-number">1.240+</div><div class="stat-label">Registrovanih lekara</div></div>
+    <div class="stat"><div class="stat-number">48.000+</div><div class="stat-label">Zakazanih pregleda</div></div>
+    <div class="stat"><div class="stat-number">4.8 ⭐</div><div class="stat-label">Prosečna ocena</div></div>
+    <div class="stat"><div class="stat-number">98%</div><div class="stat-label">Zadovoljnih pacijenata</div></div>
+  </div>
+</div>
+
+<!-- SPECIALTIES -->
+<section id="specialties">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-tag">Specijalnosti</div>
+      <h2>Pronađite stručnjaka za vaše zdravlje</h2>
+      <p class="section-sub">Odaberite medicinsku oblast i zakažite pregled kod najboljeg specijaliste u vašem gradu</p>
+    </div>
+    <div class="specialties-grid" id="specialtiesGrid">
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Kardiologija')"><div class="specialty-icon">❤️</div><div class="specialty-name">Kardiologija</div><div class="specialty-count">84 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Dermatovenerologija')"><div class="specialty-icon">🔬</div><div class="specialty-name">Dermatovenerologija</div><div class="specialty-count">67 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Ortopedija i traumatologija')"><div class="specialty-icon">🦴</div><div class="specialty-name">Ortopedija i traumatologija</div><div class="specialty-count">53 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Neurologija')"><div class="specialty-icon">🧠</div><div class="specialty-name">Neurologija</div><div class="specialty-count">41 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Ginekologija i akušerstvo')"><div class="specialty-icon">🌸</div><div class="specialty-name">Ginekologija i akušerstvo</div><div class="specialty-count">78 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Oftalmologija')"><div class="specialty-icon">👁️</div><div class="specialty-name">Oftalmologija</div><div class="specialty-count">39 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Endokrinologija i dijabetes')"><div class="specialty-icon">⚗️</div><div class="specialty-name">Endokrinologija i dijabetes</div><div class="specialty-count">28 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Psihijatrija')"><div class="specialty-icon">🧩</div><div class="specialty-name">Psihijatrija</div><div class="specialty-count">46 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Gastroenterologija')"><div class="specialty-icon">🫀</div><div class="specialty-name">Gastroenterologija</div><div class="specialty-count">35 lekara</div></a>
+      <a class="specialty-card" href="#doctors" onclick="filterBySpec('Pedijatrija')"><div class="specialty-icon">👶</div><div class="specialty-name">Pedijatrija</div><div class="specialty-count">92 lekara</div></a>
+
+      <!-- hidden by default, shown on expand -->
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Urologija')"><div class="specialty-icon">🔵</div><div class="specialty-name">Urologija</div><div class="specialty-count">31 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Reumatologija')"><div class="specialty-icon">🦾</div><div class="specialty-name">Reumatologija</div><div class="specialty-count">22 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Otorinolaringologija')"><div class="specialty-icon">👂</div><div class="specialty-name">Otorinolaringologija</div><div class="specialty-count">44 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Pneumoftiziologija')"><div class="specialty-icon">🫁</div><div class="specialty-name">Pneumoftiziologija</div><div class="specialty-count">27 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hematologija')"><div class="specialty-icon">🩸</div><div class="specialty-name">Hematologija</div><div class="specialty-count">18 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Nefrologija')"><div class="specialty-icon">🫘</div><div class="specialty-name">Nefrologija</div><div class="specialty-count">19 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Infektologija')"><div class="specialty-icon">🦠</div><div class="specialty-name">Infektologija</div><div class="specialty-count">24 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Radiologija')"><div class="specialty-icon">🩻</div><div class="specialty-name">Radiologija</div><div class="specialty-count">38 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Interna medicina')"><div class="specialty-icon">🏥</div><div class="specialty-name">Interna medicina</div><div class="specialty-count">105 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hirurgija – abdominalna')"><div class="specialty-icon">🔪</div><div class="specialty-name">Hirurgija – abdominalna</div><div class="specialty-count">29 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hirurgija – vaskularna')"><div class="specialty-icon">🩹</div><div class="specialty-name">Hirurgija – vaskularna</div><div class="specialty-count">16 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hirurgija – plastična i rekonstruktivna')"><div class="specialty-icon">✨</div><div class="specialty-name">Plastična hirurgija</div><div class="specialty-count">21 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Neurohirurgija')"><div class="specialty-icon">🧬</div><div class="specialty-name">Neurohirurgija</div><div class="specialty-count">12 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Kardiohirurgija')"><div class="specialty-icon">💉</div><div class="specialty-name">Kardiohirurgija</div><div class="specialty-count">9 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Onkologija – radioterapija')"><div class="specialty-icon">⚡</div><div class="specialty-name">Onkologija</div><div class="specialty-count">33 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Stomatologija – opšta')"><div class="specialty-icon">🦷</div><div class="specialty-name">Stomatologija</div><div class="specialty-count">148 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Stomatologija – ortodoncija')"><div class="specialty-icon">😁</div><div class="specialty-name">Ortodoncija</div><div class="specialty-count">52 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Stomatologija – oralna hirurgija')"><div class="specialty-icon">🪥</div><div class="specialty-name">Oralna hirurgija</div><div class="specialty-count">31 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Fizikalna medicina i rehabilitacija')"><div class="specialty-icon">🏃</div><div class="specialty-name">Fizikalna medicina</div><div class="specialty-count">37 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Sportska medicina')"><div class="specialty-icon">⚽</div><div class="specialty-name">Sportska medicina</div><div class="specialty-count">14 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Alergologija i klinička imunologija')"><div class="specialty-icon">🌿</div><div class="specialty-name">Alergologija</div><div class="specialty-count">26 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Psihologija – klinička')"><div class="specialty-icon">💬</div><div class="specialty-name">Klinička psihologija</div><div class="specialty-count">58 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Neonatologija')"><div class="specialty-icon">🍼</div><div class="specialty-name">Neonatologija</div><div class="specialty-count">11 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Pedijatrijska hirurgija')"><div class="specialty-icon">🧸</div><div class="specialty-name">Pedijatrijska hirurgija</div><div class="specialty-count">8 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Audiologija')"><div class="specialty-icon">🔊</div><div class="specialty-name">Audiologija</div><div class="specialty-count">15 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hepatologija')"><div class="specialty-icon">🫀</div><div class="specialty-name">Hepatologija</div><div class="specialty-count">17 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Nuklearna medicina')"><div class="specialty-icon">☢️</div><div class="specialty-name">Nuklearna medicina</div><div class="specialty-count">7 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Maksilofacijalna hirurgija')"><div class="specialty-icon">🦷</div><div class="specialty-name">Maksilofacijalna hirurgija</div><div class="specialty-count">10 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Hirurgija – grudna')"><div class="specialty-icon">🫁</div><div class="specialty-name">Grudna hirurgija</div><div class="specialty-count">13 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Palijativna medicina')"><div class="specialty-icon">🕊️</div><div class="specialty-name">Palijativna medicina</div><div class="specialty-count">9 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Urgentna medicina')"><div class="specialty-icon">🚨</div><div class="specialty-name">Urgentna medicina</div><div class="specialty-count">22 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Medicinska genetika')"><div class="specialty-icon">🧬</div><div class="specialty-name">Medicinska genetika</div><div class="specialty-count">6 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Transfuziologija')"><div class="specialty-icon">🩺</div><div class="specialty-name">Transfuziologija</div><div class="specialty-count">8 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Stomatologija – parodontologija')"><div class="specialty-icon">🦴</div><div class="specialty-name">Parodontologija</div><div class="specialty-count">27 lekara</div></a>
+      <a class="specialty-card specialty-card-hidden" href="#doctors" onclick="filterBySpec('Stomatologija – protetika')"><div class="specialty-icon">🦷</div><div class="specialty-name">Stomatološka protetika</div><div class="specialty-count">34 lekara</div></a>
+    </div>
+    <button class="show-more-btn" id="showMoreBtn" onclick="toggleSpecialties()">Prikaži sve specijalnosti (44) ↓</button>
+  </div>
+</section>
+
+<!-- DOCTORS -->
+<section id="doctors" style="background: linear-gradient(180deg,white 0%,var(--off-white) 100%);">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-tag">Naši lekari</div>
+      <h2>Istaknuti specijalisti</h2>
+      <p class="section-sub">Svi lekari su provereni i licencirani od strane Lekarske komore Srbije</p>
+    </div>
+    <div class="doctors-grid" id="doctorsGrid">
+
+      <div class="doctor-card">
+        <div class="doctor-card-top">
+          <div class="doctor-avatar">M</div>
+          <div class="doctor-info">
+            <h3>Dr. Ana Marković</h3>
+            <div class="doctor-specialty">Kardiologija</div>
+            <div class="doctor-rating">
+              <span class="stars">★★★★★</span>
+              <span class="rating-num">4.9</span>
+              <span class="rating-count">(127 ocena)</span>
+            </div>
+          </div>
+        </div>
+        <div class="doctor-card-body">
+          <div class="services-list">
+            <span class="service-tag">EKG pregled</span>
+            <span class="service-tag">Ehokardiografija</span>
+            <span class="service-tag">Holter</span>
+            <span class="service-tag more">+2</span>
+          </div>
+          <div class="doctor-meta">
+            <div class="doctor-meta-item">📍 <span>Beograd</span></div>
+            <div class="doctor-meta-item">⏱ <span>30–60 min</span></div>
+            <div class="doctor-meta-item">💰 <span>od 3.500 din</span></div>
+          </div>
+          <button class="book-btn" onclick="openDoctorProfile('Dr. Ana Marković', 'Kardiologija', ['EKG pregled – 30 min – 3.500 din','Ehokardiografija – 60 min – 6.000 din','Holter monitoring – 45 min – 4.500 din'], '4.9', 'Beograd')">Pogledaj profil & zakaži</button>
+        </div>
+      </div>
+
+      <div class="doctor-card">
+        <div class="doctor-card-top">
+          <div class="doctor-avatar" style="background:linear-gradient(135deg,#0ea472,#06b6d4)">P</div>
+          <div class="doctor-info">
+            <h3>Dr. Miloš Petrović</h3>
+            <div class="doctor-specialty">Dermatologija</div>
+            <div class="doctor-rating">
+              <span class="stars">★★★★★</span>
+              <span class="rating-num">4.8</span>
+              <span class="rating-count">(89 ocena)</span>
+            </div>
+          </div>
+        </div>
+        <div class="doctor-card-body">
+          <div class="services-list">
+            <span class="service-tag">Pregled kože</span>
+            <span class="service-tag">Dermatoskopija</span>
+            <span class="service-tag">Biopsija</span>
+          </div>
+          <div class="doctor-meta">
+            <div class="doctor-meta-item">📍 <span>Novi Sad</span></div>
+            <div class="doctor-meta-item">⏱ <span>20–45 min</span></div>
+            <div class="doctor-meta-item">💰 <span>od 2.800 din</span></div>
+          </div>
+          <button class="book-btn" onclick="openDoctorProfile('Dr. Miloš Petrović', 'Dermatologija', ['Pregled kože – 20 min – 2.800 din','Dermatoskopija – 30 min – 3.500 din','Biopsija – 45 min – 5.000 din'], '4.8', 'Novi Sad')">Pogledaj profil & zakaži</button>
+        </div>
+      </div>
+
+      <div class="doctor-card">
+        <div class="doctor-card-top">
+          <div class="doctor-avatar" style="background:linear-gradient(135deg,#7c3aed,#1a6fb5)">N</div>
+          <div class="doctor-info">
+            <h3>Dr. Jelena Nikolić</h3>
+            <div class="doctor-specialty">Neurologija</div>
+            <div class="doctor-rating">
+              <span class="stars">★★★★⭐</span>
+              <span class="rating-num">4.7</span>
+              <span class="rating-count">(64 ocena)</span>
+            </div>
+          </div>
+        </div>
+        <div class="doctor-card-body">
+          <div class="services-list">
+            <span class="service-tag">Neurološki pregled</span>
+            <span class="service-tag">EEG</span>
+            <span class="service-tag more">+3</span>
+          </div>
+          <div class="doctor-meta">
+            <div class="doctor-meta-item">📍 <span>Beograd</span></div>
+            <div class="doctor-meta-item">⏱ <span>45–90 min</span></div>
+            <div class="doctor-meta-item">💰 <span>od 4.200 din</span></div>
+          </div>
+          <button class="book-btn" onclick="openDoctorProfile('Dr. Jelena Nikolić', 'Neurologija', ['Neurološki pregled – 45 min – 4.200 din','EEG – 60 min – 5.500 din','EMG – 90 min – 7.000 din'], '4.7', 'Beograd')">Pogledaj profil & zakaži</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="text-align:center;margin-top:40px;">
+      <button class="btn-secondary" onclick="openRegister('patient')" style="padding:14px 32px;font-size:1rem;">Prikaži sve lekare (1.240+) →</button>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how-it-works">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-tag">Proces</div>
+      <h2>Kako funkcioniše PrivatniLekar?</h2>
+      <p class="section-sub">Zakazivanje pregleda nikada nije bilo jednostavnije – za pacijente i lekare</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:20px">
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;margin-bottom:28px;color:var(--primary)">Za pacijente</h3>
+        <div class="steps-grid" style="grid-template-columns:1fr;gap:16px">
+          <div class="step-card" style="display:flex;align-items:flex-start;gap:16px;text-align:left;padding:20px">
+            <div class="step-number" style="flex-shrink:0">1</div>
+            <div>
+              <div class="step-title">Pretražite lekare</div>
+              <div class="step-desc">Filtrirajte po specijalnosti, gradu i dostupnom terminu. Pogledajte profile, ocene i usluge.</div>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex;align-items:flex-start;gap:16px;text-align:left;padding:20px">
+            <div class="step-number" style="flex-shrink:0">2</div>
+            <div>
+              <div class="step-title">Odaberite termin</div>
+              <div class="step-desc">Izaberite uslugu i slobodan termin koji vam odgovara. Sve je prikazano u realnom vremenu.</div>
+            </div>
+          </div>
+          <div class="step-card" style="display:flex;align-items:flex-start;gap:16px;text-align:left;padding:20px">
+            <div class="step-number" style="flex-shrink:0">3</div>
+            <div>
+              <div class="step-title">Primite potvrdu</div>
+              <div class="step-desc">Lekar potvrđuje termin, a vi dobijate obaveštenje putem SMS-a i emaila. Dolazite na pregled!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;margin-bottom:28px;color:var(--accent)">Za lekare</h3>
+        <div class="notification-demo">
+          <div class="notif-header"><span class="notif-dot"></span> Centar obaveštenja – Dr. Ana Marković</div>
+          <div class="notif-item new">
+            <div class="notif-icon-wrap blue">📅</div>
+            <div class="notif-content">
+              <p>Nova zahtev za termin</p>
+              <span>Jovan Jovanović • EKG pregled • 15. jul, 10:00h</span>
+            </div>
+          </div>
+          <div class="notif-item new">
+            <div class="notif-icon-wrap blue">🆕</div>
+            <div class="notif-content">
+              <p>Novi pacijent se registrovao</p>
+              <span>Marija Popović • želi termin ove nedelje</span>
+            </div>
+          </div>
+          <div class="notif-item confirmed">
+            <div class="notif-icon-wrap green">✅</div>
+            <div class="notif-content">
+              <p>Termin potvrđen – pacijent obavešten</p>
+              <span>Ana Ilić • Holter • 12. jul, 14:30h</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button onclick="showConfirmDemo()" style="flex:1;background:var(--primary);color:white;border:none;padding:10px;border-radius:9px;font-family:inherit;font-weight:600;cursor:pointer;font-size:0.87rem">✓ Potvrdi termin</button>
+            <button style="flex:1;background:var(--gray-50);color:var(--gray-700);border:1px solid var(--gray-100);padding:10px;border-radius:9px;font-family:inherit;font-weight:600;cursor:pointer;font-size:0.87rem">Predloži drugi</button>
+          </div>
+          <div id="confirmMsg" style="display:none;text-align:center;padding:12px;background:#ecfdf5;border-radius:9px;margin-top:10px;color:var(--success);font-weight:600;font-size:0.88rem">✅ Termin potvrđen! Pacijent je obavešten.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR DOCTORS CTA -->
+<section style="background:linear-gradient(135deg,var(--primary) 0%,#0d5a9e 100%);">
+  <div class="section-inner" style="text-align:center">
+    <h2 style="color:white;margin-bottom:16px">Vi ste lekar? Pridružite se PrivatniLekar platformi</h2>
+    <p style="color:rgba(255,255,255,0.8);max-width:560px;margin:0 auto 32px;font-size:1.05rem">Kreirajte vaš profil, dodajte usluge iz naše baze medicinskih oblasti i počnite da primate zakazivanja odmah.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <button onclick="openRegister('doctor')" style="background:white;color:var(--primary);border:none;padding:14px 32px;border-radius:12px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Registrujte se kao lekar →</button>
+      <button style="background:transparent;color:white;border:2px solid rgba(255,255,255,0.4);padding:14px 32px;border-radius:12px;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer" onclick="alert('Kontaktirajte nas na: info@privatnilekar.rs')">Kontaktirajte nas</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <svg width="36" height="36" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="ftTube" x1="4" y1="4" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#3aa0e0"/><stop offset="100%" stop-color="#00caf0"/>
+            </linearGradient>
+          </defs>
+          <rect width="54" height="54" rx="14" fill="#0d2d4a"/>
+          <circle cx="12" cy="12" r="3.5" fill="url(#ftTube)"/>
+          <circle cx="42" cy="12" r="3.5" fill="url(#ftTube)"/>
+          <path d="M12 12 Q27 3 42 12" stroke="url(#ftTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <path d="M12 15.5 C12 15.5 11 29 17 37" stroke="url(#ftTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <path d="M42 15.5 C42 15.5 43 29 37 37" stroke="url(#ftTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <path d="M17 37 Q27 49 37 37" stroke="url(#ftTube)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <circle cx="27" cy="28" r="6.5" fill="#e05a2b"/>
+          <circle cx="27" cy="28" r="3.5" fill="white" opacity="0.35"/>
+        </svg>
+        <span class="footer-logo-text">Privatni<strong style="font-weight:700">Lekar</strong></span>
+      </div>
+      <p>Vodеća platforma za zakazivanje lekarskih pregleda u Srbiji. Brzo, sigurno i pouzdano.</p>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <span style="font-size:1.2rem;cursor:pointer" title="Facebook">📘</span>
+        <span style="font-size:1.2rem;cursor:pointer" title="Instagram">📷</span>
+        <span style="font-size:1.2rem;cursor:pointer" title="LinkedIn">💼</span>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Za pacijente</h4>
+      <a href="#">Kako funkcioniše</a>
+      <a href="#">Pretraga lekara</a>
+      <a href="#">Moji termini</a>
+      <a href="#">Recenzije</a>
+    </div>
+    <div class="footer-col">
+      <h4>Za lekare</h4>
+      <a href="#">Registracija</a>
+      <a href="#">Upravljanje kalendarom</a>
+      <a href="#">Cenovnik</a>
+      <a href="#">Podrška</a>
+    </div>
+    <div class="footer-col">
+      <h4>PrivatniLekar</h4>
+      <a href="#">O nama</a>
+      <a href="#">Blog</a>
+      <a href="#">Kontakt</a>
+      <a href="#">Politika privatnosti</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 PrivatniLekar d.o.o. Sva prava zadržana.</span>
+    <span>Zakazivanje pregleda u Srbiji | Beograd, Srbija</span>
+  </div>
+</footer>
+
+<!-- BOOKING MODAL -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalDoctorName">Zakaži pregled</h3>
+      <button class="modal-close" onclick="closeModal('bookingModal')">✕</button>
+    </div>
+    <div class="modal-body" id="bookingBody">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="registerTitle">Registracija</h3>
+      <button class="modal-close" onclick="closeModal('registerModal')">✕</button>
+    </div>
+    <div class="modal-body" id="registerBody"></div>
+  </div>
+</div>
+
+<script>
+// DATA
+const specialties = [
+  'Alergologija i klinička imunologija','Anesteziologija i reanimatologija',
+  'Audiologija','Dermatovenerologija','Endokrinologija i dijabetes',
+  'Fizikalna medicina i rehabilitacija','Gastroenterologija','Ginekologija i akušerstvo',
+  'Hematologija','Hepatologija','Hirurgija – abdominalna','Hirurgija – grudna',
+  'Hirurgija – plastična i rekonstruktivna','Hirurgija – vaskularna',
+  'Infektologija','Interna medicina','Kardiologija','Kardiohirurgija',
+  'Klinička farmakologija','Maksilofacijalna hirurgija','Medicinska biohemija',
+  'Medicinska genetika','Medicinska onkologija','Mikrobiologija',
+  'Nefrologija','Neonatologija','Neurohirurgija','Neurologija',
+  'Nuklearna medicina','Oftalmologija','Onkologija – radioterapija',
+  'Ortopedija i traumatologija','Otorinolaringologija','Palijativna medicina',
+  'Patologija','Pedijatrija','Pedijatrijska hirurgija','Pneumoftiziologija',
+  'Psihijatrija','Psihologija – klinička','Radiologija','Reumatologija',
+  'Sportska medicina','Stomatologija – opšta','Stomatologija – ortodoncija',
+  'Stomatologija – oralna hirurgija','Stomatologija – parodontologija',
+  'Stomatologija – protetika','Transfuziologija','Urgentna medicina',
+  'Urologija'
+];
+
+// Set today as min date for search
+document.getElementById('searchDate').min = new Date().toISOString().split('T')[0];
+document.getElementById('searchDate').value = new Date().toISOString().split('T')[0];
+
+// NOTIFICATIONS
+function toggleNotifications() {
+  const panel = document.getElementById('notifPanel');
+  panel.classList.toggle('show');
+}
+
+function markRead(el) {
+  el.classList.remove('unread');
+  updateNotifCount();
+}
+
+function updateNotifCount() {
+  const unread = document.querySelectorAll('.notif-panel-item.unread').length;
+  document.getElementById('notifCount').textContent = unread;
+  if (unread === 0) document.getElementById('notifDot').style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#notifPanel') && !e.target.closest('.notif-btn')) {
+    document.getElementById('notifPanel').classList.remove('show');
+  }
+});
+
+// CONFIRM DEMO
+function showConfirmDemo() {
+  document.getElementById('confirmMsg').style.display = 'block';
+  // Add to notifications
+  addNotification('✅', 'Termin potvrđen – pacijent obavešten', 'Jovan Jovanović • EKG pregled • 15. jul, 10:00h', 'confirmed');
+}
+
+function addNotification(icon, title, sub, type) {
+  const list = document.getElementById('notifList');
+  const item = document.createElement('div');
+  item.className = 'notif-panel-item unread';
+  item.innerHTML = `<div class="ni-icon">${icon}</div><div class="ni-content"><p>${title}</p><span>${sub}</span></div>`;
+  item.onclick = () => { item.classList.remove('unread'); updateNotifCount(); };
+  list.prepend(item);
+  document.getElementById('notifDot').style.display = '';
+  updateNotifCount();
+}
+
+// BOOKING
+let selectedTime = null;
+let selectedService = null;
+let currentDoctor = null;
+
+function toggleSpecialties() {
+  const hidden = document.querySelectorAll('.specialty-card-hidden');
+  const btn = document.getElementById('showMoreBtn');
+  const expanded = btn.dataset.expanded === 'true';
+  hidden.forEach(el => el.classList.toggle('specialty-card-hidden', expanded));
+  btn.dataset.expanded = expanded ? 'false' : 'true';
+  btn.textContent = expanded ? 'Prikaži sve specijalnosti (44) ↓' : 'Sakrij ↑';
+}
+
+function filterBySpec(spec) {
+  document.getElementById('searchSpec').value = spec;
+}
+
+function openBooking(doctorName, specialty, services) {
+  currentDoctor = { name: doctorName, specialty };
+  selectedTime = null; selectedService = null;
+  document.getElementById('modalDoctorName').textContent = `Zakaži kod ${doctorName}`;
+  
+  const times = ['09:00','09:30','10:00','10:30','11:00','11:30','14:00','14:30','15:00','15:30','16:00'];
+  const disabledTimes = ['09:30','11:00','14:30'];
+  
+  const serviceItems = services.map((s, i) => {
+    const [name, dur, price] = s.split(' – ');
+    return `<div class="service-select-item" id="svc_${i}" onclick="selectService(${i},'${name}')">
+      <div><div class="service-name">${name}</div><div class="service-duration">${dur}</div></div>
+      <div class="service-price">${price}</div>
+    </div>`;
+  }).join('');
+
+  const timeSlots = times.map(t => {
+    const dis = disabledTimes.includes(t);
+    return `<div class="time-slot ${dis?'disabled':''}" id="ts_${t}" onclick="${dis?'':'selectTime(\''+t+'\')'}"> ${t}</div>`;
+  }).join('');
+
+  const today = new Date().toISOString().split('T')[0];
+  
+  document.getElementById('bookingBody').innerHTML = `
+    <div class="form-group">
+      <div class="form-label">Odaberite uslugu</div>
+      <div class="service-select-list">${serviceItems}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Datum</label>
+        <input class="form-input" type="date" id="bookDate" min="${today}" value="${today}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ime i prezime</label>
+        <input class="form-input" type="text" id="patientName" placeholder="Vaše ime">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dostupni termini</label>
+      <div class="time-slots">${timeSlots}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Napomena (opciono)</label>
+      <input class="form-input" type="text" id="bookNote" placeholder="Simptomi ili napomena za lekara…">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email za potvrdu</label>
+      <input class="form-input" type="email" id="bookEmail" placeholder="vas@email.com">
+    </div>
+    <button class="submit-btn" onclick="submitBooking()">📅 Zakaži pregled</button>
+  `;
+  openModal('bookingModal');
+}
+
+function selectService(idx, name) {
+  selectedService = name;
+  document.querySelectorAll('.service-select-item').forEach((el,i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+}
+
+function selectTime(t) {
+  selectedTime = t;
+  document.querySelectorAll('.time-slot:not(.disabled)').forEach(el => el.classList.remove('selected'));
+  document.getElementById('ts_'+t).classList.add('selected');
+}
+
+function submitBooking() {
+  const name = document.getElementById('patientName')?.value;
+  const date = document.getElementById('bookDate')?.value;
+  const email = document.getElementById('bookEmail')?.value;
+  
+  if (!selectedService) { alert('Molimo odaberite uslugu.'); return; }
+  if (!selectedTime) { alert('Molimo odaberite termin.'); return; }
+  if (!name) { alert('Molimo unesite vaše ime.'); return; }
+  
+  const dateFormatted = new Date(date).toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
+  
+  document.getElementById('bookingBody').innerHTML = `
+    <div class="success-state">
+      <div class="success-icon">✅</div>
+      <h3>Zahtev je poslat!</h3>
+      <p>Vaš zahtev za termin je uspešno prosleđen. Lekar će potvrditi termin u roku od 1–2 sata.</p>
+      <div class="confirm-details">
+        <div class="confirm-row"><span class="label">Lekar</span><span class="value">${currentDoctor.name}</span></div>
+        <div class="confirm-row"><span class="label">Specijalnost</span><span class="value">${currentDoctor.specialty}</span></div>
+        <div class="confirm-row"><span class="label">Usluga</span><span class="value">${selectedService}</span></div>
+        <div class="confirm-row"><span class="label">Datum</span><span class="value">${dateFormatted}</span></div>
+        <div class="confirm-row"><span class="label">Vreme</span><span class="value">${selectedTime}h</span></div>
+        <div class="confirm-row"><span class="label">Pacijent</span><span class="value">${name}</span></div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--gray-300)">📧 Potvrda će biti poslata na ${email || 'vaš email'}</p>
+      <button class="submit-btn" onclick="closeModal('bookingModal')" style="margin-top:16px">Zatvori</button>
+    </div>
+  `;
+  // add notification
+  setTimeout(() => {
+    addNotification('📅', `Zahtev za pregled – ${currentDoctor.name}`, `${selectedService} • ${new Date(date).toLocaleDateString('sr-RS',{day:'numeric',month:'short'})} u ${selectedTime}h`, 'new');
+  }, 500);
+}
+
+// REGISTER
+function openRegister(type) {
+  const isDoctor = type === 'doctor';
+  document.getElementById('registerTitle').textContent = isDoctor ? 'Registracija – Lekar' : 'Registracija – Pacijent';
+  
+  const specOptions = specialties.map(s => `<option>${s}</option>`).join('');
+  
+  if (isDoctor) {
+    document.getElementById('registerBody').innerHTML = `
+      <div class="tabs">
+        <button class="tab active" onclick="showTab(this,'tabDoc')">Podaci o lekaru</button>
+        <button class="tab" onclick="showTab(this,'tabServices')">Usluge</button>
+        <button class="tab" onclick="showTab(this,'tabSchedule')">Radno vreme</button>
+      </div>
+      <div id="tabDoc" class="profile-panel active">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ime</label><input class="form-input" placeholder="npr. Ana"></div>
+          <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" placeholder="npr. Marković"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" type="email" placeholder="lekar@email.com"></div>
+        <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" type="password" placeholder="Minimalno 8 znakova"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Specijalnost</label>
+            <select class="form-input"><option>Odaberite…</option>${specOptions}</select>
+          </div>
+          <div class="form-group"><label class="form-label">Grad</label>
+            <select class="form-input"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Broj licence Lekarske komore Srbije</label><input class="form-input" placeholder="npr. LKS-12345"></div>
+        <button class="submit-btn" onclick="alert('Registracija uspešna! Profil se kreira...');closeModal('registerModal')">Kreiranje profila →</button>
+      </div>
+      <div id="tabServices" class="profile-panel">
+        <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:16px">Dodajte usluge koje nudite. Svaka usluga ima naziv, trajanje i cenu.</p>
+        <div id="servicesList">
+          <div class="service-select-item" style="cursor:default">
+            <div><div class="service-name">Kardiološki pregled</div><div class="service-duration">45 min</div></div>
+            <div class="service-price">4.500 din</div>
+          </div>
+        </div>
+        <button onclick="addServiceField()" style="width:100%;background:var(--gray-50);border:1.5px dashed var(--gray-300);padding:12px;border-radius:10px;font-family:inherit;color:var(--gray-500);cursor:pointer;margin-top:10px;font-size:0.9rem">+ Dodaj uslugu</button>
+        <button class="submit-btn" style="margin-top:12px" onclick="alert('Usluge sačuvane!');closeModal('registerModal')">Sačuvaj usluge</button>
+      </div>
+      <div id="tabSchedule" class="profile-panel">
+        <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:16px">Postavite vaše radno vreme za svaki dan u nedelji.</p>
+        ${['Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota'].map(d=>`
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100)">
+          <span style="width:100px;font-size:0.9rem;font-weight:500">${d}</span>
+          <input type="time" class="form-input" value="09:00" style="width:auto;flex:1">
+          <span style="color:var(--gray-300)">–</span>
+          <input type="time" class="form-input" value="17:00" style="width:auto;flex:1">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--gray-500);cursor:pointer"><input type="checkbox" checked> Radni</label>
+        </div>`).join('')}
+        <button class="submit-btn" style="margin-top:16px" onclick="alert('Radno vreme sačuvano!');closeModal('registerModal')">Sačuvaj raspored</button>
+      </div>
+    `;
+  } else {
+    document.getElementById('registerBody').innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ime</label><input class="form-input" placeholder="Vaše ime"></div>
+        <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" placeholder="Prezime"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email adresa</label><input class="form-input" type="email" placeholder="vas@email.com"></div>
+      <div class="form-group"><label class="form-label">Broj telefona</label><input class="form-input" type="tel" placeholder="+381 6x xxx xxxx"></div>
+      <div class="form-group"><label class="form-label">Lozinka</label><input class="form-input" type="password" placeholder="Minimalno 8 znakova"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Datum rođenja</label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Grad</label>
+          <select class="form-input"><option>Beograd</option><option>Novi Sad</option><option>Niš</option><option>Kragujevac</option><option>Subotica</option><option>Zrenjanin</option><option>Pančevo</option><option>Sombor</option><option>Kikinda</option><option>Vršac</option><option>Sremska Mitrovica</option><option>Čačak</option><option>Kraljevo</option><option>Smederevo</option><option>Kruševac</option><option>Leskovac</option><option>Valjevo</option><option>Šabac</option><option>Zaječar</option><option>Jagodina</option><option>Požarevac</option><option>Novi Pazar</option><option>Vranje</option><option>Pirot</option><option>Prokuplje</option><option>Bor</option><option>Negotin</option><option>Paraćin</option><option>Ćuprija</option><option>Aranđelovac</option><option>Vrnjačka Banja</option><option>Trstenik</option><option>Aleksinac</option><option>Sokobanja</option><option>Knjaževac</option><option>Užice</option><option>Požega</option><option>Arilje</option><option>Ivanjica</option><option>Gornji Milanovac</option><option>Bajina Bašta</option><option>Inđija</option><option>Stara Pazova</option><option>Ruma</option><option>Bačka Palanka</option><option>Bečej</option><option>Senta</option><option>Kanjiža</option><option>Apatin</option><option>Obrenovac</option><option>Lazarevac</option><option>Mladenovac</option><option>Kosovska Mitrovica</option><option>Leposavić</option></select>
+        </div>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.83rem;color:var(--gray-500);margin-bottom:16px;cursor:pointer">
+        <input type="checkbox" style="margin-top:2px"> Prihvatam <a href="#" style="color:var(--primary)">Uslove korišćenja</a> i <a href="#" style="color:var(--primary)">Politiku privatnosti</a> platforme PrivatniLekar
+      </label>
+      <button class="submit-btn" onclick="alert('Dobrodošli na PrivatniLekar! Proverite email za potvrdu naloga.');closeModal('registerModal')">Kreiraj nalog →</button>
+      <p style="text-align:center;font-size:0.85rem;color:var(--gray-500);margin-top:14px">Već imate nalog? <a href="#" style="color:var(--primary);font-weight:600">Prijavite se</a></p>
+    `;
+  }
+  openModal('registerModal');
+}
+
+function addServiceField() {
+  const list = document.getElementById('servicesList');
+  const div = document.createElement('div');
+  div.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:8px;align-items:center';
+  div.innerHTML = `<input class="form-input" placeholder="Naziv usluge" style="margin:0"><input class="form-input" type="number" placeholder="min" style="width:70px;margin:0"><input class="form-input" type="number" placeholder="din" style="width:90px;margin:0">`;
+  list.appendChild(div);
+}
+
+// TABS
+function showTab(btn, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.profile-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// MODAL UTILS
+function openModal(id) { document.getElementById(id).classList.add('active'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow=''; }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) closeModal(m.id); });
+});
+function showHome() { window.scrollTo({top:0,behavior:'smooth'}); }
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ── MAP FUNCTIONALITY ──────────────────────────────────────────────────────
+
+// Store saved location per doctor session
+const doctorLocations = {
+  'Dr. Ana Marković':   { lat: 44.8095, lng: 20.4585, address: 'Bulevar kralja Aleksandra 12, Beograd' },
+  'Dr. Miloš Petrović': { lat: 45.2671, lng: 19.8335, address: 'Bulevar Mihajla Pupina 6, Novi Sad' },
+  'Dr. Jelena Nikolić': { lat: 44.8025, lng: 20.4657, address: 'Vojvode Stepe 44, Beograd' },
+};
+
+let pickerMap = null;
+let pickerMarker = null;
+let pickerCoords = null;
+
+function initPickerMap() {
+  // Destroy any previous map instance
+  if (pickerMap) { pickerMap.remove(); pickerMap = null; pickerMarker = null; }
+
+  const el = document.getElementById('pickerMapEl');
+  if (!el) return;
+
+  pickerMap = L.map('pickerMapEl', { zoomControl: true }).setView([44.8177, 20.4569], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(pickerMap);
+
+  // Custom red medical pin icon
+  const pinIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:32px;height:32px;background:linear-gradient(135deg,#1a6fb5,#00b4d8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 3px 12px rgba(26,111,181,0.4)"></div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -36]
+  });
+
+  pickerMap.on('click', async (e) => {
+    const { lat, lng } = e.latlng;
+    pickerCoords = { lat, lng };
+    if (pickerMarker) pickerMarker.setLatLng([lat, lng]);
+    else pickerMarker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(pickerMap);
+    pickerMarker.on('dragend', async (ev) => {
+      const p = ev.target.getLatLng();
+      pickerCoords = { lat: p.lat, lng: p.lng };
+      await reverseGeocode(p.lat, p.lng);
+    });
+    await reverseGeocode(lat, lng);
+  });
+
+  // Fix tile render after tab switch
+  setTimeout(() => pickerMap.invalidateSize(), 100);
+}
+
+async function reverseGeocode(lat, lng) {
+  const coordEl = document.getElementById('pickerCoordsText');
+  const addrEl = document.getElementById('pickerAddress');
+  if (coordEl) coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=sr`);
+    const data = await res.json();
+    const addr = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    if (addrEl) addrEl.value = addr;
+    if (coordEl) coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    // store for saving
+    pickerCoords = { lat, lng, address: addr };
+  } catch {
+    if (addrEl) addrEl.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
+}
+
+async function searchAddress() {
+  const q = document.getElementById('mapSearchInput')?.value?.trim();
+  if (!q) return;
+  const btn = document.querySelector('.map-search-row button');
+  if (btn) btn.textContent = '⏳';
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', Srbija')}&limit=1&accept-language=sr`);
+    const data = await res.json();
+    if (data.length) {
+      const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+      pickerMap.setView([lat, lng], 16);
+      // simulate click
+      pickerMap.fire('click', { latlng: L.latLng(lat, lng) });
+    } else {
+      alert('Adresa nije pronađena. Pokušajte sa preciznijim unosom.');
+    }
+  } catch { alert('Greška pri pretrazi. Proverite internet konekciju.'); }
+  finally { if (btn) btn.textContent = '🔍'; }
+}
+
+function saveLocation() {
+  if (!pickerCoords) { alert('Molimo kliknite na mapu da postavite lokaciju.'); return; }
+  // In a real app this would be saved to backend
+  const msg = document.getElementById('saveLocationMsg');
+  if (msg) {
+    msg.style.display = 'flex';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }
+}
+
+// ── PROFILE MAP DISPLAY ────────────────────────────────────────────────────
+
+let profileMaps = {}; // cache rendered maps by doctor name
+
+function openDoctorProfile(name, specialty, services, rating, city) {
+  const loc = doctorLocations[name] || { lat: 44.8177, lng: 20.4569, address: city || 'Beograd, Srbija' };
+
+  document.getElementById('modalDoctorName').textContent = name;
+  document.getElementById('bookingBody').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="profile-avatar-lg" style="background:linear-gradient(135deg,var(--primary),var(--accent))">${name.split(' ').pop()[0]}</div>
+      <div style="font-size:1.05rem;font-weight:600;color:var(--gray-900)">${name}</div>
+      <div style="color:var(--primary);font-size:0.9rem;margin:4px 0">${specialty}</div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:6px">
+        <span style="color:#f59e0b;font-size:1rem">★★★★★</span>
+        <span style="font-weight:700;font-size:0.95rem">${rating}</span>
+      </div>
+    </div>
+
+    <div class="form-label" style="margin-bottom:6px">📍 Lokacija ordinacije</div>
+    <div class="profile-map-wrap">
+      <div id="profileMapEl_${name.replace(/\s/g,'_')}" style="height:220px;width:100%"></div>
+      <div class="profile-address-row">
+        <span>📍</span>
+        <span id="profileAddrText">${loc.address}</span>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <div class="form-label" style="margin-bottom:8px">Dostupne usluge</div>
+      ${services.map(s => {
+        const [sname, dur, price] = s.split(' – ');
+        return `<div class="service-select-item" style="cursor:default;margin-bottom:6px">
+          <div><div class="service-name">${sname}</div><div class="service-duration">${dur}</div></div>
+          <div class="service-price">${price}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <button class="submit-btn" style="margin-top:16px" onclick="openBooking('${name}','${specialty}',${JSON.stringify(services)})">📅 Zakaži pregled</button>
+  `;
+
+  openModal('bookingModal');
+
+  // Render profile map after modal opens
+  setTimeout(() => {
+    const mapId = `profileMapEl_${name.replace(/\s/g,'_')}`;
+    if (profileMaps[name]) { profileMaps[name].remove(); delete profileMaps[name]; }
+    const pmap = L.map(mapId, { zoomControl: true, scrollWheelZoom: false }).setView([loc.lat, loc.lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(pmap);
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:36px;height:36px;background:linear-gradient(135deg,#1a6fb5,#00b4d8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 16px rgba(26,111,181,0.5)"></div>`,
+      iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -40]
+    });
+    L.marker([loc.lat, loc.lng], { icon })
+      .addTo(pmap)
+      .bindPopup(`<strong>${name}</strong><br>${loc.address}`)
+      .openPopup();
+
+    profileMaps[name] = pmap;
+  }, 150);
+}
+
+// ── PATCH: add "Lokacija" tab to doctor registration ──────────────────────
+
+const _origOpenRegister = openRegister;
+openRegister = function(type) {
+  _origOpenRegister(type);
+  if (type !== 'doctor') return;
+
+  // Inject 4th tab
+  const tabs = document.querySelector('#registerModal .tabs');
+  if (tabs && !document.getElementById('tabLokacija')) {
+    const newTab = document.createElement('button');
+    newTab.className = 'tab';
+    newTab.textContent = 'Lokacija';
+    newTab.onclick = function() { showTab(this, 'tabLokacija'); setTimeout(initPickerMap, 80); };
+    tabs.appendChild(newTab);
+
+    const panel = document.createElement('div');
+    panel.id = 'tabLokacija';
+    panel.className = 'profile-panel';
+    panel.innerHTML = `
+      <p style="color:var(--gray-500);font-size:0.88rem;margin-bottom:14px">
+        Označite tačnu lokaciju vaše ordinacije klikom na mapu ili pretragom adrese.
+        Pacijenti će videti ovu lokaciju na vašem profilu.
+      </p>
+      <div class="map-search-row">
+        <input class="form-input" id="mapSearchInput" placeholder="Pretražite adresu, npr. Nemanjina 4, Beograd" style="margin:0"
+          onkeydown="if(event.key==='Enter') searchAddress()">
+        <button onclick="searchAddress()" title="Pretraži">🔍</button>
+      </div>
+      <div class="map-pin-hint">📌 Kliknite na mapu da postavite ili prevucite marker da prilagodite lokaciju</div>
+      <div class="map-picker-wrap">
+        <div id="pickerMapEl" style="height:260px;width:100%"></div>
+      </div>
+      <div class="map-coords-display" id="pickerCoordsWrap" style="margin-top:10px">
+        <span>📍 Koordinate:</span>
+        <strong id="pickerCoordsText">Nije odabrano</strong>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Adresa ordinacije</label>
+        <input class="form-input" id="pickerAddress" placeholder="Biće automatski popunjena klikom na mapu">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sprat / broj kancelarije (opciono)</label>
+        <input class="form-input" placeholder="npr. 2. sprat, kab. 204">
+      </div>
+      <div id="saveLocationMsg" style="display:none;align-items:center;gap:8px;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px 14px;border-radius:10px;color:var(--success);font-size:0.88rem;font-weight:600;margin-bottom:8px">
+        ✅ Lokacija uspešno sačuvana!
+      </div>
+      <button class="submit-btn" onclick="saveLocation()">💾 Sačuvaj lokaciju</button>
+    `;
+    tabs.parentNode.appendChild(panel);
+  }
+};
+</script>
+</body>
+</html>
