@@ -1167,17 +1167,28 @@ function selectTime(t) {
   document.getElementById('ts_'+t).classList.add('selected');
 }
 
-function submitBooking() {
-  const name = document.getElementById('patientName')?.value;
-  const date = document.getElementById('bookDate')?.value;
-  const email = document.getElementById('bookEmail')?.value;
-  
+async function submitBooking() {
+  const name  = document.getElementById('patientName')?.value?.trim();
+  const date  = document.getElementById('bookDate')?.value;
+  const email = document.getElementById('bookEmail')?.value?.trim();
+
   if (!selectedService) { alert('Molimo odaberite uslugu.'); return; }
-  if (!selectedTime) { alert('Molimo odaberite termin.'); return; }
-  if (!name) { alert('Molimo unesite vaše ime.'); return; }
-  
+  if (!selectedTime)    { alert('Molimo odaberite termin.'); return; }
+  if (!name)            { alert('Molimo unesite vaše ime.'); return; }
+
+  // Save to Supabase (best-effort)
+  try {
+    await sb.from('appointments').insert({
+      appointment_date: date,
+      appointment_time: selectedTime,
+      note: document.getElementById('bookNote')?.value || '',
+      status: 'pending'
+    });
+  } catch(e) {
+    console.warn('Booking save:', e.message);
+  }
+
   const dateFormatted = new Date(date).toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
-  
   document.getElementById('bookingBody').innerHTML = `
     <div class="success-state">
       <div class="success-icon">✅</div>
@@ -1193,11 +1204,10 @@ function submitBooking() {
       </div>
       <p style="font-size:0.85rem;color:var(--gray-300)">📧 Potvrda će biti poslata na ${email || 'vaš email'}</p>
       <button class="submit-btn" onclick="closeModal('bookingModal')" style="margin-top:16px">Zatvori</button>
-    </div>
-  `;
-  // add notification
+    </div>`;
   setTimeout(() => {
-    addNotification('📅', `Zahtev za pregled – ${currentDoctor.name}`, `${selectedService} • ${new Date(date).toLocaleDateString('sr-RS',{day:'numeric',month:'short'})} u ${selectedTime}h`, 'new');
+    addNotification('📅', `Zahtev za pregled – ${currentDoctor.name}`,
+      `${selectedService} • ${new Date(date).toLocaleDateString('sr-RS',{day:'numeric',month:'short'})} u ${selectedTime}h`, 'new');
   }, 500);
 }
 
@@ -1283,6 +1293,7 @@ function openRegister(type) {
     `;
   }
   openModal('registerModal');
+  if (isDoctor) setTimeout(injectLocationTab, 50);
 }
 
 function addServiceField() {
@@ -1419,6 +1430,11 @@ let profileMaps = {}; // cache rendered maps by doctor name
 function openDoctorProfile(name, specialty, services, rating, city) {
   const loc = doctorLocations[name] || { lat: 44.8177, lng: 20.4569, address: city || 'Beograd, Srbija' };
 
+  // Store services safely — avoids JSON.stringify inside onclick attribute
+  window._currentProfileServices = services;
+  window._currentProfileName = name;
+  window._currentProfileSpecialty = specialty;
+
   document.getElementById('modalDoctorName').textContent = name;
   document.getElementById('bookingBody').innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
@@ -1451,7 +1467,7 @@ function openDoctorProfile(name, specialty, services, rating, city) {
       }).join('')}
     </div>
 
-    <button class="submit-btn" style="margin-top:16px" onclick="openBooking('${name}','${specialty}',${JSON.stringify(services)})">📅 Zakaži pregled</button>
+    <button class="submit-btn" style="margin-top:16px" onclick="openBookingFromProfile()">📅 Zakaži pregled</button>
   `;
 
   openModal('bookingModal');
@@ -1479,11 +1495,20 @@ function openDoctorProfile(name, specialty, services, rating, city) {
   }, 150);
 }
 
+function openBookingFromProfile() {
+  openBooking(
+    window._currentProfileName,
+    window._currentProfileSpecialty,
+    window._currentProfileServices
+  );
+}
+
 // ── PATCH: add "Lokacija" tab to doctor registration ──────────────────────
 
 // ═══════════════════════════════════════════════
 // SUPABASE INTEGRATION
 // ═══════════════════════════════════════════════
+// NOTE: openRegister location-tab injection is merged below (no separate override)
 const SUPABASE_URL = 'https://vuwjngaeimzeraytfqyp.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1d2puZ2FlaW16ZXJheXRmcXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDIxMjcsImV4cCI6MjA4ODQ3ODEyN30.G1iw4_Expb2ey11LTbpQoSj6OecC2NLN5saPFGHfMaM';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1628,104 +1653,55 @@ async function submitPatientRegister() {
   }
 }
 
-// ── SAVE BOOKING ─────────────────────────────────
-const _origSubmitBooking = submitBooking;
-submitBooking = async function() {
-  const name  = document.getElementById('patientName')?.value?.trim();
-  const date  = document.getElementById('bookDate')?.value;
-  const email = document.getElementById('bookEmail')?.value?.trim();
+// ── END SUPABASE ──────────────────────────────────
 
-  if (!selectedService) { alert('Molimo odaberite uslugu.'); return; }
-  if (!selectedTime)    { alert('Molimo odaberite termin.'); return; }
-  if (!name)            { alert('Molimo unesite vaše ime.'); return; }
-
-  // Save to Supabase (best-effort, no auth required for now)
-  try {
-    await sb.from('appointments').insert({
-      appointment_date: date,
-      appointment_time: selectedTime,
-      note: document.getElementById('bookNote')?.value || '',
-      status: 'pending'
-    });
-  } catch(e) {
-    // Non-blocking — UI success shown regardless
-    console.warn('Booking save error:', e.message);
-  }
-
-  // Show success UI (existing logic)
-  const dateFormatted = new Date(date).toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('bookingBody').innerHTML = `
-    <div class="success-state">
-      <div class="success-icon">✅</div>
-      <h3>Zahtev je poslat!</h3>
-      <p>Vaš zahtev za termin je uspešno prosleđen. Lekar će potvrditi termin u roku od 1–2 sata.</p>
-      <div class="confirm-details">
-        <div class="confirm-row"><span class="label">Lekar</span><span class="value">${currentDoctor.name}</span></div>
-        <div class="confirm-row"><span class="label">Specijalnost</span><span class="value">${currentDoctor.specialty}</span></div>
-        <div class="confirm-row"><span class="label">Usluga</span><span class="value">${selectedService}</span></div>
-        <div class="confirm-row"><span class="label">Datum</span><span class="value">${dateFormatted}</span></div>
-        <div class="confirm-row"><span class="label">Vreme</span><span class="value">${selectedTime}h</span></div>
-        <div class="confirm-row"><span class="label">Pacijent</span><span class="value">${name}</span></div>
-      </div>
-      <p style="font-size:0.85rem;color:var(--gray-300)">📧 Potvrda će biti poslata na ${email || 'vaš email'}</p>
-      <button class="submit-btn" onclick="closeModal('bookingModal')" style="margin-top:16px">Zatvori</button>
-    </div>`;
-  setTimeout(() => {
-    addNotification('📅', `Zahtev za pregled – ${currentDoctor.name}`,
-      `${selectedService} • ${new Date(date).toLocaleDateString('sr-RS',{day:'numeric',month:'short'})} u ${selectedTime}h`, 'new');
-  }, 500);
-};
-
-openRegister = function(type) {
-  _origOpenRegister(type);
-  if (type !== 'doctor') return;
-
-  // Inject 4th tab
+// ── LOCATION TAB (injected into doctor register) ─
+function injectLocationTab() {
   const tabs = document.querySelector('#registerModal .tabs');
-  if (tabs && !document.getElementById('tabLokacija')) {
-    const newTab = document.createElement('button');
-    newTab.className = 'tab';
-    newTab.textContent = 'Lokacija';
-    newTab.onclick = function() { showTab(this, 'tabLokacija'); setTimeout(initPickerMap, 80); };
-    tabs.appendChild(newTab);
+  if (!tabs || document.getElementById('tabLokacija')) return;
 
-    const panel = document.createElement('div');
-    panel.id = 'tabLokacija';
-    panel.className = 'profile-panel';
-    panel.innerHTML = `
-      <p style="color:var(--gray-500);font-size:0.88rem;margin-bottom:14px">
-        Označite tačnu lokaciju vaše ordinacije klikom na mapu ili pretragom adrese.
-        Pacijenti će videti ovu lokaciju na vašem profilu.
-      </p>
-      <div class="map-search-row">
-        <input class="form-input" id="mapSearchInput" placeholder="Pretražite adresu, npr. Nemanjina 4, Beograd" style="margin:0"
-          onkeydown="if(event.key==='Enter') searchAddress()">
-        <button onclick="searchAddress()" title="Pretraži">🔍</button>
-      </div>
-      <div class="map-pin-hint">📌 Kliknite na mapu da postavite ili prevucite marker da prilagodite lokaciju</div>
-      <div class="map-picker-wrap">
-        <div id="pickerMapEl" style="height:260px;width:100%"></div>
-      </div>
-      <div class="map-coords-display" id="pickerCoordsWrap" style="margin-top:10px">
-        <span>📍 Koordinate:</span>
-        <strong id="pickerCoordsText">Nije odabrano</strong>
-      </div>
-      <div class="form-group" style="margin-top:10px">
-        <label class="form-label">Adresa ordinacije</label>
-        <input class="form-input" id="pickerAddress" placeholder="Biće automatski popunjena klikom na mapu">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Sprat / broj kancelarije (opciono)</label>
-        <input class="form-input" placeholder="npr. 2. sprat, kab. 204">
-      </div>
-      <div id="saveLocationMsg" style="display:none;align-items:center;gap:8px;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px 14px;border-radius:10px;color:var(--success);font-size:0.88rem;font-weight:600;margin-bottom:8px">
-        ✅ Lokacija uspešno sačuvana!
-      </div>
-      <button class="submit-btn" onclick="saveLocation()">💾 Sačuvaj lokaciju</button>
-    `;
-    tabs.parentNode.appendChild(panel);
-  }
-};
+  const newTab = document.createElement('button');
+  newTab.className = 'tab';
+  newTab.textContent = 'Lokacija';
+  newTab.onclick = function() { showTab(this, 'tabLokacija'); setTimeout(initPickerMap, 80); };
+  tabs.appendChild(newTab);
+
+  const panel = document.createElement('div');
+  panel.id = 'tabLokacija';
+  panel.className = 'profile-panel';
+  panel.innerHTML = `
+    <p style="color:var(--gray-500);font-size:0.88rem;margin-bottom:14px">
+      Označite tačnu lokaciju vaše ordinacije klikom na mapu ili pretragom adrese.
+    </p>
+    <div class="map-search-row">
+      <input class="form-input" id="mapSearchInput" placeholder="Pretražite adresu, npr. Nemanjina 4, Beograd" style="margin:0"
+        onkeydown="if(event.key==='Enter') searchAddress()">
+      <button onclick="searchAddress()" title="Pretraži">🔍</button>
+    </div>
+    <div class="map-pin-hint">📌 Kliknite na mapu da postavite ili prevucite marker</div>
+    <div class="map-picker-wrap">
+      <div id="pickerMapEl" style="height:260px;width:100%"></div>
+    </div>
+    <div class="map-coords-display" id="pickerCoordsWrap" style="margin-top:10px">
+      <span>📍 Koordinate:</span>
+      <strong id="pickerCoordsText">Nije odabrano</strong>
+    </div>
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">Adresa ordinacije</label>
+      <input class="form-input" id="pickerAddress" placeholder="Biće automatski popunjena klikom na mapu">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sprat / broj kancelarije (opciono)</label>
+      <input class="form-input" placeholder="npr. 2. sprat, kab. 204">
+    </div>
+    <div id="saveLocationMsg" style="display:none;align-items:center;gap:8px;background:#ecfdf5;border:1px solid #a7f3d0;padding:10px 14px;border-radius:10px;color:var(--success);font-size:0.88rem;font-weight:600;margin-bottom:8px">
+      ✅ Lokacija uspešno sačuvana!
+    </div>
+    <button class="submit-btn" onclick="saveLocation()">💾 Sačuvaj lokaciju</button>
+  `;
+  tabs.parentNode.appendChild(panel);
+}
+
 </script>
 </body>
 </html>
