@@ -517,9 +517,10 @@
     </div>
 
     <!-- Tabs -->
-    <div style="display:flex;gap:4px;background:white;border-radius:12px;padding:4px;border:1.5px solid var(--gray-100);margin-bottom:24px;width:fit-content">
+    <div style="display:flex;gap:4px;background:white;border-radius:12px;padding:4px;border:1.5px solid var(--gray-100);margin-bottom:24px;width:fit-content;flex-wrap:wrap">
       <button class="dash-tab active" id="dtab-appointments" onclick="showDashTab('appointments')">📅 Termini</button>
       <button class="dash-tab" id="dtab-calendar" onclick="showDashTab('calendar')">🗓 Kalendar</button>
+      <button class="dash-tab" id="dtab-workhours" onclick="showDashTab('workhours')">⏰ Radno vreme</button>
       <button class="dash-tab" id="dtab-profile" onclick="showDashTab('profile')">👤 Profil</button>
       <button class="dash-tab" id="dtab-notifications" onclick="showDashTab('notifications')">🔔 Obaveštenja</button>
     </div>
@@ -543,12 +544,34 @@
 
     <!-- CALENDAR TAB -->
     <div id="dpanel-calendar" class="dash-panel" style="display:none">
+      <!-- Week navigator -->
+      <div style="background:white;border-radius:16px;border:1.5px solid var(--gray-100);padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+        <button onclick="calWeekOffset--;renderCalendar()" style="padding:8px 16px;border:1.5px solid var(--gray-100);background:white;border-radius:8px;cursor:pointer;font-size:0.9rem;font-family:inherit">← Prethodna</button>
+        <span id="calWeekLabel" style="font-weight:600;color:var(--gray-700);font-size:0.95rem"></span>
+        <button onclick="calWeekOffset++;renderCalendar()" style="padding:8px 16px;border:1.5px solid var(--gray-100);background:white;border-radius:8px;cursor:pointer;font-size:0.9rem;font-family:inherit">Sledeća →</button>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--gray-600)"><span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;border:1.5px solid #0ea472;display:inline-block"></span> Potvrđen</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--gray-600)"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;border:1.5px solid #f59e0b;display:inline-block"></span> Na čekanju</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--gray-600)"><span style="width:12px;height:12px;border-radius:3px;background:#e0f0ff;border:1.5px solid #90c4f0;display:inline-block"></span> Radno vreme</div>
+      </div>
+      <!-- Calendar grid -->
+      <div id="calendarGrid" style="background:white;border-radius:16px;border:1.5px solid var(--gray-100);overflow:hidden">
+        <div style="text-align:center;padding:40px;color:var(--gray-400)">⏳ Učitavamo kalendar…</div>
+      </div>
+    </div>
+
+    <!-- WORKING HOURS TAB -->
+    <div id="dpanel-workhours" class="dash-panel" style="display:none">
       <div style="background:white;border-radius:16px;border:1.5px solid var(--gray-100);padding:28px">
-        <h3 style="font-size:1rem;font-weight:600;margin-bottom:8px">Radno vreme</h3>
-        <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:20px">Podesite radno vreme za svaki dan u nedelji.</p>
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:6px">Radno vreme</h3>
+        <p style="color:var(--gray-500);font-size:0.88rem;margin-bottom:20px">Podesite vaše radno vreme — prikazaće se pacijentima i na kalendaru.</p>
         <div id="scheduleEditor"></div>
-        <button class="submit-btn" style="margin-top:20px;width:auto;padding:12px 28px" onclick="saveSchedule()">💾 Sačuvaj radno vreme</button>
-        <div id="schedSaved" style="display:none;margin-top:12px;color:var(--success);font-size:0.88rem;font-weight:600">✅ Radno vreme sačuvano!</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px">
+          <button class="submit-btn" style="width:auto;padding:12px 28px" onclick="saveSchedule()">💾 Sačuvaj radno vreme</button>
+          <div id="schedSaved" style="display:none;color:var(--success);font-size:0.88rem;font-weight:600">✅ Sačuvano!</div>
+        </div>
       </div>
     </div>
 
@@ -583,6 +606,17 @@
           <label class="form-label">Kratka biografija</label>
           <textarea class="form-input" id="profBio" rows="4" placeholder="Opišite vaše iskustvo, oblasti rada i pristup pacijentima…" style="resize:vertical"></textarea>
         </div>
+
+        <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin:20px 0 12px">Lokacija ordinacije</div>
+        <p style="color:var(--gray-500);font-size:0.88rem;margin-bottom:12px">Kliknite na mapu ili pretražite adresu da postavite tačnu lokaciju vaše ordinacije.</p>
+        <div class="map-search-row" style="display:flex;gap:8px;margin-bottom:10px">
+          <input class="form-input" id="profMapSearchInput" placeholder="Pretražite adresu…" style="flex:1"
+            onkeydown="if(event.key==='Enter') searchProfileAddress()">
+          <button onclick="searchProfileAddress()" style="padding:10px 16px;background:var(--primary);color:white;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem" title="Pretraži">🔍</button>
+        </div>
+        <div id="profMapEl" style="height:280px;border-radius:12px;border:1.5px solid var(--gray-100);overflow:hidden;margin-bottom:8px"></div>
+        <div style="font-size:0.8rem;color:var(--gray-400);margin-bottom:4px">Odabrana lokacija: <span id="profMapCoords">nije odabrana</span></div>
+        <input class="form-input" id="profMapAddress" placeholder="Adresa će biti popunjena automatski" style="margin-bottom:0" readonly>
 
         <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin:20px 0 12px">Usluge</div>
         <div id="profServicesList"></div>
@@ -1873,13 +1907,20 @@ async function loadDoctors(specialty) {
 // ── DASHBOARD ────────────────────────────────────
 let currentDoctorProfile = null;
 let currentApptFilter = 'pending';
+let calWeekOffset = 0;
+let profMap = null, profMarker = null, profCoords = null;
+let doctorWorkingHours = {}; // { 0: {from:'09:00',to:'17:00'}, ... }
+let allCalendarAppointments = [];
 
 function showDashTab(tab) {
-  ['appointments','calendar','profile','notifications'].forEach(t => {
+  ['appointments','calendar','workhours','profile','notifications'].forEach(t => {
     document.getElementById(`dpanel-${t}`).style.display = t === tab ? 'block' : 'none';
     document.getElementById(`dtab-${t}`).classList.toggle('active', t === tab);
   });
-  if (tab === 'notifications') renderDashNotifications();
+  if (tab === 'calendar') { renderCalendar(); }
+  if (tab === 'workhours') { buildScheduleEditor(); }
+  if (tab === 'profile') { setTimeout(initProfileMap, 120); }
+  if (tab === 'notifications') { renderDashNotifications(); }
 }
 
 function filterAppointments(status) {
@@ -1888,6 +1929,166 @@ function filterAppointments(status) {
     document.getElementById(`fbtn-${s}`).classList.toggle('active', s === status);
   });
   loadAppointments();
+}
+
+// ── VISUAL CALENDAR ──────────────────────────────
+async function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('calWeekLabel');
+  if (!grid) return;
+
+  // Compute week dates
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay()+6)%7) + calWeekOffset*7);
+
+  const days = Array.from({length:7}, (_,i) => {
+    const d = new Date(monday); d.setDate(monday.getDate()+i); return d;
+  });
+
+  label.textContent = `${days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'})} – ${days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'})}`;
+
+  // Fetch appointments for this week
+  const from = days[0].toISOString().split('T')[0];
+  const to   = days[6].toISOString().split('T')[0];
+  const { data: appts } = await sb.from('appointments').select('*')
+    .gte('appointment_date', from).lte('appointment_date', to);
+
+  allCalendarAppointments = appts || [];
+
+  // Time range 07:00–20:00, slot = 30min
+  const startH = 7, endH = 20;
+  const slots = (endH - startH) * 2; // 30-min slots
+  const dayNames = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
+
+  // Build grid HTML
+  let html = `<div style="display:grid;grid-template-columns:52px repeat(7,1fr);font-size:0.78rem">`;
+
+  // Header row
+  html += `<div style="border-bottom:2px solid var(--gray-100);background:var(--gray-50)"></div>`;
+  days.forEach((d,i) => {
+    const isToday = d.toDateString() === new Date().toDateString();
+    html += `<div style="text-align:center;padding:10px 4px;border-bottom:2px solid var(--gray-100);border-left:1px solid var(--gray-100);background:var(--gray-50);font-weight:${isToday?'700':'500'};color:${isToday?'var(--primary)':'var(--gray-600)'}">
+      <div>${dayNames[i]}</div>
+      <div style="font-size:1rem;font-weight:${isToday?'700':'600'};margin-top:2px">${d.getDate()}</div>
+    </div>`;
+  });
+
+  // Time slots
+  for (let s = 0; s < slots; s++) {
+    const totalMin = startH*60 + s*30;
+    const h = String(Math.floor(totalMin/60)).padStart(2,'0');
+    const m = String(totalMin%60).padStart(2,'0');
+    const timeStr = `${h}:${m}`;
+    const showLabel = m === '00';
+
+    html += `<div style="padding:${showLabel?'4px 4px 0':'0 4px'} 4px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'var(--gray-50)'};color:var(--gray-400);text-align:right;font-size:0.72rem;line-height:1">${showLabel ? timeStr : ''}</div>`;
+
+    days.forEach((d, di) => {
+      const dateStr = d.toISOString().split('T')[0];
+      const dayIdx  = di; // 0=Mon
+      const wh = doctorWorkingHours[dayIdx];
+      const inWorkHours = wh && wh.active && timeStr >= wh.from && timeStr < wh.to;
+
+      // Find appointment at this slot
+      const appt = allCalendarAppointments.find(a =>
+        a.appointment_date === dateStr && a.appointment_time?.slice(0,5) === timeStr
+      );
+
+      let cellBg = inWorkHours ? 'background:#e0f0ff;' : '';
+      let cellContent = '';
+
+      if (appt) {
+        const isPending = appt.status === 'pending';
+        cellBg = isPending
+          ? 'background:#fef3c7;border-left:3px solid #f59e0b;'
+          : 'background:#d1fae5;border-left:3px solid #0ea472;';
+        cellContent = `<div style="padding:2px 4px;font-size:0.7rem;font-weight:600;color:${isPending?'#92400e':'#065f46'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${appt.note||''}">
+          ${isPending?'⏳':'✓'} ${timeStr}
+        </div>`;
+      }
+
+      html += `<div style="min-height:18px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'rgba(0,0,0,0.04)'};border-left:1px solid var(--gray-100);${cellBg}cursor:default">${cellContent}</div>`;
+    });
+  }
+
+  html += `</div>`;
+  grid.innerHTML = html;
+}
+
+// ── PROFILE MAP ──────────────────────────────────
+function initProfileMap() {
+  const el = document.getElementById('profMapEl');
+  if (!el) return;
+  if (profMap) { profMap.invalidateSize(); return; }
+
+  const lat = currentDoctorProfile?.lat || 44.8177;
+  const lng = currentDoctorProfile?.lng || 20.4569;
+
+  profMap = L.map('profMapEl', { zoomControl: true }).setView([lat, lng], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+  }).addTo(profMap);
+
+  const pinIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:28px;height:28px;background:linear-gradient(135deg,#1a6fb5,#00b4d8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 3px 12px rgba(26,111,181,0.4)"></div>`,
+    iconSize: [28,28], iconAnchor: [14,28]
+  });
+
+  // If doctor already has coords, show marker
+  if (currentDoctorProfile?.lat) {
+    profMarker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(profMap);
+    profCoords = { lat, lng };
+    document.getElementById('profMapCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    profMarker.on('dragend', async ev => {
+      const p = ev.target.getLatLng();
+      profCoords = { lat: p.lat, lng: p.lng };
+      await revGeocodeProf(p.lat, p.lng);
+    });
+  }
+
+  profMap.on('click', async e => {
+    const { lat, lng } = e.latlng;
+    profCoords = { lat, lng };
+    if (profMarker) profMarker.setLatLng([lat, lng]);
+    else {
+      profMarker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(profMap);
+      profMarker.on('dragend', async ev => {
+        const p = ev.target.getLatLng();
+        profCoords = { lat: p.lat, lng: p.lng };
+        await revGeocodeProf(p.lat, p.lng);
+      });
+    }
+    await revGeocodeProf(lat, lng);
+  });
+
+  setTimeout(() => profMap.invalidateSize(), 150);
+}
+
+async function revGeocodeProf(lat, lng) {
+  document.getElementById('profMapCoords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  try {
+    const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=sr`);
+    const data = await res.json();
+    document.getElementById('profMapAddress').value = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    profCoords.address = data.display_name;
+  } catch { document.getElementById('profMapAddress').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; }
+}
+
+async function searchProfileAddress() {
+  const q = document.getElementById('profMapSearchInput')?.value?.trim();
+  if (!q) return;
+  try {
+    const res  = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q+', Srbija')}&limit=1&accept-language=sr`);
+    const data = await res.json();
+    if (data.length) {
+      const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+      profMap.setView([lat, lng], 16);
+      profMap.fire('click', { latlng: L.latLng(lat, lng) });
+    } else alert('Adresa nije pronađena.');
+  } catch { alert('Greška pri pretrazi.'); }
 }
 
 async function openDoctorDashboard(user) {
@@ -1939,6 +2140,14 @@ async function openDoctorDashboard(user) {
     renderProfileServices([]);
   }
 
+  // Load working hours from DB
+  if (doc?.working_hours) {
+    doctorWorkingHours = doc.working_hours;
+  } else {
+    // defaults Mon–Fri
+    doctorWorkingHours = {0:{active:true,from:'09:00',to:'17:00'},1:{active:true,from:'09:00',to:'17:00'},2:{active:true,from:'09:00',to:'17:00'},3:{active:true,from:'09:00',to:'17:00'},4:{active:true,from:'09:00',to:'17:00'},5:{active:false,from:'',to:''},6:{active:false,from:'',to:''}};
+  }
+
   await loadAppointments();
 }
 
@@ -1947,14 +2156,14 @@ function buildScheduleEditor() {
   const editor = document.getElementById('scheduleEditor');
   if (!editor) return;
   editor.innerHTML = days.map((d, i) => {
-    const isWork = i < 5;
+    const wh = doctorWorkingHours[i] || { active: i < 5, from: i < 5 ? '09:00' : '', to: i < 5 ? '17:00' : '' };
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);flex-wrap:wrap">
       <span style="width:110px;font-size:0.9rem;font-weight:500;color:var(--gray-700)">${d}</span>
-      <input type="time" class="form-input" value="${isWork ? '09:00' : ''}" style="width:110px" id="sched_from_${i}" ${!isWork ? 'disabled' : ''}>
+      <input type="time" class="form-input" value="${wh.from||''}" style="width:110px" id="sched_from_${i}" ${!wh.active ? 'disabled' : ''}>
       <span style="color:var(--gray-300)">–</span>
-      <input type="time" class="form-input" value="${isWork ? '17:00' : ''}" style="width:110px" id="sched_to_${i}" ${!isWork ? 'disabled' : ''}>
+      <input type="time" class="form-input" value="${wh.to||''}" style="width:110px" id="sched_to_${i}" ${!wh.active ? 'disabled' : ''}>
       <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--gray-500);cursor:pointer;margin-left:4px">
-        <input type="checkbox" id="sched_on_${i}" ${isWork ? 'checked' : ''}
+        <input type="checkbox" id="sched_on_${i}" ${wh.active ? 'checked' : ''}
           onchange="var f=document.getElementById('sched_from_${i}'),t=document.getElementById('sched_to_${i}');f.disabled=!this.checked;t.disabled=!this.checked">
         Radni dan
       </label>
@@ -2109,6 +2318,13 @@ async function saveProfile() {
     }
   }
 
+  // Save map location if changed
+  if (profCoords) {
+    updates.lat = profCoords.lat;
+    updates.lng = profCoords.lng;
+    if (profCoords.address) updates.address = profCoords.address;
+  }
+
   // Update UI
   currentDoctorProfile = { ...currentDoctorProfile, ...updates };
   document.getElementById('dashDoctorName').textContent = fullName.replace(/^Dr\.\s*/i,'');
@@ -2118,9 +2334,17 @@ async function saveProfile() {
   setTimeout(() => document.getElementById('profSaveMsg').style.display = 'none', 3000);
 }
 
-function saveSchedule() {
-  document.getElementById('schedSaved').style.display = 'block';
-  setTimeout(() => document.getElementById('schedSaved').style.display = 'none', 3000);
+async function saveSchedule() {
+  for (let i = 0; i < 7; i++) {
+    const active = document.getElementById(`sched_on_${i}`)?.checked || false;
+    const from   = document.getElementById(`sched_from_${i}`)?.value || '';
+    const to     = document.getElementById(`sched_to_${i}`)?.value || '';
+    doctorWorkingHours[i] = { active, from, to };
+  }
+  const email = currentDoctorProfile?.email || currentUser?.email;
+  if (email) await sb.from('doctors').update({ working_hours: doctorWorkingHours }).eq('email', email);
+  const msg = document.getElementById('schedSaved');
+  if (msg) { msg.style.display = 'block'; setTimeout(() => msg.style.display = 'none', 3000); }
 }
 
 function renderDashNotifications() {
