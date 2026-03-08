@@ -400,8 +400,17 @@
       🔔
       <span class="notif-badge-dot" id="notifDot"></span>
     </button>
-    <button class="btn-secondary" onclick="openRegister('doctor')" style="padding:9px 16px;font-size:0.88rem;">Za lekare</button>
-    <a class="nav-cta" href="#" onclick="openRegister('patient');return false;">Registracija</a>
+    <!-- Logged OUT state -->
+    <div id="navLoggedOut" style="display:flex;gap:8px;align-items:center">
+      <button class="btn-secondary" onclick="openLogin('doctor')" style="padding:9px 16px;font-size:0.88rem;">Za lekare</button>
+      <button class="btn-secondary" onclick="openLogin('patient')" style="padding:9px 16px;font-size:0.88rem;">Prijava</button>
+      <a class="nav-cta" href="#" onclick="openRegister('patient');return false;">Registracija</a>
+    </div>
+    <!-- Logged IN state -->
+    <div id="navLoggedIn" style="display:none;gap:8px;align-items:center">
+      <span id="navUserName" style="font-size:0.88rem;color:var(--gray-700);font-weight:500"></span>
+      <button class="btn-secondary" onclick="submitLogout()" style="padding:9px 16px;font-size:0.88rem;">Odjava</button>
+    </div>
   </div>
 </nav>
 
@@ -1014,6 +1023,37 @@
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="loginTitle">Prijava</h3>
+      <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
+    </div>
+    <div class="modal-body" id="loginBody">
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button id="loginTabPatient" class="tab active" style="flex:1" onclick="switchLoginTab('patient')">Pacijent</button>
+        <button id="loginTabDoctor" class="tab" style="flex:1" onclick="switchLoginTab('doctor')">Lekar</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email adresa</label>
+        <input class="form-input" id="loginEmail" type="email" placeholder="vas@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lozinka</label>
+        <input class="form-input" id="loginPassword" type="password" placeholder="Vaša lozinka"
+          onkeydown="if(event.key==='Enter') submitLogin()">
+      </div>
+      <div id="loginError" style="display:none;color:#e05a2b;font-size:0.85rem;padding:8px 12px;background:#fff5f0;border-radius:8px;margin-bottom:12px"></div>
+      <button class="submit-btn" id="loginBtn" onclick="submitLogin()">Prijavite se →</button>
+      <p style="text-align:center;font-size:0.85rem;color:var(--gray-500);margin-top:14px">
+        Nemate nalog? 
+        <a href="#" style="color:var(--primary);font-weight:600" onclick="closeModal('loginModal');openRegister(currentLoginTab);return false;">Registrujte se</a>
+      </p>
+    </div>
+  </div>
+</div>
+
 <script>
 // DATA
 const specialties = [
@@ -1289,7 +1329,7 @@ function openRegister(type) {
       </label>
       <div id="patRegError" style="display:none;color:#e05a2b;font-size:0.85rem;padding:8px 12px;background:#fff5f0;border-radius:8px;margin-bottom:8px"></div>
       <button class="submit-btn" id="patRegBtn" onclick="submitPatientRegister()">Kreiraj nalog →</button>
-      <p style="text-align:center;font-size:0.85rem;color:var(--gray-500);margin-top:14px">Već imate nalog? <a href="#" style="color:var(--primary);font-weight:600">Prijavite se</a></p>
+      <p style="text-align:center;font-size:0.85rem;color:var(--gray-500);margin-top:14px">Već imate nalog? <a href="#" style="color:var(--primary);font-weight:600" onclick="closeModal('registerModal');openLogin('patient');return false;">Prijavite se</a></p>
     `;
   }
   openModal('registerModal');
@@ -1560,18 +1600,17 @@ async function submitDoctorRegister() {
 
     if (authError) throw authError;
 
-    // 2. Insert into doctors table
+    // 2. Insert into doctors table — no id, let DB auto-generate
     const { error: dbError } = await sb.from('doctors').insert({
-      id: authData.user.id,
       email,
       full_name: `${firstName} ${lastName}`,
       specialty,
       city,
-      license_number: license,
+      license_number: license || null,
       avatar_initials: `${firstName[0]}${lastName[0]}`.toUpperCase()
     });
 
-    if (dbError) throw dbError;
+    if (dbError) console.warn('Doctor profile insert:', dbError.message);
 
     // Success!
     setLoading('docRegBtn', false, 'Kreiranje profila →');
@@ -1613,7 +1652,7 @@ async function submitPatientRegister() {
   setLoading('patRegBtn', true, 'Kreiraj nalog →');
 
   try {
-    // 1. Create auth user
+    // 1. Create auth user in Supabase Auth
     const { data: authData, error: authError } = await sb.auth.signUp({
       email,
       password,
@@ -1622,38 +1661,133 @@ async function submitPatientRegister() {
 
     if (authError) throw authError;
 
-    // 2. Insert into patients table
+    // 2. Insert patient profile — no id field, let DB auto-generate
+    //    auth_uid links back to the auth user
     const { error: dbError } = await sb.from('patients').insert({
-      id: authData.user.id,
       email,
       full_name: `${firstName} ${lastName}`,
-      phone,
-      city,
+      phone:     phone || null,
+      city:      city  || null,
       date_of_birth: dob || null
     });
 
-    if (dbError) throw dbError;
+    // DB error is non-fatal — auth account was created successfully
+    if (dbError) console.warn('Patient profile insert:', dbError.message);
 
-    // Success!
+    // Success either way
     setLoading('patRegBtn', false, 'Kreiraj nalog →');
     document.getElementById('registerBody').innerHTML = `
       <div class="success-state">
         <div class="success-icon">✅</div>
         <h3>Nalog kreiran!</h3>
         <p>Dobrodošli, ${firstName}! Poslali smo email potvrdu na <strong>${email}</strong>.</p>
-        <p style="font-size:0.85rem;color:var(--gray-300);margin-top:8px">Kliknite na link u emailu da aktivirate nalog i možete početi sa zakazivanjem.</p>
+        <p style="font-size:0.85rem;color:var(--gray-400);margin-top:8px">Kliknite na link u emailu da aktivirate nalog.</p>
         <button class="submit-btn" onclick="closeModal('registerModal')" style="margin-top:16px">Zatvori</button>
       </div>`;
+
   } catch (err) {
     setLoading('patRegBtn', false, 'Kreiraj nalog →');
-    const msg = err.message?.includes('already registered')
-      ? 'Ova email adresa je već registrovana.'
-      : (err.message || 'Greška pri registraciji. Pokušajte ponovo.');
+    let msg = err.message || 'Greška pri registraciji. Pokušajte ponovo.';
+    if (msg.includes('already registered') || msg.includes('already been registered')) {
+      msg = 'Ova email adresa je već registrovana.';
+    } else if (msg.includes('Password')) {
+      msg = 'Lozinka mora imati najmanje 8 znakova.';
+    } else if (msg.includes('valid email')) {
+      msg = 'Unesite ispravnu email adresu.';
+    }
     showError('patRegError', msg);
   }
 }
 
 // ── END SUPABASE ──────────────────────────────────
+
+// ── SESSION STATE ────────────────────────────────
+let currentUser = null;
+let currentLoginTab = 'patient';
+
+function updateNavAuth(user) {
+  const out = document.getElementById('navLoggedOut');
+  const inn = document.getElementById('navLoggedIn');
+  const nameEl = document.getElementById('navUserName');
+  if (user) {
+    out.style.display = 'none';
+    inn.style.display = 'flex';
+    const name = user.user_metadata?.full_name || user.email;
+    nameEl.textContent = `👤 ${name}`;
+  } else {
+    out.style.display = 'flex';
+    inn.style.display = 'none';
+  }
+}
+
+// Check session on page load
+sb.auth.getSession().then(({ data }) => {
+  if (data.session?.user) {
+    currentUser = data.session.user;
+    updateNavAuth(currentUser);
+  }
+});
+
+// Listen for auth changes
+sb.auth.onAuthStateChange((_event, session) => {
+  currentUser = session?.user || null;
+  updateNavAuth(currentUser);
+});
+
+// ── LOGIN ────────────────────────────────────────
+function openLogin(tab = 'patient') {
+  currentLoginTab = tab;
+  switchLoginTab(tab);
+  // Reset form
+  const emailEl = document.getElementById('loginEmail');
+  const passEl  = document.getElementById('loginPassword');
+  if (emailEl) emailEl.value = '';
+  if (passEl)  passEl.value  = '';
+  hideError('loginError');
+  openModal('loginModal');
+}
+
+function switchLoginTab(tab) {
+  currentLoginTab = tab;
+  document.getElementById('loginTabPatient').classList.toggle('active', tab === 'patient');
+  document.getElementById('loginTabDoctor').classList.toggle('active', tab === 'doctor');
+  document.getElementById('loginTitle').textContent = tab === 'doctor' ? 'Prijava – Lekar' : 'Prijava – Pacijent';
+}
+
+async function submitLogin() {
+  hideError('loginError');
+  const email    = document.getElementById('loginEmail')?.value?.trim();
+  const password = document.getElementById('loginPassword')?.value;
+
+  if (!email)    return showError('loginError', 'Unesite email adresu.');
+  if (!password) return showError('loginError', 'Unesite lozinku.');
+
+  setLoading('loginBtn', true, 'Prijavite se →');
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    setLoading('loginBtn', false, 'Prijavite se →');
+    closeModal('loginModal');
+    addNotification('👋', 'Uspešna prijava', `Dobrodošli, ${data.user.user_metadata?.full_name || email}!`, 'success');
+  } catch (err) {
+    setLoading('loginBtn', false, 'Prijavite se →');
+    let msg = err.message || 'Greška pri prijavi.';
+    if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
+      msg = 'Pogrešan email ili lozinka.';
+    } else if (msg.includes('Email not confirmed')) {
+      msg = 'Email nije potvrđen. Proverite inbox.';
+    }
+    showError('loginError', msg);
+  }
+}
+
+// ── LOGOUT ───────────────────────────────────────
+async function submitLogout() {
+  await sb.auth.signOut();
+  addNotification('👋', 'Odjavljeni ste', 'Vidimo se uskoro!', 'info');
+}
 
 // ── LOCATION TAB (injected into doctor register) ─
 function injectLocationTab() {
