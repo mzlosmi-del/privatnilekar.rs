@@ -1994,8 +1994,6 @@ async function renderCalendar() {
 
       let cellBg = inWork ? 'background:#e0f0ff;' : '';
       let cellContent = '';
-      let dblclick = '';
-
       if (appt) {
         const isPending = appt.status === 'pending';
         cellBg = isPending
@@ -2003,17 +2001,19 @@ async function renderCalendar() {
           : 'background:#d1fae5;border-left:3px solid #0ea472;';
 
         const patientFirst = (appt.patients?.full_name || 'Pacijent').split(' ')[0];
-        const svcName = (appt.services?.name || appt.note || '').slice(0,18);
+        const svcName = (appt.services?.name || appt.note || '').slice(0, 20);
 
-        cellContent = `<div style="padding:3px 5px;font-size:0.7rem;font-weight:600;color:${isPending?'#92400e':'#065f46'};line-height:1.35;cursor:pointer;user-select:none" title="Dvoklik za detalje">
+        cellContent = `<div
+          onclick="openApptDetail('${appt.id}')"
+          style="padding:4px 6px;font-size:0.7rem;font-weight:600;color:${isPending?'#92400e':'#065f46'};line-height:1.4;cursor:pointer;user-select:none;height:100%;box-sizing:border-box"
+          title="Kliknite za detalje">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isPending?'\u23f3':'\u2713'} ${patientFirst}</div>
           <div style="font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0.85">${svcName}</div>
         </div>`;
-
-        dblclick = `ondblclick="openApptDetail('${appt.id}')"`;
       }
 
-      html += `<div style="min-height:28px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'rgba(0,0,0,0.04)'};border-left:1px solid var(--gray-100);${cellBg}" ${dblclick}>${cellContent}</div>`;
+      const minH = appt ? '40px' : '18px';
+      html += `<div style="min-height:${minH};border-bottom:1px solid ${showLabel?'var(--gray-100)':'rgba(0,0,0,0.04)'};border-left:1px solid var(--gray-100);${cellBg}">${cellContent}</div>`;
     });
   }
 
