@@ -755,105 +755,17 @@
   </div>
 </section>
 
-<!-- DOCTORS -->
-<section id="doctors" style="background: linear-gradient(180deg,white 0%,var(--off-white) 100%);">
+<!-- DOCTORS RESULTS -->
+<section id="doctors" style="background: linear-gradient(180deg,white 0%,var(--off-white) 100%);display:none;">
   <div class="section-inner">
     <div class="section-header">
-      <div class="section-tag">Naši lekari</div>
-      <h2>Istaknuti specijalisti</h2>
-      <p class="section-sub">Svi lekari su provereni i licencirani od strane Lekarske komore Srbije</p>
+      <div class="section-tag" id="doctorsTag">Lekari</div>
+      <h2 id="doctorsTitle">Lekari</h2>
+      <p class="section-sub" id="doctorsSub"></p>
     </div>
-    <div class="doctors-grid" id="doctorsGrid">
-
-      <div class="doctor-card">
-        <div class="doctor-card-top">
-          <div class="doctor-avatar">M</div>
-          <div class="doctor-info">
-            <h3>Dr. Ana Marković</h3>
-            <div class="doctor-specialty">Kardiologija</div>
-            <div class="doctor-rating">
-              <span class="stars">★★★★★</span>
-              <span class="rating-num">4.9</span>
-              <span class="rating-count">(127 ocena)</span>
-            </div>
-          </div>
-        </div>
-        <div class="doctor-card-body">
-          <div class="services-list">
-            <span class="service-tag">EKG pregled</span>
-            <span class="service-tag">Ehokardiografija</span>
-            <span class="service-tag">Holter</span>
-            <span class="service-tag more">+2</span>
-          </div>
-          <div class="doctor-meta">
-            <div class="doctor-meta-item">📍 <span>Beograd</span></div>
-            <div class="doctor-meta-item">⏱ <span>30–60 min</span></div>
-            <div class="doctor-meta-item">💰 <span>od 3.500 din</span></div>
-          </div>
-          <button class="book-btn" onclick="openDoctorProfile('Dr. Ana Marković', 'Kardiologija', ['EKG pregled – 30 min – 3.500 din','Ehokardiografija – 60 min – 6.000 din','Holter monitoring – 45 min – 4.500 din'], '4.9', 'Beograd')">Pogledaj profil & zakaži</button>
-        </div>
-      </div>
-
-      <div class="doctor-card">
-        <div class="doctor-card-top">
-          <div class="doctor-avatar" style="background:linear-gradient(135deg,#0ea472,#06b6d4)">P</div>
-          <div class="doctor-info">
-            <h3>Dr. Miloš Petrović</h3>
-            <div class="doctor-specialty">Dermatologija</div>
-            <div class="doctor-rating">
-              <span class="stars">★★★★★</span>
-              <span class="rating-num">4.8</span>
-              <span class="rating-count">(89 ocena)</span>
-            </div>
-          </div>
-        </div>
-        <div class="doctor-card-body">
-          <div class="services-list">
-            <span class="service-tag">Pregled kože</span>
-            <span class="service-tag">Dermatoskopija</span>
-            <span class="service-tag">Biopsija</span>
-          </div>
-          <div class="doctor-meta">
-            <div class="doctor-meta-item">📍 <span>Novi Sad</span></div>
-            <div class="doctor-meta-item">⏱ <span>20–45 min</span></div>
-            <div class="doctor-meta-item">💰 <span>od 2.800 din</span></div>
-          </div>
-          <button class="book-btn" onclick="openDoctorProfile('Dr. Miloš Petrović', 'Dermatologija', ['Pregled kože – 20 min – 2.800 din','Dermatoskopija – 30 min – 3.500 din','Biopsija – 45 min – 5.000 din'], '4.8', 'Novi Sad')">Pogledaj profil & zakaži</button>
-        </div>
-      </div>
-
-      <div class="doctor-card">
-        <div class="doctor-card-top">
-          <div class="doctor-avatar" style="background:linear-gradient(135deg,#7c3aed,#1a6fb5)">N</div>
-          <div class="doctor-info">
-            <h3>Dr. Jelena Nikolić</h3>
-            <div class="doctor-specialty">Neurologija</div>
-            <div class="doctor-rating">
-              <span class="stars">★★★★⭐</span>
-              <span class="rating-num">4.7</span>
-              <span class="rating-count">(64 ocena)</span>
-            </div>
-          </div>
-        </div>
-        <div class="doctor-card-body">
-          <div class="services-list">
-            <span class="service-tag">Neurološki pregled</span>
-            <span class="service-tag">EEG</span>
-            <span class="service-tag more">+3</span>
-          </div>
-          <div class="doctor-meta">
-            <div class="doctor-meta-item">📍 <span>Beograd</span></div>
-            <div class="doctor-meta-item">⏱ <span>45–90 min</span></div>
-            <div class="doctor-meta-item">💰 <span>od 4.200 din</span></div>
-          </div>
-          <button class="book-btn" onclick="openDoctorProfile('Dr. Jelena Nikolić', 'Neurologija', ['Neurološki pregled – 45 min – 4.200 din','EEG – 60 min – 5.500 din','EMG – 90 min – 7.000 din'], '4.7', 'Beograd')">Pogledaj profil & zakaži</button>
-        </div>
-      </div>
-
-    </div>
-
-    <div style="text-align:center;margin-top:40px;">
-      <button class="btn-secondary" onclick="openRegister('patient')" style="padding:14px 32px;font-size:1rem;">Prikaži sve lekare (1.240+) →</button>
+    <div class="doctors-grid" id="doctorsGrid"></div>
+    <div style="text-align:center;margin-top:24px">
+      <button class="btn-secondary" onclick="document.getElementById('doctors').style.display='none';document.getElementById('specialties').scrollIntoView({behavior:'smooth'})" style="padding:10px 24px;font-size:0.9rem;">← Nazad na specijalnosti</button>
     </div>
   </div>
 </section>
@@ -1137,6 +1049,7 @@ function toggleSpecialties() {
 
 function filterBySpec(spec) {
   document.getElementById('searchSpec').value = spec;
+  loadDoctors(spec);
 }
 
 function openBooking(doctorName, specialty, services) {
@@ -1700,6 +1613,107 @@ async function submitPatientRegister() {
 }
 
 // ── END SUPABASE ──────────────────────────────────
+
+// ── SHOW ALL DOCTORS ─────────────────────────────
+function showAllDoctors() {
+  loadDoctors(null);
+}
+
+// ── LOAD DOCTORS FROM SUPABASE ───────────────────
+async function loadDoctors(specialty) {
+  const section = document.getElementById('doctors');
+  const grid    = document.getElementById('doctorsGrid');
+  const titleEl = document.getElementById('doctorsTitle');
+  const subEl   = document.getElementById('doctorsSub');
+  const tagEl   = document.getElementById('doctorsTag');
+
+  section.style.display = 'block';
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray-400)">
+    <div style="font-size:2rem;margin-bottom:12px">⏳</div>Učitavamo lekare…</div>`;
+  section.scrollIntoView({ behavior: 'smooth' });
+
+  titleEl.textContent = specialty || 'Svi lekari';
+  tagEl.textContent   = specialty ? 'Specijalnost' : 'Lekari';
+
+  try {
+    let query = sb.from('doctors').select('*').order('full_name');
+    if (specialty) query = query.ilike('specialty', `%${specialty}%`);
+
+    const { data: doctors, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error.message, error.code, error.hint);
+      subEl.textContent = '';
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#e05a2b">
+        Greška: ${error.message}</div>`;
+      return;
+    }
+
+    if (!doctors || doctors.length === 0) {
+      subEl.textContent = '';
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px">
+          <div style="font-size:3rem;margin-bottom:16px">🔍</div>
+          <h3 style="color:var(--gray-700);margin-bottom:8px">Nema registrovanih lekara${specialty ? ` za ${specialty}` : ''}</h3>
+          <p style="color:var(--gray-400);font-size:0.95rem">Budite prvi lekar ove specijalnosti na platformi!</p>
+          <button class="nav-cta" onclick="openRegister('doctor')" style="margin-top:20px;display:inline-block;border:none;cursor:pointer;padding:12px 28px;font-size:0.95rem;border-radius:10px">
+            Registrujte se kao lekar →
+          </button>
+        </div>`;
+      return;
+    }
+
+    const count = doctors.length;
+    subEl.textContent = `${count} ${count === 1 ? 'lekar pronađen' : 'lekara pronađeno'}`;
+
+    const colors = [
+      'linear-gradient(135deg,#1a6fb5,#0aaddd)',
+      'linear-gradient(135deg,#0ea472,#06b6d4)',
+      'linear-gradient(135deg,#7c3aed,#1a6fb5)',
+      'linear-gradient(135deg,#e05a2b,#f59e0b)'
+    ];
+
+    grid.innerHTML = doctors.map(doc => {
+      const initials = doc.avatar_initials ||
+        doc.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const color  = colors[doc.full_name.charCodeAt(0) % colors.length];
+      const rating = doc.rating ? Number(doc.rating).toFixed(1) : '–';
+      const city   = doc.city || '';
+      const safeName = doc.full_name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const safeSpec = (doc.specialty||'').replace(/'/g,"\\'");
+
+      return `
+        <div class="doctor-card">
+          <div class="doctor-card-top">
+            <div class="doctor-avatar" style="background:${color}">${initials}</div>
+            <div class="doctor-info">
+              <h3>${doc.full_name}</h3>
+              <div class="doctor-specialty">${doc.specialty}</div>
+              <div class="doctor-rating">
+                <span class="stars">★★★★★</span>
+                <span class="rating-num">${rating}</span>
+              </div>
+            </div>
+          </div>
+          <div class="doctor-card-body">
+            <div class="doctor-meta">
+              <div class="doctor-meta-item">📍 <span>${city}</span></div>
+              ${doc.bio ? `<div class="doctor-meta-item" style="grid-column:1/-1;color:var(--gray-500);font-size:0.85rem">${doc.bio}</div>` : ''}
+            </div>
+            <button class="book-btn" onclick="openDoctorProfile('${safeName}','${safeSpec}',[],'${rating}','${city}')">
+              Pogledaj profil &amp; zakaži
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (err) {
+    console.error('loadDoctors error:', err?.message || err?.code || JSON.stringify(err));
+    subEl.textContent = '';
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#e05a2b">
+      Greška: ${err?.message || 'Nepoznata greška'}. Pokušajte ponovo.</div>`;
+  }
+}
 
 // ── SESSION STATE ────────────────────────────────
 let currentUser = null;
