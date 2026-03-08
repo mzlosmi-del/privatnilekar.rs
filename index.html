@@ -544,20 +544,9 @@
     <!-- CALENDAR TAB -->
     <div id="dpanel-calendar" class="dash-panel" style="display:none">
       <div style="background:white;border-radius:16px;border:1.5px solid var(--gray-100);padding:28px">
-        <h3 style="font-size:1rem;font-weight:600;margin-bottom:20px">Radno vreme</h3>
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:8px">Radno vreme</h3>
         <p style="color:var(--gray-500);font-size:0.9rem;margin-bottom:20px">Podesite radno vreme za svaki dan u nedelji.</p>
-        <div id="scheduleEditor">
-          ${['Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota','Nedelja'].map((d,i) => `
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100)">
-            <span style="width:110px;font-size:0.9rem;font-weight:500;color:var(--gray-700)">${d}</span>
-            <input type="time" class="form-input" value="${i < 5 ? '09:00' : ''}" style="width:110px" id="sched_from_${i}" ${i >= 6 ? 'disabled' : ''}>
-            <span style="color:var(--gray-300)">–</span>
-            <input type="time" class="form-input" value="${i < 5 ? '17:00' : ''}" style="width:110px" id="sched_to_${i}" ${i >= 6 ? 'disabled' : ''}>
-            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--gray-500);cursor:pointer;margin-left:8px">
-              <input type="checkbox" id="sched_on_${i}" ${i < 5 ? 'checked' : ''} onchange="document.getElementById('sched_from_${i}').disabled=!this.checked;document.getElementById('sched_to_${i}').disabled=!this.checked"> Radni dan
-            </label>
-          </div>`).join('')}
-        </div>
+        <div id="scheduleEditor"></div>
         <button class="submit-btn" style="margin-top:20px;width:auto;padding:12px 28px" onclick="saveSchedule()">💾 Sačuvaj radno vreme</button>
         <div id="schedSaved" style="display:none;margin-top:12px;color:var(--success);font-size:0.88rem;font-weight:600">✅ Radno vreme sačuvano!</div>
       </div>
@@ -567,19 +556,41 @@
     <div id="dpanel-profile" class="dash-panel" style="display:none">
       <div style="background:white;border-radius:16px;border:1.5px solid var(--gray-100);padding:28px">
         <h3 style="font-size:1rem;font-weight:600;margin-bottom:20px">Moj profil</h3>
+
+        <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:12px">Lični podaci</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Ime i prezime</label><input class="form-input" id="profName" placeholder="Dr. Ime Prezime"></div>
-          <div class="form-group"><label class="form-label">Specijalnost</label><input class="form-input" id="profSpec" placeholder="Kardiologija"></div>
+          <div class="form-group"><label class="form-label">Ime</label><input class="form-input" id="profFirstName" placeholder="Ana"></div>
+          <div class="form-group"><label class="form-label">Prezime</label><input class="form-input" id="profLastName" placeholder="Marković"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="profEmail" type="email" disabled style="background:var(--gray-50);color:var(--gray-400)"></div>
+          <div class="form-group"><label class="form-label">Telefon ordinacije</label><input class="form-input" id="profPhone" placeholder="+381 11 xxx xxxx"></div>
+        </div>
+
+        <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin:20px 0 12px">Profesionalni podaci</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Specijalnost</label>
+            <select class="form-input" id="profSpec"></select>
+          </div>
+          <div class="form-group"><label class="form-label">Broj licence LKS</label><input class="form-input" id="profLicense" placeholder="LKS-12345"></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Grad</label><input class="form-input" id="profCity" placeholder="Beograd"></div>
-          <div class="form-group"><label class="form-label">Broj licence</label><input class="form-input" id="profLicense" placeholder="LKS-12345"></div>
+          <div class="form-group"><label class="form-label">Adresa ordinacije</label><input class="form-input" id="profAddress" placeholder="Nemanjina 4"></div>
         </div>
-        <div class="form-group"><label class="form-label">Kratka biografija</label><textarea class="form-input" id="profBio" rows="3" placeholder="Kratko opišite vaše iskustvo i oblast rada…" style="resize:vertical"></textarea></div>
-        <div class="form-group"><label class="form-label">Telefon ordinacije</label><input class="form-input" id="profPhone" placeholder="+381 11 xxx xxxx"></div>
-        <div id="profSaveMsg" style="display:none;color:var(--success);font-size:0.88rem;font-weight:600;margin-bottom:8px">✅ Profil sačuvan!</div>
-        <div id="profSaveErr" style="display:none;color:#e05a2b;font-size:0.88rem;margin-bottom:8px"></div>
-        <button class="submit-btn" style="width:auto;padding:12px 28px" onclick="saveProfile()">💾 Sačuvaj profil</button>
+        <div class="form-group">
+          <label class="form-label">Kratka biografija</label>
+          <textarea class="form-input" id="profBio" rows="4" placeholder="Opišite vaše iskustvo, oblasti rada i pristup pacijentima…" style="resize:vertical"></textarea>
+        </div>
+
+        <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin:20px 0 12px">Usluge</div>
+        <div id="profServicesList"></div>
+        <button onclick="addProfileService()" style="width:100%;background:var(--gray-50);border:1.5px dashed var(--gray-200);padding:10px;border-radius:10px;font-family:inherit;color:var(--gray-400);cursor:pointer;font-size:0.88rem;margin-bottom:4px">+ Dodaj uslugu</button>
+
+        <div id="profSaveMsg" style="display:none;color:var(--success);font-size:0.88rem;font-weight:600;margin:12px 0">✅ Profil sačuvan!</div>
+        <div id="profSaveErr" style="display:none;color:#e05a2b;font-size:0.88rem;margin:8px 0"></div>
+        <button class="submit-btn" style="width:auto;padding:12px 32px;margin-top:8px" onclick="saveProfile()">💾 Sačuvaj profil</button>
       </div>
     </div>
 
@@ -1887,12 +1898,8 @@ async function openDoctorDashboard(user) {
   });
   document.getElementById('doctorDashboard').style.display = 'block';
 
-  // Update nav
-  document.getElementById('navLoggedIn').style.display = 'flex';
-  document.getElementById('navLoggedOut').style.display = 'none';
-
   // Load doctor profile from DB
-  const { data: doc } = await sb.from('doctors').select('*').eq('email', user.email).single();
+  const { data: doc } = await sb.from('doctors').select('*').eq('email', user.email).maybeSingle();
   currentDoctorProfile = doc;
 
   const name = doc?.full_name || user.user_metadata?.full_name || user.email;
@@ -1900,18 +1907,94 @@ async function openDoctorDashboard(user) {
   document.getElementById('dashDoctorSpec').textContent = doc?.specialty || '';
   document.getElementById('navUserName').textContent = `👨‍⚕️ ${name}`;
 
+  // Build schedule editor via JS (not template literals in HTML)
+  buildScheduleEditor();
+
+  // Populate specialty dropdown
+  const specSel = document.getElementById('profSpec');
+  if (specSel) {
+    specSel.innerHTML = specialties.map(s =>
+      `<option value="${s}" ${doc?.specialty === s ? 'selected' : ''}>${s}</option>`
+    ).join('');
+  }
+
   // Pre-fill profile tab
   if (doc) {
-    document.getElementById('profName').value    = doc.full_name    || '';
-    document.getElementById('profSpec').value    = doc.specialty    || '';
-    document.getElementById('profCity').value    = doc.city         || '';
-    document.getElementById('profLicense').value = doc.license_number || '';
-    document.getElementById('profBio').value     = doc.bio          || '';
-    document.getElementById('profPhone').value   = doc.phone        || '';
+    const nameParts = (doc.full_name || '').replace(/^Dr\.\s*/i,'').split(' ');
+    document.getElementById('profFirstName').value = nameParts[0] || '';
+    document.getElementById('profLastName').value  = nameParts.slice(1).join(' ') || '';
+    document.getElementById('profEmail').value     = doc.email || user.email;
+    document.getElementById('profPhone').value     = doc.phone || '';
+    document.getElementById('profLicense').value   = doc.license_number || '';
+    document.getElementById('profCity').value      = doc.city || '';
+    document.getElementById('profAddress').value   = doc.address || '';
+    document.getElementById('profBio').value       = doc.bio || '';
     document.getElementById('dashStatRating').textContent = doc.rating ? Number(doc.rating).toFixed(1) : '–';
+
+    // Load services
+    const { data: svcs } = await sb.from('services').select('*').eq('doctor_id', doc.id);
+    renderProfileServices(svcs || []);
+  } else {
+    document.getElementById('profEmail').value = user.email;
+    renderProfileServices([]);
   }
 
   await loadAppointments();
+}
+
+function buildScheduleEditor() {
+  const days = ['Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota','Nedelja'];
+  const editor = document.getElementById('scheduleEditor');
+  if (!editor) return;
+  editor.innerHTML = days.map((d, i) => {
+    const isWork = i < 5;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);flex-wrap:wrap">
+      <span style="width:110px;font-size:0.9rem;font-weight:500;color:var(--gray-700)">${d}</span>
+      <input type="time" class="form-input" value="${isWork ? '09:00' : ''}" style="width:110px" id="sched_from_${i}" ${!isWork ? 'disabled' : ''}>
+      <span style="color:var(--gray-300)">–</span>
+      <input type="time" class="form-input" value="${isWork ? '17:00' : ''}" style="width:110px" id="sched_to_${i}" ${!isWork ? 'disabled' : ''}>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--gray-500);cursor:pointer;margin-left:4px">
+        <input type="checkbox" id="sched_on_${i}" ${isWork ? 'checked' : ''}
+          onchange="var f=document.getElementById('sched_from_${i}'),t=document.getElementById('sched_to_${i}');f.disabled=!this.checked;t.disabled=!this.checked">
+        Radni dan
+      </label>
+    </div>`;
+  }).join('');
+}
+
+let profileServices = [];
+
+function renderProfileServices(svcs) {
+  profileServices = svcs.map(s => ({ name: s.name, duration: s.duration_minutes, price: s.price_rsd }));
+  refreshServicesList();
+}
+
+function refreshServicesList() {
+  const container = document.getElementById('profServicesList');
+  if (!container) return;
+  if (profileServices.length === 0) {
+    container.innerHTML = '<p style="color:var(--gray-400);font-size:0.88rem;margin-bottom:12px">Nema dodatih usluga.</p>';
+    return;
+  }
+  container.innerHTML = profileServices.map((s, i) => `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <input class="form-input" style="flex:2;min-width:140px" value="${s.name}" placeholder="Naziv usluge"
+        oninput="profileServices[${i}].name=this.value">
+      <input class="form-input" style="flex:1;min-width:80px" type="number" value="${s.duration}" placeholder="Min"
+        oninput="profileServices[${i}].duration=+this.value">
+      <input class="form-input" style="flex:1;min-width:90px" type="number" value="${s.price}" placeholder="RSD"
+        oninput="profileServices[${i}].price=+this.value">
+      <button onclick="profileServices.splice(${i},1);refreshServicesList()"
+        style="padding:8px 12px;background:#fee2e2;color:#991b1b;border:none;border-radius:8px;cursor:pointer;font-size:0.85rem;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+function addProfileService() {
+  profileServices.push({ name: '', duration: 30, price: 3000 });
+  refreshServicesList();
+  // Focus last name input
+  const inputs = document.querySelectorAll('#profServicesList input');
+  if (inputs.length) inputs[inputs.length - 3]?.focus();
 }
 
 function showPublicSite() {
@@ -1987,25 +2070,52 @@ async function saveProfile() {
   document.getElementById('profSaveMsg').style.display = 'none';
   document.getElementById('profSaveErr').style.display = 'none';
 
+  const firstName = document.getElementById('profFirstName').value.trim();
+  const lastName  = document.getElementById('profLastName').value.trim();
+  const fullName  = `${firstName} ${lastName}`.trim();
+
   const updates = {
-    full_name:      document.getElementById('profName').value.trim(),
-    specialty:      document.getElementById('profSpec').value.trim(),
-    city:           document.getElementById('profCity').value.trim(),
-    license_number: document.getElementById('profLicense').value.trim(),
-    bio:            document.getElementById('profBio').value.trim(),
-    phone:          document.getElementById('profPhone').value.trim(),
+    full_name:       fullName,
+    specialty:       document.getElementById('profSpec').value,
+    city:            document.getElementById('profCity').value.trim(),
+    license_number:  document.getElementById('profLicense').value.trim(),
+    bio:             document.getElementById('profBio').value.trim(),
+    phone:           document.getElementById('profPhone').value.trim(),
+    address:         document.getElementById('profAddress').value.trim(),
+    avatar_initials: (firstName[0]||'') + (lastName[0]||''),
   };
 
-  const { error } = await sb.from('doctors').update(updates).eq('email', currentDoctorProfile?.email || '');
+  const email = currentDoctorProfile?.email || currentUser?.email;
+  const { error } = await sb.from('doctors').update(updates).eq('email', email);
+
   if (error) {
     document.getElementById('profSaveErr').textContent = error.message;
     document.getElementById('profSaveErr').style.display = 'block';
-  } else {
-    document.getElementById('profSaveMsg').style.display = 'block';
-    document.getElementById('dashDoctorName').textContent = updates.full_name.replace(/^Dr\.\s*/i,'');
-    document.getElementById('dashDoctorSpec').textContent = updates.specialty;
-    setTimeout(() => document.getElementById('profSaveMsg').style.display = 'none', 3000);
+    return;
   }
+
+  // Save services
+  if (currentDoctorProfile?.id) {
+    await sb.from('services').delete().eq('doctor_id', currentDoctorProfile.id);
+    if (profileServices.length > 0) {
+      await sb.from('services').insert(
+        profileServices.filter(s => s.name.trim()).map(s => ({
+          doctor_id:        currentDoctorProfile.id,
+          name:             s.name.trim(),
+          duration_minutes: s.duration || 30,
+          price_rsd:        s.price || 0
+        }))
+      );
+    }
+  }
+
+  // Update UI
+  currentDoctorProfile = { ...currentDoctorProfile, ...updates };
+  document.getElementById('dashDoctorName').textContent = fullName.replace(/^Dr\.\s*/i,'');
+  document.getElementById('dashDoctorSpec').textContent = updates.specialty;
+  document.getElementById('navUserName').textContent = `👨‍⚕️ ${fullName}`;
+  document.getElementById('profSaveMsg').style.display = 'block';
+  setTimeout(() => document.getElementById('profSaveMsg').style.display = 'none', 3000);
 }
 
 function saveSchedule() {
