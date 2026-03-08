@@ -1937,7 +1937,6 @@ async function renderCalendar() {
   const label = document.getElementById('calWeekLabel');
   if (!grid) return;
 
-  // Compute week dates
   const today = new Date();
   today.setHours(0,0,0,0);
   const monday = new Date(today);
@@ -1947,26 +1946,26 @@ async function renderCalendar() {
     const d = new Date(monday); d.setDate(monday.getDate()+i); return d;
   });
 
-  label.textContent = `${days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'})} – ${days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'})}`;
+  label.textContent = `${days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'})} \u2013 ${days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'})}`;
 
-  // Fetch appointments for this week
   const from = days[0].toISOString().split('T')[0];
   const to   = days[6].toISOString().split('T')[0];
-  const { data: appts } = await sb.from('appointments').select('*')
+
+  // Fetch with patient and service join
+  const { data: appts } = await sb.from('appointments')
+    .select('*, patients(full_name), services(name)')
     .gte('appointment_date', from).lte('appointment_date', to);
 
   allCalendarAppointments = appts || [];
 
-  // Time range 07:00–20:00, slot = 30min
   const startH = 7, endH = 20;
-  const slots = (endH - startH) * 2; // 30-min slots
-  const dayNames = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
+  const slots = (endH - startH) * 2;
+  const dayNames = ['\u041f\u043e\u043d','\u0423\u0442\u043e','\u0421\u0440\u0435','\u010c\u0435\u0442','\u041f\u0435\u0442','\u0421\u0443\u0431','\u041d\u0435\u0434'];
 
-  // Build grid HTML
-  let html = `<div style="display:grid;grid-template-columns:52px repeat(7,1fr);font-size:0.78rem">`;
+  let html = '<div style="display:grid;grid-template-columns:52px repeat(7,1fr);font-size:0.78rem">';
 
-  // Header row
-  html += `<div style="border-bottom:2px solid var(--gray-100);background:var(--gray-50)"></div>`;
+  // Header
+  html += '<div style="border-bottom:2px solid var(--gray-100);background:var(--gray-50)"></div>';
   days.forEach((d,i) => {
     const isToday = d.toDateString() === new Date().toDateString();
     html += `<div style="text-align:center;padding:10px 4px;border-bottom:2px solid var(--gray-100);border-left:1px solid var(--gray-100);background:var(--gray-50);font-weight:${isToday?'700':'500'};color:${isToday?'var(--primary)':'var(--gray-600)'}">
@@ -1975,46 +1974,150 @@ async function renderCalendar() {
     </div>`;
   });
 
-  // Time slots
   for (let s = 0; s < slots; s++) {
     const totalMin = startH*60 + s*30;
-    const h = String(Math.floor(totalMin/60)).padStart(2,'0');
-    const m = String(totalMin%60).padStart(2,'0');
-    const timeStr = `${h}:${m}`;
-    const showLabel = m === '00';
+    const hh = String(Math.floor(totalMin/60)).padStart(2,'0');
+    const mm = String(totalMin%60).padStart(2,'0');
+    const timeStr = `${hh}:${mm}`;
+    const showLabel = mm === '00';
 
     html += `<div style="padding:${showLabel?'4px 4px 0':'0 4px'} 4px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'var(--gray-50)'};color:var(--gray-400);text-align:right;font-size:0.72rem;line-height:1">${showLabel ? timeStr : ''}</div>`;
 
     days.forEach((d, di) => {
       const dateStr = d.toISOString().split('T')[0];
-      const dayIdx  = di; // 0=Mon
-      const wh = doctorWorkingHours[dayIdx];
-      const inWorkHours = wh && wh.active && timeStr >= wh.from && timeStr < wh.to;
+      const wh = doctorWorkingHours[di];
+      const inWork = wh && wh.active && timeStr >= wh.from && timeStr < wh.to;
 
-      // Find appointment at this slot
       const appt = allCalendarAppointments.find(a =>
         a.appointment_date === dateStr && a.appointment_time?.slice(0,5) === timeStr
       );
 
-      let cellBg = inWorkHours ? 'background:#e0f0ff;' : '';
+      let cellBg = inWork ? 'background:#e0f0ff;' : '';
       let cellContent = '';
+      let dblclick = '';
 
       if (appt) {
         const isPending = appt.status === 'pending';
         cellBg = isPending
           ? 'background:#fef3c7;border-left:3px solid #f59e0b;'
           : 'background:#d1fae5;border-left:3px solid #0ea472;';
-        cellContent = `<div style="padding:2px 4px;font-size:0.7rem;font-weight:600;color:${isPending?'#92400e':'#065f46'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${appt.note||''}">
-          ${isPending?'⏳':'✓'} ${timeStr}
+
+        const patientFirst = (appt.patients?.full_name || 'Pacijent').split(' ')[0];
+        const svcName = (appt.services?.name || appt.note || '').slice(0,18);
+
+        cellContent = `<div style="padding:3px 5px;font-size:0.7rem;font-weight:600;color:${isPending?'#92400e':'#065f46'};line-height:1.35;cursor:pointer;user-select:none" title="Dvoklik za detalje">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isPending?'\u23f3':'\u2713'} ${patientFirst}</div>
+          <div style="font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0.85">${svcName}</div>
         </div>`;
+
+        dblclick = `ondblclick="openApptDetail('${appt.id}')"`;
       }
 
-      html += `<div style="min-height:18px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'rgba(0,0,0,0.04)'};border-left:1px solid var(--gray-100);${cellBg}cursor:default">${cellContent}</div>`;
+      html += `<div style="min-height:28px;border-bottom:1px solid ${showLabel?'var(--gray-100)':'rgba(0,0,0,0.04)'};border-left:1px solid var(--gray-100);${cellBg}" ${dblclick}>${cellContent}</div>`;
     });
   }
 
-  html += `</div>`;
+  html += '</div>';
   grid.innerHTML = html;
+}
+
+function openApptDetail(id) {
+  const appt = allCalendarAppointments.find(a => a.id === id);
+  if (!appt) return;
+
+  const isPending   = appt.status === 'pending';
+  const isConfirmed = appt.status === 'confirmed';
+  const patientName = appt.patients?.full_name || '\u2014';
+  const serviceName = appt.services?.name || appt.note || '\u2014';
+  const dateStr     = new Date(appt.appointment_date)
+    .toLocaleDateString('sr-RS',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const timeStr     = appt.appointment_time?.slice(0,5) || '';
+
+  const statusLabel = isPending ? '\u23f3 Na \u010dekanju' : isConfirmed ? '\u2705 Potvr\u0111en' : '\u274c Otkazan';
+  const statusColor = isPending ? '#92400e'  : isConfirmed ? '#065f46'  : '#991b1b';
+  const statusBg    = isPending ? '#fef3c7'  : isConfirmed ? '#d1fae5'  : '#fee2e2';
+
+  document.getElementById('apptDetailTitle').textContent = 'Termin \u2013 ' + timeStr + ' ' + dateStr;
+
+  let actions = '';
+  if (isPending) {
+    actions = `
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="apptAction('${id}','confirmed')"
+          style="flex:1;padding:11px;background:var(--success);color:white;border:none;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:600;cursor:pointer">
+          \u2713 Potvrdite termin</button>
+        <button onclick="apptAction('${id}','cancelled')"
+          style="flex:1;padding:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:600;cursor:pointer">
+          \u2715 Odbijte termin</button>
+      </div>`;
+  } else if (isConfirmed) {
+    actions = `
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="apptReschedule('${id}')"
+          style="flex:1;padding:11px;background:var(--primary);color:white;border:none;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:600;cursor:pointer">
+          \ud83d\uddd3\ufe0f Promenite termin</button>
+        <button onclick="apptAction('${id}','cancelled')"
+          style="flex:1;padding:11px;background:#fee2e2;color:#991b1b;border:none;border-radius:10px;font-family:inherit;font-size:0.9rem;font-weight:600;cursor:pointer">
+          \u274c Otkažite termin</button>
+      </div>`;
+  }
+
+  const noteRow = appt.note ? `
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:12px 16px;background:var(--off-white);border-radius:12px">
+        <span style="font-size:1.6rem">&#x1f4dd;</span>
+        <div>
+          <div style="font-size:0.75rem;color:var(--gray-400);font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Napomena</div>
+          <div style="color:var(--gray-700);font-size:0.9rem">${appt.note}</div>
+        </div>
+      </div>` : '';
+
+  document.getElementById('apptDetailBody').innerHTML = `
+    <div style="display:inline-block;padding:4px 14px;border-radius:20px;background:${statusBg};color:${statusColor};font-size:0.82rem;font-weight:700;margin-bottom:18px">${statusLabel}</div>
+    <div style="display:grid;gap:10px">
+      <div style="display:flex;gap:14px;align-items:center;padding:12px 16px;background:var(--off-white);border-radius:12px">
+        <span style="font-size:1.5rem">&#x1f464;</span>
+        <div>
+          <div style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Pacijent</div>
+          <div style="font-weight:600;color:var(--gray-900)">${patientName}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;padding:12px 16px;background:var(--off-white);border-radius:12px">
+        <span style="font-size:1.5rem">&#x1fa7a;</span>
+        <div>
+          <div style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Usluga</div>
+          <div style="font-weight:600;color:var(--gray-900)">${serviceName}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;padding:12px 16px;background:var(--off-white);border-radius:12px">
+        <span style="font-size:1.5rem">&#x1f4c5;</span>
+        <div>
+          <div style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Datum i vreme</div>
+          <div style="font-weight:600;color:var(--gray-900)">${dateStr}, ${timeStr}h</div>
+        </div>
+      </div>
+      ${noteRow}
+    </div>
+    ${actions}`;
+
+  openModal('apptDetailModal');
+}
+
+async function apptAction(id, status) {
+  closeModal('apptDetailModal');
+  await sb.from('appointments').update({ status }).eq('id', id);
+  const appt = allCalendarAppointments.find(a => a.id === id);
+  if (appt) appt.status = status;
+  const label = status === 'confirmed' ? 'Termin potvr\u0111en' : 'Termin otkazan';
+  addNotification(status === 'confirmed' ? '\u2705' : '\u274c', label, appt?.patients?.full_name || '', status);
+  renderCalendar();
+  loadAppointments();
+}
+
+function apptReschedule(id) {
+  closeModal('apptDetailModal');
+  showDashTab('appointments');
+  filterAppointments('confirmed');
+  addNotification('\ud83d\uddd3\ufe0f', 'Promenite termin', 'Pronađite termin u listi i otkažite ga da zakazete novi.', 'info');
 }
 
 // ── PROFILE MAP ──────────────────────────────────
