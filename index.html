@@ -224,7 +224,7 @@ body {
 .cal-grid {
   display: grid;
   grid-template-columns: 52px repeat(7, 1fr);
-  min-width: 780px;
+  /* columns overridden by JS; min-width set per breakpoint */
 }
 
 .cal-head-spacer { background: var(--off); border-bottom: 2px solid var(--line); }
@@ -614,7 +614,6 @@ body {
 /* Desktop: always show all 7 days */
 @media (min-width: 901px) {
   .cal-grid {
-    grid-template-columns: 52px repeat(7, 1fr);
     min-width: 780px;
   }
 }
@@ -1044,7 +1043,7 @@ async function renderCalendar() {
   // Week label
   document.getElementById('calWeekLabel').textContent =
     days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'}) + ' – ' +
-    days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
+    days[days.length-1].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
 
   // Fetch data
   const fetches = [
@@ -1073,8 +1072,9 @@ async function renderCalendar() {
   days.forEach((d, i) => {
     const ds = localDate(d);
     const isToday = ds === todayStr;
+    const dow = (d.getDay() + 6) % 7; // Mon=0
     html += `<div class="cal-day-head ${isToday ? 'today' : ''}">
-      <div class="dow">${DAYS[i]}</div>
+      <div class="dow">${DAYS[dow]}</div>
       <div class="dom">${d.getDate()}</div>
     </div>`;
   });
@@ -1217,10 +1217,9 @@ async function renderCalendar() {
   grid.innerHTML = html;
 
   // Scroll to 08:00
-  const scrollTarget = (CAL_START === 7 ? 2 : 0) * SLOT_H;
   requestAnimationFrame(() => {
     const scroller = document.querySelector('.cal-scroll');
-    if (scroller) scroller.scrollTop = 2 * SLOT_H; // 1 hour in = 08:00
+    if (scroller) scroller.scrollTop = 2 * SLOT_H_USED;
   });
 }
 
