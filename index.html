@@ -687,7 +687,7 @@ nav {
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <a href="#" onclick="openModal('privacyModal')" style="color:rgba(255,255,255,0.7)">Politika privatnosti</a>
         <a href="#" onclick="openModal('termsModal')" style="color:rgba(255,255,255,0.7)">Uslovi korišćenja</a>
-        <a href="/cdn-cgi/l/email-protection#ea9a858e9899818baa9a98839c8b9e8483868f818b98c49899" style="color:rgba(255,255,255,0.7)">Kontakt</a>
+        <a href="mailto:podrska@privatnilekar.rs" style="color:rgba(255,255,255,0.7)">Kontakt</a>
       </div>
     </div>
   </footer>
@@ -1195,7 +1195,7 @@ nav {
     <div class="modal-body privacy-content">
       <p><strong>PrivatniLekar d.o.o. [PLACEHOLDER]</strong>, sa sedištem u Beogradu, Srbija (u daljem tekstu: „Rukovalac podacima"), obrađuje vaše lične podatke u skladu sa Zakonom o zaštiti podataka o ličnosti Republike Srbije („Sl. glasnik RS", br. 87/2018) (ZZPL) i relevantnim propisima EU.</p>
       <h4>1. Rukovalac podacima</h4>
-      <p>PrivatniLekar d.o.o. [PLACEHOLDER], Beograd, Srbija. PIB: [PLACEHOLDER]. Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f9898b908f988d97968a8db9898b908f988d9790959c92988bd78b8a">[email&#160;protected]</a></p>
+      <p>PrivatniLekar d.o.o. [PLACEHOLDER], Beograd, Srbija. PIB: [PLACEHOLDER]. Email: privatnost@privatnilekar.rs</p>
       <h4>2. Koje podatke prikupljamo</h4>
       <ul>
         <li><strong>Pacijenti:</strong> ime, prezime, email adresa, broj telefona</li>
@@ -1210,7 +1210,7 @@ nav {
         <li>Poboljšanje platforme — na osnovu legitimnog interesa</li>
       </ul>
       <h4>4. Vaša prava</h4>
-      <p>U skladu sa ZZPL i GDPR imate pravo na: pristup, ispravku, brisanje („pravo na zaborav"), ograničenje obrade, prenosivost podataka i prigovor. Zahteve upućujte na: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2252504b5443564c4d51566252504b5443564c4b4e474943500c5051">[email&#160;protected]</a>. Rok za odgovor: 30 dana.</p>
+      <p>U skladu sa ZZPL i GDPR imate pravo na: pristup, ispravku, brisanje („pravo na zaborav"), ograničenje obrade, prenosivost podataka i prigovor. Zahteve upućujte na: privatnost@privatnilekar.rs. Rok za odgovor: 30 dana.</p>
       <h4>5. Čuvanje podataka</h4>
       <p>Podatke čuvamo najduže 5 godina od poslednjeg korišćenja naloga, ili do opoziva saglasnosti. Podatke o terminima čuvamo u skladu sa zakonskim obavezama u oblasti zdravstvene dokumentacije.</p>
       <h4>6. Deljenje podataka</h4>
@@ -1249,7 +1249,9 @@ nav {
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+
+
+<script>
 // ══════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════
@@ -2825,4 +2827,17 @@ function badgeHtml(status) {
     pending:   ['Na čekanju', 'badge-pending'],
     confirmed: ['Potvrđen',   'badge-confirmed'],
     rejected:  ['Odbijen',    'badge-rejected'],
- 
+    completed: ['Završen',    'badge-completed'],
+    blocker:   ['Blokada',    'badge-blocker'],
+  };
+  const [label, cls] = map[status] || ['Nepoznat', 'badge-pending'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+</script>
+
+</body>
+</html>
