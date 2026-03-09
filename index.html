@@ -1683,7 +1683,8 @@ function computeAvailableSlots(doc, bookedAppts, blockers, days) {
     const whDay = wh[dayIdx];
     if (!whDay || !whDay.active || !whDay.from || !whDay.to) continue;
 
-    const dateStr = date.toISOString().split('T')[0];
+    const y = date.getFullYear(), mo = String(date.getMonth()+1).padStart(2,'0'), dy = String(date.getDate()).padStart(2,'0');
+    const dateStr = `${y}-${mo}-${dy}`;
     const [fh, fm] = whDay.from.split(':').map(Number);
     const [th, tm] = whDay.to.split(':').map(Number);
 
@@ -2418,15 +2419,24 @@ async function renderCalendar() {
   const label  = document.getElementById('calWeekLabel');
   if (!header || !body) return;
 
-  const today = new Date(); today.setHours(0,0,0,0);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // local midnight, no UTC shift
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + calWeekOffset * 7);
   const days = Array.from({length: 7}, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
 
+  // Use local date string (not toISOString which is UTC and shifts dates in CET/EET)
+  const toLocalDate = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   label.textContent = days[0].toLocaleDateString('sr-RS', {day:'numeric',month:'long'}) + ' – ' + days[6].toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
 
-  const from = days[0].toISOString().split('T')[0];
-  const to   = days[6].toISOString().split('T')[0];
+  const from = toLocalDate(days[0]);
+  const to   = toLocalDate(days[6]);
 
   const [{ data: appts }, { data: blockers }] = await Promise.all([
     sb.from('appointments').select('*, patients(full_name,phone), services(name,duration_minutes), doctor_note')
@@ -2441,9 +2451,10 @@ async function renderCalendar() {
   calAppointments = appts || [];
   calBlockers     = blockers || [];
 
+  const todayStr = toLocalDate(today);
   const dayNames = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
   header.innerHTML = '<div></div>' + days.map((d, i) => {
-    const isToday = d.toDateString() === today.toDateString();
+    const isToday = toLocalDate(d) === todayStr;
     return `<div class="cal-day-head ${isToday ? 'today' : ''}">${dayNames[i]}<br><strong>${d.getDate()}</strong></div>`;
   }).join('');
 
@@ -2462,7 +2473,7 @@ async function renderCalendar() {
     bodyHtml += `<div class="cal-time-label" style="padding-top:${showLabel?'4px':'0'}">${showLabel ? timeStr : ''}</div>`;
 
     days.forEach((d, di) => {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toLocalDate(d);
       const dayWh   = wh[(di)]; // Mon=0
       const inWork  = dayWh?.active && timeStr >= dayWh.from && timeStr < dayWh.to;
 
