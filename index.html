@@ -11,35 +11,38 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --navy:      #0f1623;
-  --navy-mid:  #1a2336;
-  --navy-lite: #243047;
-  --slate:     #8897b0;
-  --line:      #2a3547;
-  --white:     #f4f6fb;
-  --off:       #e8ecf4;
-  --ink:       #1a2336;
-  --ink-soft:  #4a5568;
-  --ink-muted: #94a3b8;
-  --teal:      #2dd4bf;
-  --teal-dark: #0d9488;
-  --teal-dim:  rgba(45,212,191,0.12);
-  --amber:     #f59e0b;
-  --amber-dim: rgba(245,158,11,0.15);
-  --red:       #ef4444;
-  --red-dim:   rgba(239,68,68,0.12);
-  --green:     #22c55e;
-  --green-dim: rgba(34,197,94,0.12);
+  --navy:      #f0f6ff;   /* page background — very light blue */
+  --navy-mid:  #ffffff;   /* card/panel background — white */
+  --navy-lite: #e8f0fc;   /* input/chip background — light blue-gray */
+  --slate:     #6b7fa3;   /* muted text */
+  --line:      #dae4f5;   /* borders */
+  --white:     #1a2a4a;   /* primary text (dark navy on light bg) */
+  --off:       #f5f8ff;   /* subtle surface */
+  --ink:       #1a2a4a;
+  --ink-soft:  #3d4f72;
+  --ink-muted: #8a9abf;
+  --blue:      #2563eb;   /* primary accent */
+  --blue-mid:  #3b82f6;
+  --blue-dim:  rgba(37,99,235,0.10);
+  --teal:      #2563eb;   /* map old teal -> blue for accent */
+  --teal-dark: #1d4ed8;
+  --teal-dim:  rgba(37,99,235,0.10);
+  --amber:     #d97706;
+  --amber-dim: rgba(217,119,6,0.12);
+  --red:       #dc2626;
+  --red-dim:   rgba(220,38,38,0.10);
+  --green:     #16a34a;
+  --green-dim: rgba(22,163,74,0.10);
   --r:         10px;
   --r-lg:      16px;
-  --shadow:    0 4px 24px rgba(0,0,0,0.25);
+  --shadow:    0 2px 16px rgba(37,99,235,0.08), 0 1px 4px rgba(0,0,0,0.06);
 }
 
 html, body { height: 100%; overflow: hidden; }
 body {
   font-family: 'Syne', sans-serif;
   background: var(--navy);
-  color: var(--white);
+  color: var(--ink);
   display: flex;
   flex-direction: column;
 }
@@ -48,7 +51,7 @@ body {
 #loginScreen {
   display: flex; align-items: center; justify-content: center;
   height: 100vh;
-  background: var(--navy);
+  background: linear-gradient(135deg, #e8f0fc 0%, #f0f6ff 60%, #dbeafe 100%);
 }
 .login-card {
   width: 380px;
@@ -64,20 +67,20 @@ body {
 }
 .login-logo-mark {
   width: 36px; height: 36px;
-  background: var(--teal);
+  background: var(--blue);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .login-logo-mark svg { width: 18px; height: 18px; }
 .login-logo-text {
-  font-size: 1.1rem; font-weight: 700; color: var(--white); letter-spacing: -0.02em;
+  font-size: 1.1rem; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;
 }
-.login-logo-text span { color: var(--teal); }
+.login-logo-text span { color: var(--blue); }
 .login-title {
   font-family: 'Spectral', serif;
   font-size: 1.5rem; font-weight: 600;
-  color: var(--white); margin-bottom: 6px;
+  color: var(--ink); margin-bottom: 6px;
 }
 .login-sub { font-size: 0.82rem; color: var(--slate); margin-bottom: 28px; }
 .field { margin-bottom: 14px; }
@@ -89,11 +92,11 @@ body {
 .field input {
   width: 100%; padding: 10px 14px;
   background: var(--navy-lite); border: 1px solid var(--line);
-  border-radius: var(--r); color: var(--white);
+  border-radius: var(--r); color: var(--ink);
   font-family: 'Syne', sans-serif; font-size: 0.88rem;
   outline: none; transition: border-color 0.15s;
 }
-.field input:focus { border-color: var(--teal); }
+.field input:focus { border-color: var(--blue); }
 .field input::placeholder { color: var(--slate); opacity: 0.6; }
 .login-err {
   font-size: 0.8rem; color: var(--red);
@@ -102,13 +105,13 @@ body {
 }
 .btn-login {
   width: 100%; padding: 12px;
-  background: var(--teal); color: var(--navy);
+  background: var(--blue); color: #ffffff;
   border: none; border-radius: var(--r);
   font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
   cursor: pointer; transition: all 0.15s;
   letter-spacing: -0.01em;
 }
-.btn-login:hover { background: #5eead4; transform: translateY(-1px); }
+.btn-login:hover { background: var(--blue-mid); transform: translateY(-1px); }
 .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 /* ── APP SHELL ─────────────────────────────────── */
@@ -128,11 +131,11 @@ body {
 .topbar-logo {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.95rem; font-weight: 700; letter-spacing: -0.02em;
-  color: var(--white); white-space: nowrap; margin-right: 8px;
+  color: var(--ink); white-space: nowrap; margin-right: 8px;
 }
-.topbar-logo span { color: var(--teal); }
+.topbar-logo span { color: var(--blue); }
 .topbar-logo-mark {
-  width: 28px; height: 28px; background: var(--teal);
+  width: 28px; height: 28px; background: var(--blue);
   border-radius: 8px; display: flex; align-items: center; justify-content: center;
 }
 .topbar-logo-mark svg { width: 14px; height: 14px; }
@@ -144,18 +147,18 @@ body {
   color: var(--slate); background: transparent; border: none;
   cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
 }
-.tab-btn:hover { color: var(--white); background: var(--navy-lite); }
-.tab-btn.active { color: var(--teal); background: var(--teal-dim); }
+.tab-btn:hover { color: var(--ink); background: var(--navy-lite); }
+.tab-btn.active { color: var(--blue); background: var(--blue-dim); }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .doctor-chip {
   display: flex; align-items: center; gap: 8px;
   padding: 5px 12px 5px 6px;
   background: var(--navy-lite); border-radius: 20px;
-  font-size: 0.8rem; color: var(--white);
+  font-size: 0.8rem; color: var(--ink);
 }
 .doctor-avatar {
   width: 24px; height: 24px; border-radius: 50%;
-  background: var(--teal); color: var(--navy);
+  background: var(--blue); color: #ffffff;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.65rem; font-weight: 800;
 }
@@ -178,45 +181,45 @@ body {
   flex-shrink: 0;
   display: flex; align-items: center; gap: 12px;
   padding: 12px 24px;
-  background: var(--navy-mid);
+  background: var(--off);
   border-bottom: 1px solid var(--line);
 }
 .cal-nav-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  background: var(--navy-lite); border: 1px solid var(--line);
-  color: var(--white); font-size: 1rem; cursor: pointer;
+  background: #ffffff; border: 1px solid var(--line);
+  color: var(--ink); font-size: 1rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.12s;
 }
-.cal-nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+.cal-nav-btn:hover { border-color: var(--blue); color: var(--blue); }
 .cal-week-label {
-  font-size: 0.9rem; font-weight: 700; color: var(--white);
+  font-size: 0.9rem; font-weight: 700; color: var(--ink);
   min-width: 220px; letter-spacing: -0.02em;
 }
 .cal-today-btn {
   padding: 5px 12px; border-radius: 8px;
   font-size: 0.78rem; font-weight: 600; font-family: 'Syne', sans-serif;
-  background: var(--navy-lite); border: 1px solid var(--line);
+  background: #ffffff; border: 1px solid var(--line);
   color: var(--slate); cursor: pointer; transition: all 0.12s;
 }
-.cal-today-btn:hover { color: var(--teal); border-color: var(--teal); }
+.cal-today-btn:hover { color: var(--blue); border-color: var(--blue); }
 .cal-legend { display: flex; gap: 14px; margin-left: 8px; }
 .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--slate); }
 .cal-legend-dot { width: 8px; height: 8px; border-radius: 3px; }
 .cal-add-btn {
   margin-left: auto;
   padding: 6px 16px; border-radius: 8px;
-  background: var(--teal); color: var(--navy);
+  background: var(--blue); color: #ffffff;
   font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
   border: none; cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
 }
-.cal-add-btn:hover { background: #5eead4; }
+.cal-add-btn:hover { background: var(--blue-mid); }
 
 /* ── CALENDAR GRID ─────────────────────────────── */
 .cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
 .cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-.cal-scroll::-webkit-scrollbar-track { background: var(--navy); }
-.cal-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.cal-scroll::-webkit-scrollbar-track { background: var(--off); }
+.cal-scroll::-webkit-scrollbar-thumb { background: #c5d4ee; border-radius: 3px; }
 
 .cal-grid {
   display: grid;
@@ -224,9 +227,9 @@ body {
   min-width: 780px;
 }
 
-.cal-head-spacer { background: var(--navy-mid); border-bottom: 2px solid var(--line); }
+.cal-head-spacer { background: var(--off); border-bottom: 2px solid var(--line); }
 .cal-day-head {
-  background: var(--navy-mid);
+  background: var(--off);
   border-bottom: 2px solid var(--line);
   border-left: 1px solid var(--line);
   padding: 10px 8px;
@@ -237,19 +240,19 @@ body {
   text-transform: uppercase; color: var(--slate);
 }
 .cal-day-head .dom {
-  font-size: 1.1rem; font-weight: 800; color: var(--white);
+  font-size: 1.1rem; font-weight: 800; color: var(--ink);
   line-height: 1.2; margin-top: 2px; letter-spacing: -0.03em;
 }
 .cal-day-head.today .dom {
-  color: var(--teal);
+  color: var(--blue);
 }
-.cal-day-head.today .dow { color: var(--teal); }
+.cal-day-head.today .dow { color: var(--blue); }
 
 /* Time rows */
 .cal-time-cell {
   padding: 0 8px 0 0;
   text-align: right;
-  font-size: 0.62rem; font-weight: 600; color: var(--slate);
+  font-size: 0.62rem; font-weight: 600; color: var(--ink-muted);
   border-right: 1px solid var(--line);
   position: relative;
   height: 36px;
@@ -265,7 +268,7 @@ body {
   cursor: pointer;
   transition: background 0.08s;
 }
-.cal-slot:hover { background: rgba(45,212,191,0.05); }
+.cal-slot:hover { background: rgba(37,99,235,0.04); }
 .cal-slot.half-hour { border-bottom: 1px solid var(--line); }
 .cal-slot.past { opacity: 0.45; cursor: default; }
 .cal-slot.past:hover { background: transparent; }
@@ -273,7 +276,8 @@ body {
 /* Appointment blocks */
 .cal-block {
   position: absolute;
-  left: 3px; right: 3px; top: 2px;
+  /* left/width/top/height set dynamically via inline style */
+  top: 2px;
   border-radius: 6px;
   padding: 3px 7px;
   font-size: 0.7rem; font-weight: 700;
@@ -284,10 +288,10 @@ body {
   letter-spacing: -0.01em;
 }
 .cal-block:hover { filter: brightness(1.15); transform: scaleY(1.02); }
-.cal-block.confirmed { background: var(--teal-dim); border-left: 3px solid var(--teal); color: var(--teal); }
-.cal-block.pending   { background: var(--amber-dim); border-left: 3px solid var(--amber); color: var(--amber); }
-.cal-block.cancelled { background: var(--red-dim); border-left: 3px solid var(--red); color: #fca5a5; opacity: 0.6; }
-.cal-block.blocker   { background: rgba(148,163,184,0.1); border-left: 3px solid var(--slate); color: var(--slate); }
+.cal-block.confirmed { background: rgba(37,99,235,0.10); border-left: 3px solid var(--blue); color: var(--blue); }
+.cal-block.pending   { background: rgba(217,119,6,0.12); border-left: 3px solid var(--amber); color: #92400e; }
+.cal-block.cancelled { background: rgba(220,38,38,0.08); border-left: 3px solid var(--red); color: var(--red); opacity: 0.6; }
+.cal-block.blocker   { background: rgba(107,127,163,0.08); border-left: 3px solid var(--slate); color: var(--slate); }
 .cal-block-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-block-svc  { font-weight: 400; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -305,7 +309,7 @@ body {
 }
 .list-title {
   font-family: 'Spectral', serif;
-  font-size: 1.4rem; font-weight: 600; color: var(--white);
+  font-size: 1.4rem; font-weight: 600; color: var(--ink);
   letter-spacing: -0.02em;
 }
 .filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -316,25 +320,26 @@ body {
   color: var(--slate); cursor: pointer; transition: all 0.12s;
   letter-spacing: -0.01em;
 }
-.filter-chip:hover { color: var(--white); border-color: var(--slate); }
-.filter-chip.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+.filter-chip:hover { color: var(--ink); border-color: var(--slate); }
+.filter-chip.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
 
 .appt-table { width: 100%; border-collapse: collapse; }
 .appt-table th {
   text-align: left; font-size: 0.68rem; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--slate); padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid var(--line);
+  background: var(--off);
 }
 .appt-table td {
   padding: 13px 14px; font-size: 0.85rem;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   vertical-align: middle;
 }
-.appt-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
-.appt-name { font-weight: 700; color: var(--white); }
+.appt-table tr:hover td { background: var(--blue-dim); cursor: pointer; }
+.appt-name { font-weight: 700; color: var(--ink); }
 .appt-svc  { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
-.appt-date { font-size: 0.82rem; color: var(--white); font-weight: 600; }
+.appt-date { font-size: 0.82rem; color: var(--ink); font-weight: 600; }
 .appt-time-val { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
 .appt-note { font-size: 0.78rem; color: var(--slate); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -343,7 +348,7 @@ body {
   padding: 3px 10px; border-radius: 20px;
   font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
 }
-.badge-confirmed { background: var(--teal-dim);  color: var(--teal); }
+.badge-confirmed { background: var(--blue-dim);  color: var(--blue); }
 .badge-pending   { background: var(--amber-dim); color: var(--amber); }
 .badge-cancelled { background: var(--red-dim);   color: #fca5a5; }
 .badge-blocker   { background: rgba(148,163,184,0.1); color: var(--slate); }
@@ -357,19 +362,19 @@ body {
 /* ── MODAL ─────────────────────────────────────── */
 .overlay {
   position: fixed; inset: 0;
-  background: rgba(10,15,30,0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(30,58,120,0.25);
+  backdrop-filter: blur(6px);
   z-index: 100;
   display: none; align-items: center; justify-content: center;
   padding: 20px;
 }
 .overlay.open { display: flex; }
 .modal {
-  background: var(--navy-mid);
+  background: #ffffff;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   width: 100%; max-width: 460px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 40px rgba(37,99,235,0.12), 0 2px 8px rgba(0,0,0,0.08);
   animation: modalIn 0.18s ease;
   overflow: hidden;
 }
@@ -381,7 +386,7 @@ body {
 }
 .modal-head h3 {
   font-family: 'Spectral', serif;
-  font-size: 1rem; font-weight: 600; color: var(--white);
+  font-size: 1rem; font-weight: 600; color: var(--ink);
 }
 .modal-close {
   width: 28px; height: 28px; border-radius: 7px;
@@ -402,7 +407,7 @@ body {
   color: var(--slate); cursor: pointer; transition: all 0.12s;
   letter-spacing: -0.01em;
 }
-.type-btn.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+.type-btn.active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
 .mfield { margin-bottom: 14px; }
 .mfield label {
   display: block; font-size: 0.68rem; font-weight: 700;
@@ -412,13 +417,13 @@ body {
 .mfield input, .mfield select, .mfield textarea {
   width: 100%; padding: 9px 13px;
   background: var(--navy-lite); border: 1px solid var(--line);
-  border-radius: var(--r); color: var(--white);
+  border-radius: var(--r); color: var(--ink);
   font-family: 'Syne', sans-serif; font-size: 0.85rem;
   outline: none; transition: border-color 0.15s;
 }
-.mfield input:focus, .mfield select:focus, .mfield textarea:focus { border-color: var(--teal); }
-.mfield input::placeholder, .mfield textarea::placeholder { color: var(--slate); opacity: 0.5; }
-.mfield select option { background: var(--navy-mid); }
+.mfield input:focus, .mfield select:focus, .mfield textarea:focus { border-color: var(--blue); }
+.mfield input::placeholder, .mfield textarea::placeholder { color: var(--slate); opacity: 0.6; }
+.mfield select option { background: #ffffff; color: var(--ink); }
 .mfield textarea { resize: vertical; min-height: 68px; }
 .mrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .modal-err {
@@ -428,12 +433,12 @@ body {
 }
 .btn-save {
   width: 100%; padding: 11px;
-  background: var(--teal); color: var(--navy);
+  background: var(--blue); color: #ffffff;
   border: none; border-radius: var(--r);
   font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
   cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
 }
-.btn-save:hover { background: #5eead4; }
+.btn-save:hover { background: var(--blue-mid); }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Detail modal */
@@ -444,16 +449,16 @@ body {
 .detail-row:last-of-type { border-bottom: none; }
 .detail-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; width: 20px; }
 .detail-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); margin-bottom: 2px; }
-.detail-val { font-size: 0.88rem; color: var(--white); font-weight: 600; }
+.detail-val { font-size: 0.88rem; color: var(--ink); font-weight: 600; }
 .detail-actions { display: flex; gap: 8px; margin-top: 18px; }
 .btn-edit {
   flex: 1; padding: 9px;
   background: var(--navy-lite); border: 1px solid var(--line);
-  border-radius: var(--r); color: var(--white);
+  border-radius: var(--r); color: var(--ink);
   font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
   cursor: pointer; transition: all 0.12s;
 }
-.btn-edit:hover { border-color: var(--teal); color: var(--teal); }
+.btn-edit:hover { border-color: var(--blue); color: var(--blue); }
 .btn-delete {
   padding: 9px 16px;
   background: var(--red-dim); border: 1px solid transparent;
@@ -490,15 +495,15 @@ body {
   border: 1px solid var(--line); background: transparent;
   color: var(--slate); cursor: pointer; transition: all 0.12s;
 }
-.view-as-pill:hover { border-color: var(--slate); color: var(--white); }
-.view-as-pill.active { border-color: #a78bfa; background: rgba(167,139,250,0.12); color: #a78bfa; }
-.view-as-pill .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #a78bfa; }
+.view-as-pill:hover { border-color: var(--slate); color: var(--ink); }
+.view-as-pill.active { border-color: #7c3aed; background: rgba(124,58,237,0.08); color: #7c3aed; }
+.view-as-pill .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #7c3aed; }
 
 /* Ghost blocks (other doctor, read-only) */
 .cal-block.ghost {
-  background: rgba(167,139,250,0.08);
-  border-left: 3px solid #a78bfa;
-  color: #a78bfa; opacity: 0.7;
+  background: rgba(124,58,237,0.07);
+  border-left: 3px solid #7c3aed;
+  color: #7c3aed; opacity: 0.8;
   cursor: default;
 }
 .cal-block.ghost:hover { filter: none; transform: none; }
@@ -517,7 +522,7 @@ body {
   <div class="login-card">
     <div class="login-logo">
       <div class="login-logo-mark">
-        <svg viewBox="0 0 18 18" fill="none"><rect x="8" y="2" width="2" height="14" rx="1" fill="#0f1623"/><rect x="2" y="8" width="14" height="2" rx="1" fill="#0f1623"/></svg>
+        <svg viewBox="0 0 18 18" fill="none"><rect x="8" y="2" width="2" height="14" rx="1" fill="#ffffff"/><rect x="2" y="8" width="14" height="2" rx="1" fill="#ffffff"/></svg>
       </div>
       <div class="login-logo-text">Privatni<span>Lekar</span></div>
     </div>
@@ -542,7 +547,7 @@ body {
   <div class="topbar">
     <div class="topbar-logo">
       <div class="topbar-logo-mark">
-        <svg viewBox="0 0 14 14" fill="none"><rect x="6" y="1" width="2" height="12" rx="1" fill="#0f1623"/><rect x="1" y="6" width="12" height="2" rx="1" fill="#0f1623"/></svg>
+        <svg viewBox="0 0 14 14" fill="none"><rect x="6" y="1" width="2" height="12" rx="1" fill="#ffffff"/><rect x="1" y="6" width="12" height="2" rx="1" fill="#ffffff"/></svg>
       </div>
       Privatni<span>Lekar</span>
     </div>
@@ -912,67 +917,130 @@ async function renderCalendar() {
     </div>`;
   });
 
-  // Time slots
+  // ── Pre-compute layout for each day ──────────────────────────────────────
+  // For each day, collect all blocks, detect overlaps, assign col/totalCols
+  // A "block" = { id, type, ghost, startMin, endMin, cssClass, label, sub, onclick }
+  const dayLayouts = {}; // ds -> [ {block, col, totalCols} ]
+
+  days.forEach(d => {
+    const ds = localDate(d);
+
+    // Collect all blocks for this day
+    const blocks = [];
+
+    calAppts.filter(a => a.date === ds).forEach(a => {
+      const startMin = parseTime(a.time_from);
+      const endMin   = startMin + Math.max(30, a.duration);
+      blocks.push({
+        id: a.id, type: 'appt', ghost: false,
+        startMin, endMin,
+        cssClass: a.status,
+        label: a.patient_name,
+        sub: a.service || '',
+        onclick: `openDetail('appt','${a.id}')`,
+      });
+    });
+
+    calBlocks.filter(b => b.date === ds).forEach(b => {
+      const startMin = parseTime(b.time_from);
+      const endMin   = parseTime(b.time_to);
+      blocks.push({
+        id: b.id, type: 'block', ghost: false,
+        startMin, endMin,
+        cssClass: 'blocker',
+        label: '🚫 ' + (b.label || 'Nedostupno'),
+        sub: '',
+        onclick: `openDetail('block','${b.id}')`,
+      });
+    });
+
+    if (viewAsId) {
+      viewAsAppts.filter(a => a.date === ds).forEach(a => {
+        const startMin = parseTime(a.time_from);
+        const endMin   = startMin + Math.max(30, a.duration);
+        blocks.push({
+          id: a.id, type: 'appt', ghost: true,
+          startMin, endMin,
+          cssClass: 'ghost',
+          label: '👥 ' + a.patient_name,
+          sub: a.service || '',
+          onclick: null,
+        });
+      });
+      viewAsBlocks.filter(b => b.date === ds).forEach(b => {
+        const startMin = parseTime(b.time_from);
+        const endMin   = parseTime(b.time_to);
+        blocks.push({
+          id: b.id, type: 'block', ghost: true,
+          startMin, endMin,
+          cssClass: 'ghost',
+          label: '👥 ' + (b.label || 'Nedostupno'),
+          sub: '',
+          onclick: null,
+        });
+      });
+    }
+
+    // Sort by start time
+    blocks.sort((a,b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+    // Assign columns using a greedy interval-graph coloring
+    // columns[i] = endMin of last block placed in column i
+    const columns = [];
+    const assigned = blocks.map(blk => {
+      let col = columns.findIndex(endMin => endMin <= blk.startMin);
+      if (col === -1) { col = columns.length; columns.push(0); }
+      columns[col] = blk.endMin;
+      return col;
+    });
+
+    // Second pass: find totalCols for each block (max columns needed during its span)
+    const layout = blocks.map((blk, i) => {
+      const col = assigned[i];
+      // Find all blocks that overlap with this one
+      const overlapping = blocks.filter((other, j) =>
+        other.startMin < blk.endMin && other.endMin > blk.startMin
+      );
+      const totalCols = Math.max(...overlapping.map((_, j) => assigned[blocks.indexOf(overlapping[j])] + 1));
+      return { blk, col, totalCols };
+    });
+
+    dayLayouts[ds] = layout;
+  });
+
+  // ── Render grid ───────────────────────────────────────────────────────────
+  // Time slots - just empty cells now, blocks injected into first slot of their start row
   for (let s = 0; s < slots; s++) {
     const slotMins = (CAL_START * 60) + s * 30;
     const timeStr  = minsToTime(slotMins);
     const isHour   = s % 2 === 0;
 
-    // Time label cell
     html += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
 
     days.forEach((d, di) => {
-      const ds      = localDate(d);
+      const ds     = localDate(d);
       const isToday = ds === todayStr;
-      const isPast  = isToday ? slotMins < nowMins : ds < todayStr;
+      const isPast = isToday ? slotMins < nowMins : ds < todayStr;
 
-      // Find appt starting this slot
-      const appt = calAppts.find(a => a.date === ds && a.time_from === timeStr);
-      // Check if inside a blocker
-      const blocker = calBlocks.find(b => b.date === ds && parseTime(b.time_from) <= slotMins && parseTime(b.time_to) > slotMins);
-      const blockerStarts = calBlocks.find(b => b.date === ds && b.time_from === timeStr);
+      // Render blocks that START in this slot
+      const layout = dayLayouts[ds] || [];
+      const starting = layout.filter(({ blk }) => blk.startMin === slotMins);
 
-      let blockHtml = '';
-
-      if (appt) {
-        const durSlots = Math.max(1, appt.duration / 30);
-        const h = durSlots * SLOT_H - 4;
-        blockHtml = `<div class="cal-block ${appt.status}" style="height:${h}px"
-          onclick="event.stopPropagation();openDetail('appt','${appt.id}')">
-          <div class="cal-block-name">${appt.patient_name}</div>
-          ${appt.service ? `<div class="cal-block-svc">${appt.service}</div>` : ''}
+      let blockHtml = starting.map(({ blk, col, totalCols }) => {
+        const durMins  = blk.endMin - blk.startMin;
+        const h        = Math.max(1, durMins / 30) * SLOT_H - 4;
+        const pct      = 100 / totalCols;
+        const left     = col * pct;
+        const width    = pct;
+        const pad      = 2; // px gap between side-by-side blocks
+        const style    = `height:${h}px;left:calc(${left}% + ${col===0?3:pad}px);width:calc(${width}% - ${col===0?3+pad:pad*2}px)`;
+        const clickAttr = blk.onclick ? `onclick="event.stopPropagation();${blk.onclick}"` : '';
+        const cursor   = blk.ghost ? 'cursor:default' : '';
+        return `<div class="cal-block ${blk.cssClass}" style="${style};${cursor}" ${clickAttr}>
+          <div class="cal-block-name">${blk.label}</div>
+          ${blk.sub ? `<div class="cal-block-svc">${blk.sub}</div>` : ''}
         </div>`;
-      } else if (blockerStarts) {
-        const durMins = parseTime(blocker.time_to) - parseTime(blocker.time_from);
-        const durSlots = Math.max(1, durMins / 30);
-        const h = durSlots * SLOT_H - 4;
-        blockHtml = `<div class="cal-block blocker" style="height:${h}px"
-          onclick="event.stopPropagation();openDetail('block','${blockerStarts.id}')">
-          <div class="cal-block-name">🚫 ${blockerStarts.label || 'Nedostupno'}</div>
-        </div>`;
-      }
-
-      // Ghost blocks from viewed doctor (read-only, layered behind own)
-      if (viewAsId) {
-        const ghostAppt = viewAsAppts.find(a => a.date === ds && a.time_from === timeStr);
-        const ghostBlockerStarts = viewAsBlocks.find(b => b.date === ds && b.time_from === timeStr);
-        const ghostBlocker = viewAsBlocks.find(b => b.date === ds && parseTime(b.time_from) <= slotMins && parseTime(b.time_to) > slotMins);
-        if (ghostAppt && !appt) {
-          const durSlots = Math.max(1, ghostAppt.duration / 30);
-          const h = durSlots * SLOT_H - 4;
-          blockHtml = `<div class="cal-block ghost" style="height:${h}px" title="Kolega: ${ghostAppt.patient_name}">
-            <div class="cal-block-name">👥 ${ghostAppt.patient_name}</div>
-            ${ghostAppt.service ? `<div class="ghost-label">${ghostAppt.service}</div>` : ''}
-          </div>`;
-        } else if (ghostBlockerStarts && !blockerStarts && !appt) {
-          const durMins = parseTime(ghostBlocker.time_to) - parseTime(ghostBlocker.time_from);
-          const durSlots = Math.max(1, durMins / 30);
-          const h = durSlots * SLOT_H - 4;
-          blockHtml = `<div class="cal-block ghost" style="height:${h}px" title="Kolega nedostupan">
-            <div class="cal-block-name">👥 ${ghostBlockerStarts.label || 'Nedostupno'}</div>
-          </div>`;
-        }
-      }
+      }).join('');
 
       html += `<div class="cal-slot ${isHour ? '' : 'half-hour'} ${isPast ? 'past' : ''}"
         onclick="${isPast ? '' : `calSlotClick('${ds}','${timeStr}')`}">${blockHtml}</div>`;
