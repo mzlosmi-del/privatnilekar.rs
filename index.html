@@ -179,41 +179,57 @@ body {
 /* ── CALENDAR PANEL ────────────────────────────── */
 .cal-toolbar {
   flex-shrink: 0;
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 24px;
-  background: var(--off);
+  display: flex; flex-direction: column;
+  padding: 0;
+  background: #ffffff;
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 4px rgba(37,99,235,0.06);
 }
+.cal-toolbar-row1 {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+}
+.cal-toolbar-row2 {
+  display: none; /* shown via JS when doctors exist */
+  align-items: center; gap: 8px;
+  padding: 6px 20px 8px;
+  border-top: 1px solid var(--line);
+  background: var(--off);
+}
+.cal-toolbar-row2.visible { display: flex; }
+.cal-nav-group { display: flex; gap: 3px; }
 .cal-nav-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #ffffff; border: 1px solid var(--line);
-  color: var(--ink); font-size: 1rem; cursor: pointer;
+  width: 30px; height: 30px; border-radius: 7px;
+  background: var(--off); border: 1px solid var(--line);
+  color: var(--ink-soft); font-size: 1rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.12s;
+  transition: all 0.12s; font-weight: 600;
 }
-.cal-nav-btn:hover { border-color: var(--blue); color: var(--blue); }
-.cal-week-label {
-  font-size: 0.9rem; font-weight: 700; color: var(--ink);
-  min-width: 220px; letter-spacing: -0.02em;
-}
+.cal-nav-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
 .cal-today-btn {
-  padding: 5px 12px; border-radius: 8px;
-  font-size: 0.78rem; font-weight: 600; font-family: 'Syne', sans-serif;
-  background: #ffffff; border: 1px solid var(--line);
+  padding: 5px 11px; border-radius: 7px;
+  font-size: 0.75rem; font-weight: 700; font-family: 'Syne', sans-serif;
+  background: var(--off); border: 1px solid var(--line);
   color: var(--slate); cursor: pointer; transition: all 0.12s;
+  white-space: nowrap;
 }
-.cal-today-btn:hover { color: var(--blue); border-color: var(--blue); }
-.cal-legend { display: flex; gap: 14px; margin-left: 8px; }
-.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--slate); }
-.cal-legend-dot { width: 8px; height: 8px; border-radius: 3px; }
+.cal-today-btn:hover { color: var(--blue); border-color: var(--blue); background: var(--blue-dim); }
+.cal-week-label {
+  font-size: 0.88rem; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.02em; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-toolbar-right {
+  display: flex; align-items: center; gap: 10px; margin-left: auto; flex-shrink: 0;
+}
 .cal-add-btn {
-  margin-left: auto;
-  padding: 6px 16px; border-radius: 8px;
+  padding: 7px 16px; border-radius: 8px;
   background: var(--blue); color: #ffffff;
-  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
   border: none; cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
+  white-space: nowrap;
 }
-.cal-add-btn:hover { background: var(--blue-mid); }
+.cal-add-btn:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
 /* ── CALENDAR GRID ─────────────────────────────── */
 .cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
@@ -480,12 +496,10 @@ body {
 .status-opt[data-val="cancelled"].sel { background: var(--red-dim); border-color: var(--red); color: #fca5a5; }
 
 /* ── VIEW-AS PICKER ───────────────────────────── */
-.view-as-wrap {
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 16px; border-left: 1px solid var(--line);
-  margin-left: 4px;
+.view-as-label {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--slate); white-space: nowrap;
 }
-.view-as-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); white-space: nowrap; }
 .view-as-pills { display: flex; gap: 4px; flex-wrap: wrap; }
 .view-as-pill {
   display: flex; align-items: center; gap: 5px;
@@ -544,25 +558,17 @@ body {
   .topbar-logo-text { display: none; }
   .topbar-divider { display: none; }
   .tab-nav { gap: 2px; }
-  .tab-btn { padding: 6px 12px; font-size: 0.78rem; }
-  .doctor-chip span { display: none; }  /* hide name, keep avatar */
+  .tab-btn { padding: 6px 10px; font-size: 0.76rem; }
+  .doctor-chip span { display: none; }
   .btn-logout { padding: 5px 8px; font-size: 0.72rem; }
 
-  /* Cal toolbar: two rows */
-  .cal-toolbar {
-    flex-wrap: wrap;
-    padding: 10px 12px;
-    gap: 8px;
-    row-gap: 8px;
-  }
-  .cal-toolbar-row1 {
-    display: flex; align-items: center; gap: 8px;
-    width: 100%;
-  }
-  .cal-week-label { min-width: 0; font-size: 0.82rem; flex: 1; }
-  .cal-legend { display: none; }         /* hide legend on mobile */
-  .cal-add-btn { margin-left: 0; }
-  .view-as-wrap { border-left: none; padding: 0; width: 100%; }
+  /* Cal toolbar on mobile */
+  .cal-toolbar-row1 { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
+  .cal-toolbar-right { gap: 6px; }
+  .cal-week-label { font-size: 0.8rem; order: 3; width: 100%; flex: none; margin-top: -2px; }
+  .cal-add-btn { font-size: 0.75rem; padding: 6px 12px; }
+  .view-sel-btn { padding: 4px 8px; font-size: 0.7rem; }
+  .cal-toolbar-row2 { padding: 6px 12px 8px; gap: 6px; }
 
   /* cal grid columns now handled by JS view selector */
 
@@ -616,17 +622,21 @@ body {
 }
 
 /* ── VIEW SELECTOR ────────────────────────────── */
-.view-sel { display: flex; gap: 2px; background: var(--navy-lite); border-radius: 8px; padding: 2px; }
+.view-sel {
+  display: flex; gap: 0;
+  background: var(--off); border: 1px solid var(--line);
+  border-radius: 8px; padding: 2px; flex-shrink: 0;
+}
 .view-sel-btn {
-  padding: 4px 10px; border-radius: 6px; border: none; background: transparent;
-  font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 6px; border: none; background: transparent;
+  font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700;
   color: var(--slate); cursor: pointer; transition: all 0.12s; white-space: nowrap;
   letter-spacing: -0.01em;
 }
-.view-sel-btn:hover { color: var(--ink); }
-.view-sel-btn.active { background: #ffffff; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-@media (max-width: 600px) {
-  .view-sel-btn { padding: 4px 7px; font-size: 0.68rem; }
+.view-sel-btn:hover { color: var(--ink); background: rgba(37,99,235,0.05); }
+.view-sel-btn.active {
+  background: #ffffff; color: var(--blue);
+  box-shadow: 0 1px 4px rgba(37,99,235,0.15);
 }
 </style>
 </head>
@@ -687,25 +697,26 @@ body {
     <!-- CALENDAR -->
     <div class="panel active" id="panelCalendar">
       <div class="cal-toolbar">
+        <!-- Row 1: nav + date + view selector + add -->
         <div class="cal-toolbar-row1">
-          <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-          <button class="cal-nav-btn" onclick="calNav(1)">›</button>
-          <span class="cal-week-label" id="calWeekLabel"></span>
+          <div class="cal-nav-group">
+            <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+            <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+          </div>
           <button class="cal-today-btn" onclick="calGoToday()">Danas</button>
-          <div class="view-sel" id="viewSel">
-            <button class="view-sel-btn" onclick="setCalView('day',this)">Dan</button>
-            <button class="view-sel-btn" onclick="setCalView('workweek',this)">Pon–Pet</button>
-            <button class="view-sel-btn active" onclick="setCalView('week',this)">Ned</button>
+          <span class="cal-week-label" id="calWeekLabel"></span>
+          <div class="cal-toolbar-right">
+            <div class="view-sel" id="viewSel">
+              <button class="view-sel-btn" onclick="setCalView('day',this)">Dan</button>
+              <button class="view-sel-btn" onclick="setCalView('workweek',this)">Pon–Pet</button>
+              <button class="view-sel-btn active" onclick="setCalView('week',this)">Nedeljni</button>
+            </div>
+            <button class="cal-add-btn" onclick="openNewModal()">+ Novi termin</button>
           </div>
-          <div class="cal-legend">
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--blue)"></div>Potvrđen</div>
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
-            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--slate)"></div>Blokada</div>
-          </div>
-          <button class="cal-add-btn" onclick="openNewModal()">+ Novi</button>
         </div>
-        <div class="view-as-wrap">
-          <span class="view-as-label">Pregled</span>
+        <!-- Row 2: view-as (only shown when other doctors exist) -->
+        <div class="cal-toolbar-row2" id="viewAsRow">
+          <span class="view-as-label">Pregled kolege:</span>
           <div class="view-as-pills" id="viewAsPills"></div>
         </div>
       </div>
@@ -1016,7 +1027,13 @@ async function loadDoctors() {
 
 function renderViewAsPills() {
   const wrap = document.getElementById('viewAsPills');
-  if (!allDoctors.length) { wrap.innerHTML = '<span style="font-size:0.72rem;color:var(--slate)">Nema drugih lekara</span>'; return; }
+  const row2 = document.getElementById('viewAsRow');
+  if (!allDoctors.length) {
+    if (row2) row2.classList.remove('visible');
+    wrap.innerHTML = '';
+    return;
+  }
+  if (row2) row2.classList.add('visible');
   wrap.innerHTML = allDoctors.map(d => {
     const initials = d.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const isActive = viewAsId === d.id;
