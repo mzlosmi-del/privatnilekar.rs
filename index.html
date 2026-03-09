@@ -232,43 +232,15 @@ body {
 .cal-add-btn:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
 /* ── CALENDAR GRID ─────────────────────────────── */
-
-/* Header row: spacer + day heads (no time col — it's in .cal-time-col) */
 .cal-header-row {
   flex-shrink: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 52px repeat(7, 1fr);
   background: var(--off);
   border-bottom: 2px solid var(--line);
   box-shadow: 0 2px 8px rgba(37,99,235,0.07);
+  overflow: hidden;
 }
-.cal-header-spacer {          /* matches time col width */
-  flex-shrink: 0;
-  background: var(--off);
-  border-right: 1px solid var(--line);
-}
-.cal-header-days {            /* scrolls in sync with day columns */
-  flex: 1; overflow: hidden; display: flex;
-}
-.cal-header-days-inner {      /* actual grid of day heads */
-  display: grid; flex-shrink: 0;
-  /* grid-template-columns set by JS */
-}
-
-/* Body: fixed time col + scrollable day area */
-.cal-body { flex: 1; display: flex; overflow: hidden; }
-
-.cal-time-col {
-  flex-shrink: 0;
-  overflow: hidden;            /* hides vertical overflow, synced via translateY */
-  background: #ffffff;
-  border-right: 1px solid var(--line);
-  z-index: 2;
-  box-shadow: 2px 0 8px rgba(37,99,235,0.06);
-}
-.cal-time-col-inner {
-  /* height/width set by JS to match grid */
-}
-
 .cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
 .cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .cal-scroll::-webkit-scrollbar-track { background: var(--off); }
@@ -276,16 +248,15 @@ body {
 
 .cal-grid {
   display: grid;
-  /* first column (time) REMOVED — now in .cal-time-col */
-  /* grid-template-columns set by JS to repeat(numDays, 1fr) */
+  grid-template-columns: 52px repeat(7, 1fr);
 }
 
+.cal-head-spacer { background: var(--off); }
 .cal-day-head {
   background: var(--off);
   border-left: 1px solid var(--line);
   padding: 10px 8px;
   text-align: center;
-  flex-shrink: 0;
 }
 .cal-day-head .dow {
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
@@ -300,15 +271,19 @@ body {
 }
 .cal-day-head.today .dow { color: var(--blue); }
 
-/* Time cells in frozen left column */
+/* Time rows — sticky left */
 .cal-time-cell {
   padding: 0 8px 0 0;
   text-align: right;
   font-size: 0.62rem; font-weight: 600; color: var(--ink-muted);
-  position: relative;
+  border-right: 1px solid var(--line);
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #ffffff;
   height: 36px;
   letter-spacing: 0.02em;
-  background: #ffffff;
+  box-shadow: 2px 0 6px rgba(37,99,235,0.05);
 }
 .cal-time-cell span { position: absolute; top: -8px; right: 8px; white-space: nowrap; }
 
@@ -805,11 +780,8 @@ body {
         </div>
       </div>
       <div class="cal-header-row" id="calHeaderRow"></div>
-      <div class="cal-body">
-        <div class="cal-time-col" id="calTimeCol"></div>
-        <div class="cal-scroll">
-          <div class="cal-grid" id="calGrid"></div>
-        </div>
+      <div class="cal-scroll">
+        <div class="cal-grid" id="calGrid"></div>
       </div>
     </div>
 
@@ -1242,20 +1214,18 @@ async function renderCalendar() {
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  // ── Sticky header (time-col spacer + scrolling day heads) ────────────────
-  let dayHeadsHtml = '';
+  // ── Sticky header row ────────────────────────────────────────────────────
+  let headerHtml = '<div class="cal-head-spacer"></div>';
   days.forEach((d) => {
     const ds = localDate(d);
     const isToday = ds === todayStr;
     const dow = (d.getDay() + 6) % 7; // Mon=0
-    dayHeadsHtml += `<div class="cal-day-head ${isToday ? 'today' : ''}">
+    headerHtml += `<div class="cal-day-head ${isToday ? 'today' : ''}">
       <div class="dow">${DAYS[dow]}</div>
       <div class="dom">${d.getDate()}</div>
     </div>`;
   });
-  const hdrEl = document.getElementById('calHeaderRow');
-  hdrEl.innerHTML = `<div class="cal-header-spacer" id="calHeaderSpacer"></div>
-    <div class="cal-header-days"><div class="cal-header-days-inner" id="calHeaderDays">${dayHeadsHtml}</div></div>`;
+  document.getElementById('calHeaderRow').innerHTML = headerHtml;
 
   let html = '';
 
@@ -1353,33 +1323,23 @@ async function renderCalendar() {
   // ── Set grid columns dynamically ─────────────────────────────────────────
   const SLOT_H_USED = SLOT_H;
   const timeColW = numDays === 1 ? 60 : 52;
-  const minDayW = 80; // min px per day column
-  const minW = `${numDays * minDayW}px`;
+  const minDayW = 80;
+  const minW = `${timeColW + numDays * minDayW}px`;
   const grid = document.getElementById('calGrid');
-  // Grid no longer has time column — only day columns
-  const dayColTemplate = `repeat(${numDays}, 1fr)`;
-  grid.style.gridTemplateColumns = dayColTemplate;
+  const colTemplate = `${timeColW}px repeat(${numDays}, 1fr)`;
+  grid.style.gridTemplateColumns = colTemplate;
   grid.style.minWidth = minW;
-  // Header day cells same width
-  const hdrDays = document.getElementById('calHeaderDays');
-  if (hdrDays) { hdrDays.style.minWidth = minW; }
-  const hdrDaysInner = document.getElementById('calHeaderDays');
-  // Spacer matches time col width
-  const hdrSpacer = document.getElementById('calHeaderSpacer');
-  if (hdrSpacer) hdrSpacer.style.width = timeColW + 'px';
-  // Time col width
-  const timeColEl = document.getElementById('calTimeCol');
-  if (timeColEl) timeColEl.style.width = timeColW + 'px';
+  const hdr = document.getElementById('calHeaderRow');
+  hdr.style.gridTemplateColumns = colTemplate;
+  hdr.style.minWidth = minW;
 
-  // ── Render time column (frozen left) + day grid separately ──────────────
-  let timeHtml = '';
   // ── Render grid ───────────────────────────────────────────────────────────
   for (let s = 0; s < slots; s++) {
     const slotMins = (CAL_START * 60) + s * 30;
     const timeStr  = minsToTime(slotMins);
     const isHour   = s % 2 === 0;
 
-    timeHtml += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
+    html += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
 
     days.forEach((d, di) => {
       const ds     = localDate(d);
@@ -1413,24 +1373,14 @@ async function renderCalendar() {
 
   grid.innerHTML = html;
 
-  // Inject time col HTML
-  const timeColEl2 = document.getElementById('calTimeCol');
-  if (timeColEl2) timeColEl2.innerHTML = `<div class="cal-time-col-inner">${timeHtml}</div>`;
-
-  // Scroll sync: vertical scroll moves time col; horizontal scroll moves header days
+  // Sync header translateX when scrolling horizontally
   requestAnimationFrame(() => {
     const scroller = document.querySelector('.cal-scroll');
-    const tcol     = document.getElementById('calTimeCol');
-    const hdDays   = document.getElementById('calHeaderDays');
     if (scroller) {
       scroller.scrollTop = 2 * SLOT_H_USED;
-      // Remove old listeners
       if (scroller._scrollSyncFn) scroller.removeEventListener('scroll', scroller._scrollSyncFn);
       scroller._scrollSyncFn = () => {
-        // Sync time col vertically
-        if (tcol) tcol.querySelector('.cal-time-col-inner').style.transform = `translateY(-${scroller.scrollTop}px)`;
-        // Sync header days horizontally
-        if (hdDays) hdDays.style.transform = `translateX(-${scroller.scrollLeft}px)`;
+        hdr.style.transform = `translateX(-${scroller.scrollLeft}px)`;
       };
       scroller.addEventListener('scroll', scroller._scrollSyncFn);
     }
