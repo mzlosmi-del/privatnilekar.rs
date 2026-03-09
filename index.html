@@ -513,6 +513,123 @@ body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — MOBILE
+══════════════════════════════════════════════════ */
+
+/* Mobile: bottom-sheet modals */
+@media (max-width: 600px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  /* Login card full-width */
+  .login-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+
+  /* Topbar: tighter, hide logo text */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-logo-text { display: none; }
+  .topbar-divider { display: none; }
+  .tab-nav { gap: 2px; }
+  .tab-btn { padding: 6px 12px; font-size: 0.78rem; }
+  .doctor-chip span { display: none; }  /* hide name, keep avatar */
+  .btn-logout { padding: 5px 8px; font-size: 0.72rem; }
+
+  /* Cal toolbar: two rows */
+  .cal-toolbar {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+    row-gap: 8px;
+  }
+  .cal-toolbar-row1 {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+  }
+  .cal-week-label { min-width: 0; font-size: 0.82rem; flex: 1; }
+  .cal-legend { display: none; }         /* hide legend on mobile */
+  .cal-add-btn { margin-left: 0; }
+  .view-as-wrap { border-left: none; padding: 0; width: 100%; }
+
+  /* Calendar: 3 columns (3-day view), still scrollable */
+  .cal-grid {
+    grid-template-columns: 40px repeat(3, 1fr);
+    min-width: 0;
+  }
+  .cal-time-cell { height: 32px; font-size: 0.58rem; padding: 0 4px 0 0; }
+  .cal-time-cell span { right: 4px; }
+  .cal-slot { height: 32px; }
+  .cal-day-head { padding: 8px 4px; }
+  .cal-day-head .dow { font-size: 0.62rem; }
+  .cal-day-head .dom { font-size: 0.95rem; }
+  .cal-block { font-size: 0.62rem; padding: 2px 4px; border-radius: 4px; }
+  .cal-block-svc { display: none; }      /* hide service on tiny blocks */
+
+  /* 3-day navigation: show day-range label */
+  .cal-3day-hint { display: block; }
+
+  /* List: card layout instead of table */
+  .list-panel-inner { padding: 12px; }
+  .appt-table thead { display: none; }
+  .appt-table, .appt-table tbody, .appt-table tr, .appt-table td { display: block; }
+  .appt-table tr {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    margin-bottom: 8px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .appt-table tr:hover td { background: transparent; }
+  .appt-table td { padding: 0; border: none; font-size: 0.82rem; }
+  .appt-table td:empty { display: none; }
+  .appt-note { max-width: 100%; white-space: normal; }
+  .appt-card-row { display: flex; align-items: center; justify-content: space-between; }
+}
+
+/* Tablet: 5-day view */
+@media (min-width: 601px) and (max-width: 900px) {
+  .cal-grid {
+    grid-template-columns: 48px repeat(5, 1fr);
+    min-width: 0;
+  }
+  .cal-legend { display: none; }
+  .cal-toolbar { flex-wrap: wrap; gap: 8px; }
+}
+
+/* Desktop: always show all 7 days */
+@media (min-width: 901px) {
+  .cal-grid {
+    grid-template-columns: 52px repeat(7, 1fr);
+    min-width: 780px;
+  }
+}
+
+/* Hide desktop-only table cells on mobile */
+@media (max-width: 600px) {
+  .appt-status-cell { display: none !important; }
+  .appt-note-cell { display: none !important; }
+  /* Show the combined date row */
+  .appt-table td:nth-child(2) { color: var(--slate); font-size: 0.78rem; }
+}
+@media (min-width: 601px) {
+  /* Hide the in-name badge on desktop (shown in its own column) */
+  .appt-card-row .badge { display: none; }
+}
 </style>
 </head>
 <body>
@@ -571,20 +688,22 @@ body {
     <!-- CALENDAR -->
     <div class="panel active" id="panelCalendar">
       <div class="cal-toolbar">
-        <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
-        <button class="cal-nav-btn" onclick="calNav(1)">›</button>
-        <span class="cal-week-label" id="calWeekLabel"></span>
-        <button class="cal-today-btn" onclick="calGoToday()">Danas</button>
-        <div class="cal-legend">
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal)"></div>Potvrđen</div>
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--slate)"></div>Blokada</div>
+        <div class="cal-toolbar-row1">
+          <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+          <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+          <span class="cal-week-label" id="calWeekLabel"></span>
+          <button class="cal-today-btn" onclick="calGoToday()">Danas</button>
+          <div class="cal-legend">
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--blue)"></div>Potvrđen</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
+            <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--slate)"></div>Blokada</div>
+          </div>
+          <button class="cal-add-btn" onclick="openNewModal()">+ Novi</button>
         </div>
         <div class="view-as-wrap">
           <span class="view-as-label">Pregled</span>
           <div class="view-as-pills" id="viewAsPills"></div>
         </div>
-        <button class="cal-add-btn" onclick="openNewModal()">+ Novi termin</button>
       </div>
       <div class="cal-scroll">
         <div class="cal-grid" id="calGrid"></div>
@@ -738,6 +857,7 @@ let editingId    = null;
 let editingType  = null; // 'appt' | 'block'
 let modalType    = 'appt';
 let viewAsId     = null;   // doctor.id being previewed, or null
+let mobileDayOffset = 0;   // for 3-day mobile navigation
 let viewAsAppts  = [];
 let viewAsBlocks = [];
 let allDoctors   = [];
@@ -821,6 +941,14 @@ async function initApp(user) {
   renderCalendar();
 }
 
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (doctor) renderCalendar();
+  }, 150);
+});
+
 async function doLogout() {
   await sb.auth.signOut();
   doctor = null;
@@ -870,13 +998,47 @@ async function toggleViewAs(id) {
 }
 
 // ── CALENDAR ──────────────────────────────────────────
-function calNav(dir) { calOffset += dir; renderCalendar(); }
-function calGoToday() { calOffset = 0; renderCalendar(); }
+function calNav(dir) {
+  if (getVisibleDays() < 7) {
+    mobileDayOffset += dir;
+  } else {
+    calOffset += dir;
+  }
+  renderCalendar();
+}
+function calGoToday() { calOffset = 0; mobileDayOffset = 0; renderCalendar(); }
+
+function getVisibleDays() {
+  const w = window.innerWidth;
+  if (w <= 600) return 3;
+  if (w <= 900) return 5;
+  return 7;
+}
 
 async function renderCalendar() {
-  const days = weekDays(calOffset);
+  const numDays = getVisibleDays();
+  const isMobile = numDays < 7;
+
+  // For mobile/tablet, use a day-offset approach instead of full weeks
+  let startDay;
+  if (isMobile) {
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    base.setDate(base.getDate() + mobileDayOffset * numDays);
+    startDay = base;
+  } else {
+    startDay = getMondayOf(calOffset);
+    mobileDayOffset = 0; // reset when on desktop
+  }
+
+  const days = Array.from({length: numDays}, (_, i) => {
+    const d = new Date(startDay);
+    d.setDate(startDay.getDate() + i);
+    return d;
+  });
+
   const from = localDate(days[0]);
-  const to   = localDate(days[6]);
+  const to   = localDate(days[days.length - 1]);
   const todayStr = todayLocal();
 
   // Week label
@@ -1008,8 +1170,13 @@ async function renderCalendar() {
     dayLayouts[ds] = layout;
   });
 
+  // ── Set grid columns dynamically ─────────────────────────────────────────
+  const slotH = isMobile ? 32 : SLOT_H;
+  document.getElementById('calGrid').style.gridTemplateColumns =
+    `${isMobile ? 40 : 52}px repeat(${numDays}, 1fr)`;
+  const SLOT_H_USED = slotH;
+
   // ── Render grid ───────────────────────────────────────────────────────────
-  // Time slots - just empty cells now, blocks injected into first slot of their start row
   for (let s = 0; s < slots; s++) {
     const slotMins = (CAL_START * 60) + s * 30;
     const timeStr  = minsToTime(slotMins);
@@ -1028,7 +1195,7 @@ async function renderCalendar() {
 
       let blockHtml = starting.map(({ blk, col, totalCols }) => {
         const durMins  = blk.endMin - blk.startMin;
-        const h        = Math.max(1, durMins / 30) * SLOT_H - 4;
+        const h        = Math.max(1, durMins / 30) * SLOT_H_USED - 4;
         const pct      = 100 / totalCols;
         const left     = col * pct;
         const width    = pct;
