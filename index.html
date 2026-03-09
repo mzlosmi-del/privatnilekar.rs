@@ -2095,7 +2095,7 @@ async function loadDoctorAppointments() {
   list.innerHTML = '<div class="loading-spinner">⏳ Učitavamo…</div>';
 
   let q = sb.from('appointments')
-    .select('*, patients(full_name,phone), services(name,duration_minutes)')
+    .select('*, patients(full_name,phone), services(name,duration_minutes), doctor_note')
     .eq('doctor_id', currentDoctor.id)
     .order('appointment_date', { ascending: false });
 
@@ -2117,7 +2117,7 @@ function renderDoctorApptRow(a, compact) {
   return `<div class="appt-row ${a.status}" id="apptrow-${a.id}">
     <div class="appt-time">${a.appointment_time?.slice(0,5)}<br><span style="font-size:0.72rem;font-weight:400;color:var(--ink-muted)">${dateStr}</span></div>
     <div class="appt-info">
-      <div class="appt-who">${pat.full_name || 'Pacijent'}${pat.phone ? ' · ' + pat.phone : ''}</div>
+      <div class="appt-who">${patientNameFromAppt(a)}${pat.phone ? ' · ' + pat.phone : ''}</div>
       <div class="appt-what">${svc.name || '—'}${a.patient_note ? ' · "' + a.patient_note.slice(0,60) + '"' : ''}</div>
     </div>
     <div class="appt-actions">
@@ -2429,7 +2429,7 @@ async function renderCalendar() {
   const to   = days[6].toISOString().split('T')[0];
 
   const [{ data: appts }, { data: blockers }] = await Promise.all([
-    sb.from('appointments').select('*, patients(full_name), services(name,duration_minutes)')
+    sb.from('appointments').select('*, patients(full_name,phone), services(name,duration_minutes), doctor_note')
       .eq('doctor_id', currentDoctor.id)
       .in('status', ['pending','confirmed'])
       .gte('appointment_date', from).lte('appointment_date', to),
@@ -2473,7 +2473,7 @@ async function renderCalendar() {
       let inner = '';
       if (appt) {
         const apptIdx = calAppointments.indexOf(appt);
-        const patName = appt.patients?.full_name?.split(' ')[0] || 'Pacijent';
+        const patName = patientNameFromAppt(appt).split(' ')[0];
         const svcName = (appt.services?.name || '').slice(0, 14);
         const durSlots = Math.ceil((appt.duration_minutes || appt.services?.duration_minutes || 30) / step);
         inner = `<div class="cal-appt-block ${appt.status}" style="bottom:${-(durSlots-1)*20}px"
@@ -2508,6 +2508,8 @@ function openApptDetail(idx) {
   const appt = calAppointments[idx];
   if (!appt) return;
   const pat    = appt.patients || {};
+  const _patName = patientNameFromAppt(appt);
+  const _svcName = serviceNameFromAppt(appt);
   const svc    = appt.services || {};
   const dateStr = new Date(appt.appointment_date).toLocaleDateString('sr-RS', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const timeStr = appt.appointment_time?.slice(0,5) || '';
@@ -2518,7 +2520,7 @@ function openApptDetail(idx) {
       <div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
         <span style="font-size:1.4rem">👤</span>
         <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Pacijent</div>
-        <div style="font-weight:600">${pat.full_name || '—'}${pat.phone ? ' · ' + pat.phone : ''}</div></div>
+        <div style="font-weight:600">${_patName}${pat.phone ? ' · ' + pat.phone : ''}</div></div>
       </div>
       <div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
         <span style="font-size:1.4rem">🩺</span>
@@ -2556,6 +2558,22 @@ function openReschedule(id) {
   closeModal('apptDetailModal');
   editingApptId = id;
   openNewAppt(appt.appointment_date, appt.appointment_time?.slice(0,5), true);
+}
+
+// ── Helpers ──────────────────────────────────────────
+function patientNameFromAppt(appt) {
+  // Prefer joined patients table, fall back to doctor_note prefix
+  if (appt.patients?.full_name) return appt.patients.full_name;
+  const note = appt.doctor_note || '';
+  const m = note.match(/Pacijent:\s*([^|]+)/);
+  return m ? m[1].trim() : 'Pacijent';
+}
+
+function serviceNameFromAppt(appt) {
+  if (appt.services?.name) return appt.services.name;
+  const note = appt.doctor_note || '';
+  const m = note.match(/Usluga:\s*([^|]+)/);
+  return m ? m[1].trim() : (appt.doctor_note || '');
 }
 
 // ── New Appointment ──────────────────────────────────
@@ -2629,20 +2647,28 @@ async function submitNewAppt() {
   if (type === 'blocker') {
     const dur   = parseInt(document.getElementById('naBlockDuration').value) || 60;
     const label = document.getElementById('naBlockLabel').value.trim();
-    const toMin = time.split(':').map(Number).reduce((h,m) => h*60+m) + dur;
-    const toH   = String(Math.floor(toMin/60)).padStart(2,'0');
-    const toM   = String(toMin%60).padStart(2,'0');
+    // Parse time HH:MM into total minutes, add duration, convert back
+    const parts  = time.split(':');
+    const startM = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    const endM   = startM + dur;
+    const toH    = String(Math.floor(endM / 60)).padStart(2, '0');
+    const toM    = String(endM % 60).padStart(2, '0');
 
     const { error } = await sb.from('blockers').insert({
-      doctor_id: currentDoctor.id, date,
-      time_from: time + ':00', time_to: toH + ':' + toM + ':00',
-      label: label || 'Nedostupno',
+      doctor_id: currentDoctor.id,
+      date:      date,
+      time_from: time,        // store as HH:MM — matches Postgres time
+      time_to:   toH + ':' + toM,
+      label:     label || 'Nedostupno',
     });
     setBtnLoading('naBtn', false, 'Zakaži termin →');
-    if (error) return showErr('naErr', error.message);
+    if (error) { showErr('naErr', error.message); return; }
+
   } else {
     const patientName = document.getElementById('naPatient').value.trim();
-    const serviceId   = document.getElementById('naService').value || null;
+    const serviceEl   = document.getElementById('naService');
+    const serviceId   = serviceEl.value || null;
+    const serviceName = serviceId ? serviceEl.options[serviceEl.selectedIndex]?.text?.split(' (')[0] : '';
     const duration    = parseInt(document.getElementById('naDuration').value) || 30;
     const note        = document.getElementById('naNote').value.trim();
 
@@ -2651,29 +2677,47 @@ async function submitNewAppt() {
       return showErr('naErr', 'Unesite ime pacijenta.');
     }
 
-    // Resolve patient
+    // Resolve patient_id — search DB, but always keep free-text name in doctor_note as fallback
     let patientId = naPatientId;
     if (!patientId && patientName) {
-      const { data: found } = await sb.from('patients').select('id').ilike('full_name', patientName).limit(1);
+      const { data: found } = await sb.from('patients')
+        .select('id').ilike('full_name', patientName).limit(1);
       patientId = found?.[0]?.id || null;
     }
+
+    // Build doctor_note: always prefix with patient name + service so calendar
+    // can display them even when patient_id is null (walk-in / unregistered patient)
+    const autoNote = [
+      patientName ? 'Pacijent: ' + patientName : '',
+      serviceName ? 'Usluga: ' + serviceName : '',
+      note,
+    ].filter(Boolean).join(' | ');
 
     let error;
     if (editingApptId) {
       ({ error } = await sb.from('appointments').update({
-        appointment_date: date, appointment_time: time + ':00',
-        service_id: serviceId, duration_minutes: duration, doctor_note: note,
+        appointment_date: date,
+        appointment_time: time,
+        service_id:       serviceId,
+        duration_minutes: duration,
+        doctor_note:      autoNote,
       }).eq('id', editingApptId));
     } else {
       ({ error } = await sb.from('appointments').insert({
-        doctor_id: currentDoctor.id, patient_id: patientId, service_id: serviceId,
-        appointment_date: date, appointment_time: time + ':00',
-        duration_minutes: duration, status: 'confirmed',
-        doctor_note: note, patient_note: '', rating_requested: false,
+        doctor_id:        currentDoctor.id,
+        patient_id:       patientId,
+        service_id:       serviceId,
+        appointment_date: date,
+        appointment_time: time,
+        duration_minutes: duration,
+        status:           'confirmed',
+        doctor_note:      autoNote,
+        patient_note:     '',
+        rating_requested: false,
       }));
     }
     setBtnLoading('naBtn', false, 'Zakaži termin →');
-    if (error) return showErr('naErr', error.message);
+    if (error) { showErr('naErr', error.message); return; }
     editingApptId = null;
   }
 
