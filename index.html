@@ -1248,9 +1248,6 @@ nav {
     </div>
   </div>
 </div>
-
-
-
 <script>
 // ══════════════════════════════════════════════════════
 //  CONFIG
@@ -2298,12 +2295,11 @@ async function saveWorkHours() {
     };
   }
   const { error } = await sb.from('doctors').update({ working_hours: workHours }).eq('id', currentDoctor.id);
-  if (!error) {
-    currentDoctor.working_hours = workHours;
-    const msg = document.getElementById('whSaved');
-    msg.style.display = 'inline';
-    setTimeout(() => msg.style.display = 'none', 3000);
-  }
+  if (error) { alert('Greška: ' + error.message); return; }
+  currentDoctor.working_hours = workHours;
+  const msg = document.getElementById('whSaved');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 3000);
 }
 
 // ── Doctor Profile ───────────────────────────────────
@@ -2650,7 +2646,10 @@ async function submitNewAppt() {
     const duration    = parseInt(document.getElementById('naDuration').value) || 30;
     const note        = document.getElementById('naNote').value.trim();
 
-    if (!patientName && !naPatientId) return showErr('naErr', 'Unesite ime pacijenta.');
+    if (!patientName && !naPatientId) {
+      setBtnLoading('naBtn', false, 'Zakaži termin →');
+      return showErr('naErr', 'Unesite ime pacijenta.');
+    }
 
     // Resolve patient
     let patientId = naPatientId;
@@ -2838,6 +2837,5 @@ function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
 </script>
-
 </body>
 </html>
