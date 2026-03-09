@@ -3,2912 +3,1122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrivatniLekar.rs — Zakažite pregled online</title>
+<title>Lekar — Kalendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Spectral:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ── RESET & TOKENS ─────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --ink:       #1a1f2e;
-  --ink-soft:  #4a5068;
-  --ink-muted: #8b91a8;
-  --line:      #e8eaf0;
-  --bg:        #f6f7fb;
-  --white:     #ffffff;
-  --teal:      #0a7e6e;
-  --teal-mid:  #0d9b87;
-  --teal-pale: #e6f5f3;
-  --teal-dark: #065a4f;
-  --amber:     #d97706;
-  --amber-pale:#fef3c7;
-  --red:       #dc2626;
-  --red-pale:  #fee2e2;
-  --green:     #16a34a;
-  --green-pale:#dcfce7;
-  --r:         12px;
-  --r-lg:      20px;
-  --shadow:    0 2px 12px rgba(10,40,60,0.08);
-  --shadow-lg: 0 8px 32px rgba(10,40,60,0.13);
+  --navy:      #0f1623;
+  --navy-mid:  #1a2336;
+  --navy-lite: #243047;
+  --slate:     #8897b0;
+  --line:      #2a3547;
+  --white:     #f4f6fb;
+  --off:       #e8ecf4;
+  --ink:       #1a2336;
+  --ink-soft:  #4a5568;
+  --ink-muted: #94a3b8;
+  --teal:      #2dd4bf;
+  --teal-dark: #0d9488;
+  --teal-dim:  rgba(45,212,191,0.12);
+  --amber:     #f59e0b;
+  --amber-dim: rgba(245,158,11,0.15);
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.12);
+  --green:     #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --r:         10px;
+  --r-lg:      16px;
+  --shadow:    0 4px 24px rgba(0,0,0,0.25);
 }
-html { scroll-behavior: smooth; }
+
+html, body { height: 100%; overflow: hidden; }
 body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  line-height: 1.6;
-  min-height: 100vh;
+  font-family: 'Syne', sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
 }
-h1,h2,h3,h4 { font-family: 'Lora', serif; line-height: 1.25; }
-a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; }
-input, select, textarea {
-  font-family: inherit;
-  font-size: 0.9rem;
-  border: 1.5px solid var(--line);
-  border-radius: var(--r);
-  padding: 10px 14px;
-  width: 100%;
-  outline: none;
-  background: var(--white);
-  color: var(--ink);
-  transition: border-color 0.15s;
-}
-input:focus, select:focus, textarea:focus { border-color: var(--teal-mid); }
-input:disabled { background: var(--bg); color: var(--ink-muted); }
-label { font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; display: block; letter-spacing: 0.02em; }
 
-/* ── LAYOUT ────────────────────────────────── */
-.container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-.view { display: none; }
-.view.active { display: block; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
-
-/* ── NAV ───────────────────────────────────── */
-nav {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
-  padding: 0 24px;
+/* ── LOGIN ─────────────────────────────────────── */
+#loginScreen {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh;
+  background: var(--navy);
 }
-.nav-inner {
-  max-width: 1120px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 64px; gap: 16px;
+.login-card {
+  width: 380px;
+  background: var(--navy-mid);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 40px;
+  box-shadow: var(--shadow);
 }
-.nav-logo {
+.login-logo {
   display: flex; align-items: center; gap: 10px;
-  font-family: 'Lora', serif; font-size: 1.25rem; font-weight: 700; color: var(--ink);
-  white-space: nowrap;
+  margin-bottom: 32px;
 }
-.nav-logo span { color: var(--teal); }
-.nav-logo-icon {
-  width: 38px; height: 38px; background: var(--teal); border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.nav-actions { display: flex; align-items: center; gap: 8px; }
-.nav-user { display: flex; align-items: center; gap: 8px; }
-.nav-username { font-size: 0.88rem; font-weight: 500; color: var(--ink-soft); }
-
-/* ── BUTTONS ───────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; border-radius: var(--r);
-  font-size: 0.88rem; font-weight: 600; border: none;
-  transition: all 0.15s; white-space: nowrap;
-}
-.btn-primary { background: var(--teal); color: white; }
-.btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(10,126,110,0.3); }
-.btn-secondary { background: white; color: var(--ink); border: 1.5px solid var(--line); }
-.btn-secondary:hover { border-color: var(--teal-mid); color: var(--teal); }
-.btn-ghost { background: transparent; color: var(--teal); padding: 8px 14px; }
-.btn-ghost:hover { background: var(--teal-pale); }
-.btn-danger { background: var(--red-pale); color: var(--red); border: none; }
-.btn-danger:hover { background: var(--red); color: white; }
-.btn-lg { padding: 13px 28px; font-size: 0.95rem; border-radius: 14px; }
-.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-.btn-icon {
-  width: 38px; height: 38px; border-radius: 10px;
+.login-logo-mark {
+  width: 36px; height: 36px;
+  background: var(--teal);
+  border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1.5px solid var(--line); font-size: 1rem;
-  position: relative;
+  flex-shrink: 0;
 }
-.btn-icon:hover { border-color: var(--teal-mid); background: var(--teal-pale); }
-.btn-block { width: 100%; justify-content: center; padding: 12px; font-size: 0.93rem; }
+.login-logo-mark svg { width: 18px; height: 18px; }
+.login-logo-text {
+  font-size: 1.1rem; font-weight: 700; color: var(--white); letter-spacing: -0.02em;
+}
+.login-logo-text span { color: var(--teal); }
+.login-title {
+  font-family: 'Spectral', serif;
+  font-size: 1.5rem; font-weight: 600;
+  color: var(--white); margin-bottom: 6px;
+}
+.login-sub { font-size: 0.82rem; color: var(--slate); margin-bottom: 28px; }
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--slate); margin-bottom: 6px;
+}
+.field input {
+  width: 100%; padding: 10px 14px;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--white);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem;
+  outline: none; transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--teal); }
+.field input::placeholder { color: var(--slate); opacity: 0.6; }
+.login-err {
+  font-size: 0.8rem; color: var(--red);
+  background: var(--red-dim); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 14px; display: none;
+}
+.btn-login {
+  width: 100%; padding: 12px;
+  background: var(--teal); color: var(--navy);
+  border: none; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+  letter-spacing: -0.01em;
+}
+.btn-login:hover { background: #5eead4; transform: translateY(-1px); }
+.btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-/* ── NOTIF BELL ────────────────────────────── */
-.notif-badge {
-  position: absolute; top: -4px; right: -4px;
-  background: var(--red); color: white;
-  font-size: 0.6rem; font-weight: 700;
-  width: 16px; height: 16px; border-radius: 50%;
+/* ── APP SHELL ─────────────────────────────────── */
+#app {
+  display: none; flex-direction: column; height: 100vh; overflow: hidden;
+}
+#app.visible { display: flex; }
+
+/* ── TOP BAR ───────────────────────────────────── */
+.topbar {
+  height: 56px; flex-shrink: 0;
+  background: var(--navy-mid);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 24px; gap: 20px;
+  z-index: 10;
+}
+.topbar-logo {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.95rem; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--white); white-space: nowrap; margin-right: 8px;
+}
+.topbar-logo span { color: var(--teal); }
+.topbar-logo-mark {
+  width: 28px; height: 28px; background: var(--teal);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+}
+.topbar-logo-mark svg { width: 14px; height: 14px; }
+.topbar-divider { width: 1px; height: 28px; background: var(--line); }
+.tab-nav { display: flex; gap: 2px; }
+.tab-btn {
+  padding: 6px 16px; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--slate); background: transparent; border: none;
+  cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
+}
+.tab-btn:hover { color: var(--white); background: var(--navy-lite); }
+.tab-btn.active { color: var(--teal); background: var(--teal-dim); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.doctor-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 6px;
+  background: var(--navy-lite); border-radius: 20px;
+  font-size: 0.8rem; color: var(--white);
+}
+.doctor-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--teal); color: var(--navy);
   display: flex; align-items: center; justify-content: center;
-  display: none;
+  font-size: 0.65rem; font-weight: 800;
 }
-.notif-panel {
-  position: absolute; right: 24px; top: 68px;
-  width: 360px; background: white;
-  border: 1.5px solid var(--line); border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg); z-index: 200; display: none;
-  overflow: hidden;
+.btn-logout {
+  padding: 5px 12px; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 600;
+  color: var(--slate); background: transparent;
+  border: 1px solid var(--line); cursor: pointer; transition: all 0.12s;
+  font-family: 'Syne', sans-serif;
 }
-.notif-panel.open { display: block; }
-.notif-panel-header {
-  padding: 16px 20px; border-bottom: 1px solid var(--line);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.notif-panel-header h4 { font-family: 'Lora',serif; font-size: 0.95rem; }
-.notif-item {
-  display: flex; gap: 12px; padding: 14px 20px;
-  border-bottom: 1px solid var(--line); cursor: pointer;
-  transition: background 0.1s;
-}
-.notif-item:hover { background: var(--bg); }
-.notif-item.unread { background: var(--teal-pale); }
-.notif-item.unread:hover { background: #d0ede9; }
-.notif-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
-.notif-content p { font-size: 0.87rem; font-weight: 500; color: var(--ink); }
-.notif-content span { font-size: 0.78rem; color: var(--ink-muted); }
-.notif-empty { padding: 32px; text-align: center; color: var(--ink-muted); font-size: 0.88rem; }
+.btn-logout:hover { color: var(--red); border-color: var(--red); }
 
-/* ── CARDS ─────────────────────────────────── */
-.card {
-  background: white; border-radius: var(--r-lg);
-  border: 1.5px solid var(--line); padding: 24px;
-}
-.card-sm { padding: 16px; border-radius: var(--r); }
+/* ── PANELS ────────────────────────────────────── */
+.panels { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.panel.active { display: flex; }
 
-/* ── FORMS ─────────────────────────────────── */
-.form-group { margin-bottom: 14px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.form-section-title {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--ink-muted);
-  margin: 20px 0 12px; padding-bottom: 8px;
+/* ── CALENDAR PANEL ────────────────────────────── */
+.cal-toolbar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 24px;
+  background: var(--navy-mid);
   border-bottom: 1px solid var(--line);
 }
-.field-hint { font-size: 0.78rem; color: var(--ink-muted); margin-top: 4px; }
-.error-msg {
-  font-size: 0.82rem; color: var(--red);
-  background: var(--red-pale); border-radius: var(--r);
-  padding: 8px 12px; margin-bottom: 10px; display: none;
+.cal-nav-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  color: var(--white); font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
 }
-.success-msg {
-  font-size: 0.82rem; color: var(--green);
-  background: var(--green-pale); border-radius: var(--r);
-  padding: 8px 12px; margin-bottom: 10px; display: none;
+.cal-nav-btn:hover { border-color: var(--teal); color: var(--teal); }
+.cal-week-label {
+  font-size: 0.9rem; font-weight: 700; color: var(--white);
+  min-width: 220px; letter-spacing: -0.02em;
 }
-.consent-box {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 14px; background: var(--bg); border-radius: var(--r);
-  border: 1.5px solid var(--line); margin-bottom: 14px;
+.cal-today-btn {
+  padding: 5px 12px; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 600; font-family: 'Syne', sans-serif;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
 }
-.consent-box input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: var(--teal); }
-.consent-box p { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.5; }
-.consent-box a { color: var(--teal); text-decoration: underline; }
+.cal-today-btn:hover { color: var(--teal); border-color: var(--teal); }
+.cal-legend { display: flex; gap: 14px; margin-left: 8px; }
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--slate); }
+.cal-legend-dot { width: 8px; height: 8px; border-radius: 3px; }
+.cal-add-btn {
+  margin-left: auto;
+  padding: 6px 16px; border-radius: 8px;
+  background: var(--teal); color: var(--navy);
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  border: none; cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
+}
+.cal-add-btn:hover { background: #5eead4; }
 
-/* ── MODALS ────────────────────────────────── */
+/* ── CALENDAR GRID ─────────────────────────────── */
+.cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
+.cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.cal-scroll::-webkit-scrollbar-track { background: var(--navy); }
+.cal-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: 52px repeat(7, 1fr);
+  min-width: 780px;
+}
+
+.cal-head-spacer { background: var(--navy-mid); border-bottom: 2px solid var(--line); }
+.cal-day-head {
+  background: var(--navy-mid);
+  border-bottom: 2px solid var(--line);
+  border-left: 1px solid var(--line);
+  padding: 10px 8px;
+  text-align: center;
+}
+.cal-day-head .dow {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--slate);
+}
+.cal-day-head .dom {
+  font-size: 1.1rem; font-weight: 800; color: var(--white);
+  line-height: 1.2; margin-top: 2px; letter-spacing: -0.03em;
+}
+.cal-day-head.today .dom {
+  color: var(--teal);
+}
+.cal-day-head.today .dow { color: var(--teal); }
+
+/* Time rows */
+.cal-time-cell {
+  padding: 0 8px 0 0;
+  text-align: right;
+  font-size: 0.62rem; font-weight: 600; color: var(--slate);
+  border-right: 1px solid var(--line);
+  position: relative;
+  height: 36px;
+  letter-spacing: 0.02em;
+}
+.cal-time-cell span { position: absolute; top: -8px; right: 8px; white-space: nowrap; }
+
+.cal-slot {
+  height: 36px;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+.cal-slot:hover { background: rgba(45,212,191,0.05); }
+.cal-slot.half-hour { border-bottom: 1px solid var(--line); }
+.cal-slot.past { opacity: 0.45; cursor: default; }
+.cal-slot.past:hover { background: transparent; }
+
+/* Appointment blocks */
+.cal-block {
+  position: absolute;
+  left: 3px; right: 3px; top: 2px;
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.7rem; font-weight: 700;
+  cursor: pointer; z-index: 2;
+  overflow: hidden;
+  transition: filter 0.1s, transform 0.1s;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.cal-block:hover { filter: brightness(1.15); transform: scaleY(1.02); }
+.cal-block.confirmed { background: var(--teal-dim); border-left: 3px solid var(--teal); color: var(--teal); }
+.cal-block.pending   { background: var(--amber-dim); border-left: 3px solid var(--amber); color: var(--amber); }
+.cal-block.cancelled { background: var(--red-dim); border-left: 3px solid var(--red); color: #fca5a5; opacity: 0.6; }
+.cal-block.blocker   { background: rgba(148,163,184,0.1); border-left: 3px solid var(--slate); color: var(--slate); }
+.cal-block-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-block-svc  { font-weight: 400; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── APPOINTMENTS LIST ─────────────────────────── */
+.list-panel-inner {
+  flex: 1; overflow-y: auto; padding: 24px;
+}
+.list-panel-inner::-webkit-scrollbar { width: 6px; }
+.list-panel-inner::-webkit-scrollbar-track { background: var(--navy); }
+.list-panel-inner::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+.list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+}
+.list-title {
+  font-family: 'Spectral', serif;
+  font-size: 1.4rem; font-weight: 600; color: var(--white);
+  letter-spacing: -0.02em;
+}
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-chip {
+  padding: 5px 14px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700; font-family: 'Syne', sans-serif;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
+  letter-spacing: -0.01em;
+}
+.filter-chip:hover { color: var(--white); border-color: var(--slate); }
+.filter-chip.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+
+.appt-table { width: 100%; border-collapse: collapse; }
+.appt-table th {
+  text-align: left; font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--slate); padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.appt-table td {
+  padding: 13px 14px; font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.appt-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
+.appt-name { font-weight: 700; color: var(--white); }
+.appt-svc  { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
+.appt-date { font-size: 0.82rem; color: var(--white); font-weight: 600; }
+.appt-time-val { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
+.appt-note { font-size: 0.78rem; color: var(--slate); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
+}
+.badge-confirmed { background: var(--teal-dim);  color: var(--teal); }
+.badge-pending   { background: var(--amber-dim); color: var(--amber); }
+.badge-cancelled { background: var(--red-dim);   color: #fca5a5; }
+.badge-blocker   { background: rgba(148,163,184,0.1); color: var(--slate); }
+
+.empty-state {
+  text-align: center; padding: 64px 20px;
+  color: var(--slate); font-size: 0.88rem;
+}
+.empty-icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.5; }
+
+/* ── MODAL ─────────────────────────────────────── */
 .overlay {
-  position: fixed; inset: 0; background: rgba(10,20,40,0.5);
-  backdrop-filter: blur(3px); z-index: 300;
-  display: none; align-items: center; justify-content: center; padding: 20px;
+  position: fixed; inset: 0;
+  background: rgba(10,15,30,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
 }
 .overlay.open { display: flex; }
 .modal {
-  background: white; border-radius: var(--r-lg);
-  width: 100%; max-width: 520px;
-  max-height: 90vh; overflow-y: auto;
-  box-shadow: var(--shadow-lg);
-  animation: modalIn 0.2s ease;
+  background: var(--navy-mid);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  width: 100%; max-width: 460px;
+  box-shadow: var(--shadow);
+  animation: modalIn 0.18s ease;
+  overflow: hidden;
 }
-.modal-wide { max-width: 700px; }
-@keyframes modalIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
-.modal-header {
+@keyframes modalIn { from { transform: translateY(12px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: white; z-index: 1;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
 }
-.modal-header h3 { font-family: 'Lora',serif; font-size: 1.1rem; }
+.modal-head h3 {
+  font-family: 'Spectral', serif;
+  font-size: 1rem; font-weight: 600; color: var(--white);
+}
 .modal-close {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--bg); border: none; font-size: 1rem;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  color: var(--ink-soft);
-}
-.modal-close:hover { background: var(--red-pale); color: var(--red); }
-.modal-body { padding: 24px; }
-.modal-tabs { display: flex; border-bottom: 1px solid var(--line); }
-.modal-tab {
-  flex: 1; padding: 12px; text-align: center; font-size: 0.88rem; font-weight: 600;
-  color: var(--ink-muted); border: none; background: transparent; cursor: pointer;
-  border-bottom: 2.5px solid transparent; margin-bottom: -1px; transition: all 0.15s;
-}
-.modal-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
-
-/* ── STATUS BADGES ─────────────────────────── */
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
-}
-.badge-pending  { background: var(--amber-pale); color: #92400e; }
-.badge-confirmed{ background: var(--green-pale);  color: #166534; }
-.badge-rejected { background: var(--red-pale);    color: #991b1b; }
-.badge-completed{ background: #e0e7ff;             color: #3730a3; }
-.badge-blocker  { background: #f3f4f6;             color: #4b5563; }
-
-/* ── LANDING ───────────────────────────────── */
-.hero {
-  background: linear-gradient(135deg, #065a4f 0%, #0a7e6e 50%, #0d9b87 100%);
-  padding: 72px 24px 80px; position: relative; overflow: hidden;
-}
-.hero::before {
-  content: ''; position: absolute; inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-.hero-inner { max-width: 1120px; margin: 0 auto; position: relative; }
-.hero h1 {
-  font-family: 'Lora', serif; font-size: clamp(2rem, 4vw, 3rem);
-  color: white; font-weight: 700; max-width: 580px; line-height: 1.2;
-  margin-bottom: 16px;
-}
-.hero h1 em { font-style: italic; color: #7eecd9; }
-.hero-sub { color: rgba(255,255,255,0.8); font-size: 1.05rem; max-width: 480px; margin-bottom: 36px; }
-.search-box {
-  background: white; border-radius: var(--r-lg);
-  padding: 20px; box-shadow: var(--shadow-lg);
-  display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-  max-width: 700px;
-}
-.search-field { flex: 1; min-width: 160px; }
-.search-field label { color: var(--ink-soft); }
-.search-btn { flex-shrink: 0; }
-.hero-stats {
-  display: flex; gap: 32px; margin-top: 36px; flex-wrap: wrap;
-}
-.hero-stat { color: white; }
-.hero-stat strong { display: block; font-size: 1.6rem; font-family: 'Lora',serif; }
-.hero-stat span { font-size: 0.82rem; color: rgba(255,255,255,0.7); }
-
-/* ── SPECIALTY GRID ────────────────────────── */
-.section { padding: 56px 24px; }
-.section-header { margin-bottom: 32px; }
-.section-header h2 { font-size: 1.8rem; color: var(--ink); margin-bottom: 6px; }
-.section-header p { color: var(--ink-soft); }
-.specialty-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-}
-.specialty-card {
-  background: white; border: 1.5px solid var(--line);
-  border-radius: var(--r-lg); padding: 20px 16px;
-  text-align: center; cursor: pointer;
-  transition: all 0.18s; user-select: none;
-}
-.specialty-card:hover {
-  border-color: var(--teal-mid); background: var(--teal-pale);
-  transform: translateY(-2px); box-shadow: var(--shadow);
-}
-.specialty-card .spec-icon { font-size: 1.8rem; margin-bottom: 8px; }
-.specialty-card .spec-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); line-height: 1.3; }
-.specialty-hidden { display: none; }
-
-/* ── DOCTOR CARDS ──────────────────────────── */
-.doctor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-.doctor-card {
-  background: white; border-radius: var(--r-lg);
-  border: 1.5px solid var(--line);
-  overflow: hidden; transition: all 0.18s;
-}
-.doctor-card:hover { border-color: var(--teal-mid); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
-.doctor-card-header { padding: 20px 20px 16px; display: flex; gap: 14px; }
-.doctor-avatar {
-  width: 56px; height: 56px; border-radius: 14px;
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--navy-lite); border: none;
+  color: var(--slate); font-size: 0.9rem;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Lora',serif; font-size: 1.3rem; font-weight: 700;
-  color: white; flex-shrink: 0;
+  cursor: pointer; transition: all 0.12s;
 }
-.doctor-info h3 { font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
-.doctor-spec { font-size: 0.82rem; color: var(--teal); font-weight: 600; margin-bottom: 4px; }
-.doctor-city { font-size: 0.8rem; color: var(--ink-muted); }
-.doctor-rating { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
-.stars { color: #f59e0b; font-size: 0.8rem; }
-.rating-num { font-size: 0.8rem; font-weight: 700; color: var(--ink); }
-.rating-count { font-size: 0.75rem; color: var(--ink-muted); }
-.doctor-card-body { padding: 0 20px 16px; }
-.doctor-bio { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 12px; }
-.service-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.chip {
-  font-size: 0.75rem; font-weight: 500;
-  padding: 3px 10px; border-radius: 20px;
-  background: var(--teal-pale); color: var(--teal-dark);
+.modal-close:hover { background: var(--red-dim); color: var(--red); }
+.modal-body { padding: 22px; }
+.modal-type-row {
+  display: flex; gap: 8px; margin-bottom: 18px;
 }
-.slots-row { margin-bottom: 14px; }
-.slots-label { font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); margin-bottom: 6px; }
-.slots { display: flex; flex-wrap: wrap; gap: 6px; }
-.slot-btn {
-  font-size: 0.78rem; font-weight: 600; padding: 5px 10px;
-  border: 1.5px solid var(--teal-mid); border-radius: 8px;
-  background: white; color: var(--teal); cursor: pointer; transition: all 0.12s;
+.type-btn {
+  flex: 1; padding: 8px; border-radius: 8px;
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
+  letter-spacing: -0.01em;
 }
-.slot-btn:hover { background: var(--teal); color: white; }
-.no-slots { font-size: 0.8rem; color: var(--ink-muted); font-style: italic; }
-
-/* ── RESULTS AREA ──────────────────────────── */
-#resultsSection { padding: 40px 24px; display: none; }
-.results-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
-}
-.results-title { font-family: 'Lora',serif; font-size: 1.4rem; }
-.results-count { font-size: 0.88rem; color: var(--ink-muted); }
-
-/* ── DASHBOARD LAYOUT ──────────────────────── */
-.dash-layout {
-  display: grid; grid-template-columns: 240px 1fr; gap: 0;
-  min-height: calc(100vh - 64px);
-}
-.dash-sidebar {
-  background: white; border-right: 1px solid var(--line);
-  padding: 24px 16px; position: sticky; top: 64px;
-  height: calc(100vh - 64px); overflow-y: auto;
-}
-.dash-nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: var(--r);
-  font-size: 0.88rem; font-weight: 500; color: var(--ink-soft);
-  cursor: pointer; transition: all 0.12s; width: 100%; border: none; background: transparent;
-  text-align: left; margin-bottom: 2px;
-}
-.dash-nav-item:hover { background: var(--bg); color: var(--ink); }
-.dash-nav-item.active { background: var(--teal-pale); color: var(--teal-dark); font-weight: 600; }
-.dash-nav-item .nav-icon { font-size: 1.1rem; flex-shrink: 0; }
-.dash-nav-section { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-muted); padding: 12px 14px 6px; }
-.dash-main { padding: 32px; overflow-y: auto; }
-.dash-panel { display: none; }
-.dash-panel.active { display: block; }
-.dash-panel-title { font-family: 'Lora',serif; font-size: 1.4rem; margin-bottom: 24px; color: var(--ink); }
-
-/* ── STATS ROW ─────────────────────────────── */
-.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
-.stat-card { background: white; border: 1.5px solid var(--line); border-radius: var(--r-lg); padding: 18px 20px; }
-.stat-val { font-family: 'Lora',serif; font-size: 1.8rem; font-weight: 700; color: var(--teal); }
-.stat-label { font-size: 0.78rem; color: var(--ink-muted); margin-top: 2px; }
-
-/* ── APPOINTMENT LIST ──────────────────────── */
-.appt-list { display: flex; flex-direction: column; gap: 10px; }
-.appt-row {
-  background: white; border: 1.5px solid var(--line);
-  border-radius: var(--r-lg); padding: 16px 20px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  transition: border-color 0.12s;
-}
-.appt-row:hover { border-color: var(--teal-mid); }
-.appt-row.pending  { border-left: 4px solid var(--amber); }
-.appt-row.confirmed{ border-left: 4px solid var(--green); }
-.appt-row.rejected { border-left: 4px solid var(--red); }
-.appt-row.blocker  { border-left: 4px solid #9ca3af; }
-.appt-time { font-family: 'Lora',serif; font-size: 1rem; font-weight: 700; color: var(--ink); min-width: 90px; }
-.appt-info { flex: 1; min-width: 0; }
-.appt-who { font-weight: 600; font-size: 0.92rem; color: var(--ink); }
-.appt-what { font-size: 0.8rem; color: var(--ink-muted); margin-top: 2px; }
-.appt-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-/* ── FILTER BAR ────────────────────────────── */
-.filter-bar { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
-.filter-btn {
-  padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
-  border: 1.5px solid var(--line); background: white; color: var(--ink-soft); cursor: pointer; transition: all 0.12s;
-}
-.filter-btn.active { background: var(--teal); color: white; border-color: var(--teal); }
-
-/* ── CALENDAR ──────────────────────────────── */
-.cal-nav {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px;
-}
-.cal-week-label { font-family: 'Lora',serif; font-size: 1rem; font-weight: 600; }
-.cal-grid {
-  background: white; border: 1.5px solid var(--line);
-  border-radius: var(--r-lg); overflow: hidden;
-}
-.cal-header-row {
-  display: grid; grid-template-columns: 48px repeat(7,1fr);
-  background: var(--bg); border-bottom: 2px solid var(--line);
-}
-.cal-day-head {
-  padding: 10px 4px; text-align: center;
-  font-size: 0.78rem; font-weight: 700; color: var(--ink-soft);
-  border-left: 1px solid var(--line);
-}
-.cal-day-head.today { color: var(--teal); }
-.cal-body { display: grid; grid-template-columns: 48px repeat(7,1fr); }
-.cal-time-label {
-  font-size: 0.68rem; color: var(--ink-muted); text-align: right;
-  padding: 0 6px; line-height: 1;
-}
-.cal-cell {
-  border-left: 1px solid var(--line);
-  border-bottom: 1px solid rgba(0,0,0,0.04);
-  min-height: 20px; position: relative; cursor: pointer;
-}
-.cal-cell.work-hour { background: rgba(10,126,110,0.06); }
-.cal-cell.has-appt { cursor: pointer; }
-.cal-appt-block {
-  position: absolute; inset: 1px 2px; border-radius: 5px;
-  padding: 2px 5px; font-size: 0.68rem; font-weight: 600;
-  overflow: hidden; cursor: pointer; z-index: 1;
-  line-height: 1.3;
-}
-.cal-appt-block.pending   { background: var(--amber-pale); color: #92400e; border-left: 3px solid var(--amber); }
-.cal-appt-block.confirmed { background: var(--green-pale);  color: #166534; border-left: 3px solid var(--green); }
-.cal-appt-block.blocker   { background: #f3f4f6; color: #4b5563; border-left: 3px solid #9ca3af; }
-.cal-appt-block:hover { filter: brightness(0.95); }
-.cal-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
-.cal-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--ink-soft); }
-.cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
-
-/* ── MAP ───────────────────────────────────── */
-.map-container { border-radius: var(--r-lg); overflow: hidden; border: 1.5px solid var(--line); }
-.map-search { display: flex; gap: 8px; margin-bottom: 10px; }
-.map-search input { flex: 1; }
-
-/* ── RATING STARS ──────────────────────────── */
-.star-picker { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
-.star-btn {
-  font-size: 2rem; background: none; border: none; cursor: pointer;
-  transition: transform 0.1s; color: #d1d5db;
-}
-.star-btn.active { color: #f59e0b; }
-.star-btn:hover { transform: scale(1.2); }
-
-/* ── SERVICES TABLE ────────────────────────── */
-.services-table { width: 100%; border-collapse: collapse; }
-.services-table th {
-  text-align: left; font-size: 0.75rem; font-weight: 700;
+.type-btn.active { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+.mfield { margin-bottom: 14px; }
+.mfield label {
+  display: block; font-size: 0.68rem; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--ink-muted); padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
+  color: var(--slate); margin-bottom: 6px;
 }
-.services-table td {
-  padding: 12px 14px; font-size: 0.88rem;
-  border-bottom: 1px solid var(--line);
+.mfield input, .mfield select, .mfield textarea {
+  width: 100%; padding: 9px 13px;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--white);
+  font-family: 'Syne', sans-serif; font-size: 0.85rem;
+  outline: none; transition: border-color 0.15s;
 }
-.services-table tr:last-child td { border-bottom: none; }
-.services-table tr:hover td { background: var(--bg); }
+.mfield input:focus, .mfield select:focus, .mfield textarea:focus { border-color: var(--teal); }
+.mfield input::placeholder, .mfield textarea::placeholder { color: var(--slate); opacity: 0.5; }
+.mfield select option { background: var(--navy-mid); }
+.mfield textarea { resize: vertical; min-height: 68px; }
+.mrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-err {
+  font-size: 0.8rem; color: var(--red);
+  background: var(--red-dim); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 12px; display: none;
+}
+.btn-save {
+  width: 100%; padding: 11px;
+  background: var(--teal); color: var(--navy);
+  border: none; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s; letter-spacing: -0.01em;
+}
+.btn-save:hover { background: #5eead4; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── PRIVACY POLICY ────────────────────────── */
-.privacy-content { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.7; }
-.privacy-content h4 { font-family: 'Lora',serif; color: var(--ink); margin: 20px 0 8px; font-size: 0.95rem; }
-.privacy-content ul { padding-left: 18px; margin: 8px 0; }
-.privacy-content ul li { margin-bottom: 4px; }
+/* Detail modal */
+.detail-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+}
+.detail-row:last-of-type { border-bottom: none; }
+.detail-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; width: 20px; }
+.detail-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); margin-bottom: 2px; }
+.detail-val { font-size: 0.88rem; color: var(--white); font-weight: 600; }
+.detail-actions { display: flex; gap: 8px; margin-top: 18px; }
+.btn-edit {
+  flex: 1; padding: 9px;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--white);
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s;
+}
+.btn-edit:hover { border-color: var(--teal); color: var(--teal); }
+.btn-delete {
+  padding: 9px 16px;
+  background: var(--red-dim); border: 1px solid transparent;
+  border-radius: var(--r); color: #fca5a5;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s;
+}
+.btn-delete:hover { background: var(--red); color: white; }
 
-/* ── WORKING HOURS ─────────────────────────── */
-.wh-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+/* Status selector */
+.status-row { display: flex; gap: 6px; margin-bottom: 14px; }
+.status-opt {
+  flex: 1; padding: 7px 4px; border-radius: 8px; text-align: center;
+  font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
 }
-.wh-day { width: 110px; font-size: 0.88rem; font-weight: 600; color: var(--ink); }
-.wh-toggle { display: flex; align-items: center; gap: 6px; }
-.wh-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
-.wh-toggle label { font-size: 0.82rem; color: var(--ink-soft); margin: 0; }
-.wh-times { display: flex; align-items: center; gap: 8px; flex: 1; }
-.wh-times input[type=time] { width: 110px; flex: none; }
+.status-opt[data-val="confirmed"].sel { background: var(--teal-dim); border-color: var(--teal); color: var(--teal); }
+.status-opt[data-val="pending"].sel   { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+.status-opt[data-val="cancelled"].sel { background: var(--red-dim); border-color: var(--red); color: #fca5a5; }
 
-/* ── MISC ──────────────────────────────────── */
-.section-tag {
-  display: inline-block; padding: 4px 12px; border-radius: 20px;
-  background: var(--teal-pale); color: var(--teal-dark);
-  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; margin-bottom: 10px;
-}
-.divider { height: 1px; background: var(--line); margin: 20px 0; }
-.empty-state { text-align: center; padding: 48px 20px; color: var(--ink-muted); }
-.empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.empty-state p { font-size: 0.9rem; }
-.loading-spinner { text-align: center; padding: 40px; color: var(--ink-muted); font-size: 0.9rem; }
-.suggestions-box {
-  position: absolute; top: 100%; left: 0; right: 0;
-  background: white; border: 1.5px solid var(--line);
-  border-radius: var(--r); z-index: 500; max-height: 200px;
-  overflow-y: auto; box-shadow: var(--shadow-lg); display: none;
-}
-.suggestion-item {
-  padding: 10px 14px; cursor: pointer; font-size: 0.87rem;
-  border-bottom: 1px solid var(--line); transition: background 0.1s;
-}
-.suggestion-item:hover { background: var(--teal-pale); }
-
-@media (max-width: 768px) {
-  .dash-layout { grid-template-columns: 1fr; }
-  .dash-sidebar { position: static; height: auto; display: flex; flex-wrap: wrap; padding: 12px; gap: 4px; border-right: none; border-bottom: 1px solid var(--line); }
-  .dash-nav-section { display: none; }
-  .dash-main { padding: 20px 16px; }
-  .form-row { grid-template-columns: 1fr; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .hero h1 { font-size: 1.8rem; }
-  .search-box { flex-direction: column; }
-  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-}
+/* ── SCROLLBAR on list ─────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     NAV
-════════════════════════════════════════════ -->
-<nav id="mainNav">
-  <div class="nav-inner">
-    <a href="#" onclick="goHome()" class="nav-logo">
-      <div class="nav-logo-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="white" opacity="0.9"/>
-          <path d="M10 9h4M12 7v4" stroke="#0a7e6e" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <svg viewBox="0 0 18 18" fill="none"><rect x="8" y="2" width="2" height="14" rx="1" fill="#0f1623"/><rect x="2" y="8" width="14" height="2" rx="1" fill="#0f1623"/></svg>
+      </div>
+      <div class="login-logo-text">Privatni<span>Lekar</span></div>
+    </div>
+    <div class="login-title">Dobrodošli</div>
+    <div class="login-sub">Prijavite se da pristupite kalendaru</div>
+    <div class="field">
+      <label>Email</label>
+      <input id="lgEmail" type="email" placeholder="vas@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="field">
+      <label>Lozinka</label>
+      <input id="lgPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="lgErr"></div>
+    <button class="btn-login" id="lgBtn" onclick="doLogin()">Prijavite se →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-mark">
+        <svg viewBox="0 0 14 14" fill="none"><rect x="6" y="1" width="2" height="12" rx="1" fill="#0f1623"/><rect x="1" y="6" width="12" height="2" rx="1" fill="#0f1623"/></svg>
       </div>
       Privatni<span>Lekar</span>
-    </a>
-    <div class="nav-actions" id="navLoggedOut">
-      <button class="btn btn-ghost btn-sm" onclick="openModal('loginModal')">Prijava</button>
-      <button class="btn btn-secondary btn-sm" onclick="openRegisterPatient()">Registracija pacijenta</button>
-      <button class="btn btn-primary btn-sm" onclick="openRegisterDoctor()">Za lekare</button>
     </div>
-    <div class="nav-user" id="navLoggedIn" style="display:none">
-      <div style="position:relative">
-        <button class="btn-icon" onclick="toggleNotif()" id="notifBtn" title="Obaveštenja">
-          🔔
-          <span class="notif-badge" id="notifBadge">0</span>
-        </button>
-        <div class="notif-panel" id="notifPanel">
-          <div class="notif-panel-header">
-            <h4>Obaveštenja</h4>
-            <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Sve pročitano</button>
-          </div>
-          <div id="notifList"><div class="notif-empty">Nema novih obaveštenja</div></div>
-        </div>
-      </div>
-      <span class="nav-username" id="navUsername"></span>
-      <button class="btn btn-secondary btn-sm" onclick="logout()">Odjava</button>
+    <div class="topbar-divider"></div>
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('calendar',this)">Kalendar</button>
+      <button class="tab-btn" onclick="switchTab('list',this)">Termini</button>
     </div>
-  </div>
-</nav>
-
-<!-- ═══════════════════════════════════════════
-     VIEW: LANDING
-════════════════════════════════════════════ -->
-<div class="view active" id="viewLanding">
-
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-inner">
-      <h1>Zakažite pregled kod <em>pravog lekara</em> — brzo i pouzdano</h1>
-      <p class="hero-sub">Pretražite više od 1.200 proverenih privatnih specijalista u celoj Srbiji i zakažite termin za manje od 60 sekundi.</p>
-      <div class="search-box" id="heroSearch">
-        <div class="search-field">
-          <label>Specijalnost</label>
-          <select id="searchSpecialty" onchange="searchDoctors()">
-            <option value="">Sve specijalnosti</option>
-          </select>
-        </div>
-        <div class="search-field">
-          <label>Grad</label>
-          <select id="searchCity" onchange="searchDoctors()">
-            <option value="">Svi gradovi</option>
-          </select>
-        </div>
-        <button class="btn btn-primary btn-lg search-btn" onclick="searchDoctors()">🔍 Pretraži</button>
+    <div class="topbar-right">
+      <div class="doctor-chip">
+        <div class="doctor-avatar" id="doctorAvatar"></div>
+        <span id="doctorName"></span>
       </div>
-      <div class="hero-stats">
-        <div class="hero-stat"><strong>1.200+</strong><span>Lekara</span></div>
-        <div class="hero-stat"><strong>48.000+</strong><span>Pregleda</span></div>
-        <div class="hero-stat"><strong>4.8 ★</strong><span>Prosečna ocena</span></div>
-        <div class="hero-stat"><strong>24/7</strong><span>Dostupno</span></div>
-      </div>
+      <button class="btn-logout" onclick="doLogout()">Odjava</button>
     </div>
   </div>
 
-  <!-- Results (shown after search) -->
-  <div id="resultsSection">
-    <div class="container">
-      <div class="results-header">
-        <div>
-          <div class="results-title" id="resultsTitle">Rezultati pretrage</div>
-          <div class="results-count" id="resultsCount"></div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="clearResults()">✕ Poništi pretragu</button>
-      </div>
-      <div class="doctor-grid" id="doctorGrid">
-        <div class="loading-spinner">⏳ Učitavamo lekare…</div>
-      </div>
-    </div>
-  </div>
+  <!-- Panels -->
+  <div class="panels">
 
-  <!-- Specialties -->
-  <div class="section" id="specialtiesSection">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">Specijalnosti</div>
-        <h2>Pronađite lekara po specijalnosti</h2>
-        <p>Izaberite specijalnost koja vam je potrebna</p>
-      </div>
-      <div class="specialty-grid" id="specialtyGrid">
-        <!-- filled by JS -->
-      </div>
-      <div style="text-align:center;margin-top:20px">
-        <button class="btn btn-secondary" id="showMoreSpec" onclick="toggleMoreSpec()">Prikaži sve specijalnosti ↓</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- How it works -->
-  <div class="section" style="background:white">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">Kako funkcioniše</div>
-        <h2>Zakazivanje u 3 koraka</h2>
-      </div>
-      <div class="grid-3">
-        <div class="card" style="text-align:center">
-          <div style="font-size:2.5rem;margin-bottom:14px">🔍</div>
-          <h3 style="font-size:1rem;margin-bottom:8px">1. Pronađite lekara</h3>
-          <p style="font-size:0.85rem;color:var(--ink-soft)">Pretražite po specijalnosti i gradu. Pogledajte profile, ocene i slobodne termine.</p>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="font-size:2.5rem;margin-bottom:14px">📅</div>
-          <h3 style="font-size:1rem;margin-bottom:8px">2. Zakažite termin</h3>
-          <p style="font-size:0.85rem;color:var(--ink-soft)">Odaberite slobodan termin, uslugu i dodajte kratak komentar. Sve za manje od minute.</p>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="font-size:2.5rem;margin-bottom:14px">✅</div>
-          <h3 style="font-size:1rem;margin-bottom:8px">3. Dobijte potvrdu</h3>
-          <p style="font-size:0.85rem;color:var(--ink-soft)">Lekar potvrđuje vaš termin. Dobijate obaveštenje i podsetnik pre pregleda.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <footer style="background:var(--ink);color:rgba(255,255,255,0.7);padding:40px 24px;font-size:0.85rem">
-    <div class="container" style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-family:'Lora',serif;color:white;font-size:1.1rem;margin-bottom:6px">PrivatniLekar.rs</div>
-        <div>© 2025 PrivatniLekar d.o.o. [PLACEHOLDER]. Sva prava zadržana.</div>
-        <div style="margin-top:4px">Beograd, Srbija | PIB: [PLACEHOLDER]</div>
-      </div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <a href="#" onclick="openModal('privacyModal')" style="color:rgba(255,255,255,0.7)">Politika privatnosti</a>
-        <a href="#" onclick="openModal('termsModal')" style="color:rgba(255,255,255,0.7)">Uslovi korišćenja</a>
-        <a href="mailto:podrska@privatnilekar.rs" style="color:rgba(255,255,255,0.7)">Kontakt</a>
-      </div>
-    </div>
-  </footer>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     VIEW: PATIENT DASHBOARD
-════════════════════════════════════════════ -->
-<div class="view" id="viewPatient">
-  <div class="dash-layout">
-    <div class="dash-sidebar">
-      <div class="dash-nav-section">Pacijent</div>
-      <button class="dash-nav-item active" onclick="showPatientPanel('appointments')" id="pnav-appointments">
-        <span class="nav-icon">📅</span> Moji termini
-      </button>
-      <button class="dash-nav-item" onclick="showPatientPanel('profile')" id="pnav-profile">
-        <span class="nav-icon">👤</span> Moj profil
-      </button>
-      <div class="divider"></div>
-      <button class="dash-nav-item" onclick="goHome()">
-        <span class="nav-icon">🔍</span> Pretraži lekare
-      </button>
-      <button class="dash-nav-item" onclick="logout()">
-        <span class="nav-icon">🚪</span> Odjava
-      </button>
-    </div>
-    <div class="dash-main">
-
-      <!-- Appointments panel -->
-      <div class="dash-panel active" id="ppanel-appointments">
-        <div class="dash-panel-title">Moji termini</div>
-        <div class="filter-bar">
-          <button class="filter-btn active" onclick="filterPatientAppts('all',this)">Svi</button>
-          <button class="filter-btn" onclick="filterPatientAppts('pending',this)">Na čekanju</button>
-          <button class="filter-btn" onclick="filterPatientAppts('confirmed',this)">Potvrđeni</button>
-          <button class="filter-btn" onclick="filterPatientAppts('completed',this)">Završeni</button>
-          <button class="filter-btn" onclick="filterPatientAppts('rejected',this)">Odbijeni</button>
-        </div>
-        <div class="appt-list" id="patientApptList">
-          <div class="loading-spinner">⏳ Učitavamo termine…</div>
-        </div>
-      </div>
-
-      <!-- Profile panel -->
-      <div class="dash-panel" id="ppanel-profile">
-        <div class="dash-panel-title">Moj profil</div>
-        <div class="card" style="max-width:520px">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Ime</label>
-              <input id="profPatientFirst" placeholder="Vaše ime">
-            </div>
-            <div class="form-group">
-              <label>Prezime</label>
-              <input id="profPatientLast" placeholder="Vaše prezime">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input id="profPatientEmail" type="email" disabled>
-          </div>
-          <div class="form-group">
-            <label>Telefon</label>
-            <input id="profPatientPhone" placeholder="+381 6x xxx xxxx">
-          </div>
-          <div class="error-msg" id="profPatientErr"></div>
-          <div class="success-msg" id="profPatientOk">✅ Profil sačuvan!</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="savePatientProfile()">Sačuvaj promene</button>
-            <button class="btn btn-danger" onclick="openDeleteAccount()">Obriši nalog</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     VIEW: DOCTOR DASHBOARD
-════════════════════════════════════════════ -->
-<div class="view" id="viewDoctor">
-  <div class="dash-layout">
-    <div class="dash-sidebar">
-      <div class="dash-nav-section">Lekar</div>
-      <button class="dash-nav-item active" onclick="showDoctorPanel('overview')" id="dnav-overview">
-        <span class="nav-icon">📊</span> Pregled
-      </button>
-      <button class="dash-nav-item" onclick="showDoctorPanel('calendar')" id="dnav-calendar">
-        <span class="nav-icon">🗓</span> Kalendar
-      </button>
-      <button class="dash-nav-item" onclick="showDoctorPanel('appointments')" id="dnav-appointments">
-        <span class="nav-icon">📋</span> Termini
-      </button>
-      <button class="dash-nav-item" onclick="showDoctorPanel('services')" id="dnav-services">
-        <span class="nav-icon">🩺</span> Usluge
-      </button>
-      <button class="dash-nav-item" onclick="showDoctorPanel('workhours')" id="dnav-workhours">
-        <span class="nav-icon">⏰</span> Radno vreme
-      </button>
-      <button class="dash-nav-item" onclick="showDoctorPanel('profile')" id="dnav-profile">
-        <span class="nav-icon">👤</span> Profil
-      </button>
-      <div class="divider"></div>
-      <button class="dash-nav-item" onclick="logout()">
-        <span class="nav-icon">🚪</span> Odjava
-      </button>
-    </div>
-    <div class="dash-main">
-
-      <!-- Overview -->
-      <div class="dash-panel active" id="dpanel-overview">
-        <div class="dash-panel-title" id="docWelcome">Dobro jutro!</div>
-        <div class="stats-row" id="docStats">
-          <div class="stat-card"><div class="stat-val" id="statToday">0</div><div class="stat-label">Termina danas</div></div>
-          <div class="stat-card"><div class="stat-val" id="statPending">0</div><div class="stat-label">Na čekanju</div></div>
-          <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Ukupno termina</div></div>
-          <div class="stat-card"><div class="stat-val" id="statRating">–</div><div class="stat-label">Prosečna ocena</div></div>
-        </div>
-        <h3 style="font-family:'Lora',serif;font-size:1rem;margin-bottom:14px">Termini na čekanju</h3>
-        <div class="appt-list" id="pendingApptList">
-          <div class="loading-spinner">⏳ Učitavamo…</div>
-        </div>
-      </div>
-
-      <!-- Calendar -->
-      <div class="dash-panel" id="dpanel-calendar">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-          <div class="dash-panel-title" style="margin:0">Kalendar</div>
-          <button class="btn btn-primary btn-sm" onclick="openNewAppt()">+ Novi termin</button>
-        </div>
+    <!-- CALENDAR -->
+    <div class="panel active" id="panelCalendar">
+      <div class="cal-toolbar">
+        <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+        <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        <span class="cal-week-label" id="calWeekLabel"></span>
+        <button class="cal-today-btn" onclick="calGoToday()">Danas</button>
         <div class="cal-legend">
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--green-pale);border:1.5px solid var(--green)"></div>Potvrđen</div>
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber-pale);border:1.5px solid var(--amber)"></div>Na čekanju</div>
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f3f4f6;border:1.5px solid #9ca3af"></div>Blokiran</div>
-          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(10,126,110,0.1);border:1.5px solid var(--teal-mid)"></div>Radno vreme</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal)"></div>Potvrđen</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
+          <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--slate)"></div>Blokada</div>
         </div>
-        <div class="cal-nav">
-          <button class="btn btn-secondary btn-sm" onclick="calNav(-1)">← Prethodna</button>
-          <span class="cal-week-label" id="calWeekLabel"></span>
-          <button class="btn btn-secondary btn-sm" onclick="calNav(1)">Sledeća →</button>
-        </div>
-        <div class="cal-grid">
-          <div class="cal-header-row" id="calHeader"></div>
-          <div class="cal-body" id="calBody"></div>
-        </div>
+        <button class="cal-add-btn" onclick="openNewModal()">+ Novi termin</button>
       </div>
-
-      <!-- Appointments -->
-      <div class="dash-panel" id="dpanel-appointments">
-        <div class="dash-panel-title">Termini</div>
-        <div class="filter-bar">
-          <button class="filter-btn active" onclick="filterDoctorAppts('all',this)">Svi</button>
-          <button class="filter-btn" onclick="filterDoctorAppts('pending',this)">Na čekanju</button>
-          <button class="filter-btn" onclick="filterDoctorAppts('confirmed',this)">Potvrđeni</button>
-          <button class="filter-btn" onclick="filterDoctorAppts('completed',this)">Završeni</button>
-          <button class="filter-btn" onclick="filterDoctorAppts('rejected',this)">Odbijeni</button>
-        </div>
-        <div class="appt-list" id="doctorApptList">
-          <div class="loading-spinner">⏳ Učitavamo…</div>
-        </div>
+      <div class="cal-scroll">
+        <div class="cal-grid" id="calGrid"></div>
       </div>
+    </div>
 
-      <!-- Services -->
-      <div class="dash-panel" id="dpanel-services">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-          <div class="dash-panel-title" style="margin:0">Usluge</div>
-          <button class="btn btn-primary btn-sm" onclick="openAddService()">+ Dodaj uslugu</button>
-        </div>
-        <div class="card" style="padding:0;overflow:hidden">
-          <table class="services-table" style="width:100%">
-            <thead>
-              <tr>
-                <th>Naziv</th><th>Trajanje</th><th>Opis</th><th>Cena (RSD)</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="servicesTableBody">
-              <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink-muted)">⏳ Učitavamo usluge…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Working Hours -->
-      <div class="dash-panel" id="dpanel-workhours">
-        <div class="dash-panel-title">Radno vreme</div>
-        <div class="card" style="max-width:560px">
-          <p style="font-size:0.88rem;color:var(--ink-soft);margin-bottom:20px">Podesite radno vreme za svaki dan. Ovo će biti prikazano pacijentima kao dostupni termini.</p>
-          <div id="workHoursEditor"></div>
-          <div style="margin-top:20px;display:flex;align-items:center;gap:12px">
-            <button class="btn btn-primary" onclick="saveWorkHours()">Sačuvaj radno vreme</button>
-            <span class="success-msg" id="whSaved" style="display:none;margin:0">✅ Sačuvano!</span>
+    <!-- LIST -->
+    <div class="panel" id="panelList">
+      <div class="list-panel-inner">
+        <div class="list-header">
+          <div class="list-title">Termini</div>
+          <div class="filter-row">
+            <button class="filter-chip active" onclick="setFilter('all',this)">Svi</button>
+            <button class="filter-chip" onclick="setFilter('confirmed',this)">Potvrđeni</button>
+            <button class="filter-chip" onclick="setFilter('pending',this)">Na čekanju</button>
+            <button class="filter-chip" onclick="setFilter('cancelled',this)">Otkazani</button>
           </div>
         </div>
-      </div>
-
-      <!-- Profile -->
-      <div class="dash-panel" id="dpanel-profile">
-        <div class="dash-panel-title">Moj profil</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
-          <div>
-            <div class="card">
-              <div class="form-section-title">Lični podaci</div>
-              <div class="form-row">
-                <div class="form-group"><label>Ime</label><input id="dprofFirst" placeholder="Ime"></div>
-                <div class="form-group"><label>Prezime</label><input id="dprofLast" placeholder="Prezime"></div>
-              </div>
-              <div class="form-group"><label>Email</label><input id="dprofEmail" disabled></div>
-              <div class="form-group"><label>Telefon ordinacije</label><input id="dprofPhone" placeholder="+381 11 xxx xxxx"></div>
-              <div class="form-section-title">Profesionalni podaci</div>
-              <div class="form-group">
-                <label>Specijalnost</label>
-                <select id="dprofSpec"></select>
-              </div>
-              <div class="form-row">
-                <div class="form-group"><label>Broj licence LKS</label><input id="dprofLicense" placeholder="LKS-12345"></div>
-                <div class="form-group"><label>Grad</label><select id="dprofCity"></select></div>
-              </div>
-              <div class="form-group"><label>Adresa ordinacije</label><input id="dprofAddress" placeholder="Ulica i broj"></div>
-              <div class="form-group">
-                <label>Opis / Biografija</label>
-                <textarea id="dprofBio" rows="4" placeholder="Opišite vaše iskustvo i oblast rada…" style="resize:vertical"></textarea>
-              </div>
-              <div class="error-msg" id="dprofErr"></div>
-              <div class="success-msg" id="dprofOk">✅ Profil sačuvan!</div>
-              <button class="btn btn-primary btn-block" onclick="saveDoctorProfile()">Sačuvaj profil</button>
-            </div>
-          </div>
-          <div>
-            <div class="card">
-              <div class="form-section-title">Lokacija ordinacije</div>
-              <div class="map-search">
-                <input id="mapSearchInput" placeholder="Pretražite adresu…" onkeydown="if(event.key==='Enter')searchMapAddr()">
-                <button class="btn btn-secondary btn-sm" onclick="searchMapAddr()">🔍</button>
-              </div>
-              <div class="map-container">
-                <div id="doctorMapEl" style="height:260px"></div>
-              </div>
-              <div style="margin-top:8px;font-size:0.78rem;color:var(--ink-muted)">Kliknite na mapu ili pretražite adresu da postavite lokaciju</div>
-              <input id="mapAddrDisplay" readonly style="margin-top:8px;background:var(--bg);font-size:0.82rem" placeholder="Odabrana adresa…">
-            </div>
-          </div>
+        <table class="appt-table" id="apptTable">
+          <thead>
+            <tr>
+              <th>Pacijent</th>
+              <th>Datum</th>
+              <th>Vreme</th>
+              <th>Napomena</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="apptTableBody"></tbody>
+        </table>
+        <div class="empty-state" id="listEmpty" style="display:none">
+          <div class="empty-icon">📭</div>
+          <div>Nema termina</div>
         </div>
       </div>
-
     </div>
+
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     MODALS
-════════════════════════════════════════════ -->
-
-<!-- Login -->
-<div class="overlay" id="loginModal">
+<!-- NEW / EDIT MODAL -->
+<div class="overlay" id="editModal">
   <div class="modal">
-    <div class="modal-header">
-      <h3>Prijava</h3>
-      <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
-    </div>
-    <div class="modal-tabs">
-      <button class="modal-tab active" onclick="switchLoginTab('patient',this)">Pacijent</button>
-      <button class="modal-tab" onclick="switchLoginTab('doctor',this)">Lekar</button>
+    <div class="modal-head">
+      <h3 id="editModalTitle">Novi termin</h3>
+      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Email adresa</label><input id="loginEmail" type="email" placeholder="vas@email.com" onkeydown="if(event.key==='Enter')submitLogin()"></div>
-      <div class="form-group"><label>Lozinka</label><input id="loginPassword" type="password" placeholder="Vaša lozinka" onkeydown="if(event.key==='Enter')submitLogin()"></div>
-      <div class="error-msg" id="loginErr"></div>
-      <button class="btn btn-primary btn-block" id="loginBtn" onclick="submitLogin()">Prijavite se →</button>
-      <p style="text-align:center;font-size:0.82rem;color:var(--ink-muted);margin-top:16px">
-        Nemate nalog? 
-        <a href="#" style="color:var(--teal);font-weight:600" id="loginRegisterLink" onclick="switchToRegister()">Registrujte se</a>
-      </p>
-    </div>
-  </div>
-</div>
+      <div class="modal-type-row">
+        <button class="type-btn active" id="typeAppt" onclick="setType('appt')">👤 Termin</button>
+        <button class="type-btn" id="typeBlock" onclick="setType('block')">🚫 Blokada</button>
+      </div>
 
-<!-- Register Patient -->
-<div class="overlay" id="registerPatientModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Registracija pacijenta</h3>
-      <button class="modal-close" onclick="closeModal('registerPatientModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>Ime</label><input id="regPFirst" placeholder="Vaše ime"></div>
-        <div class="form-group"><label>Prezime</label><input id="regPLast" placeholder="Vaše prezime"></div>
-      </div>
-      <div class="form-group"><label>Email adresa</label><input id="regPEmail" type="email" placeholder="vas@email.com"></div>
-      <div class="form-group"><label>Telefon</label><input id="regPPhone" placeholder="+381 6x xxx xxxx"></div>
-      <div class="form-group"><label>Lozinka</label><input id="regPPass" type="password" placeholder="Minimalno 8 karaktera"></div>
-      <div class="consent-box">
-        <input type="checkbox" id="consentP">
-        <p>Slažem se sa <a href="#" onclick="openModal('privacyModal')">Politikom privatnosti</a> i <a href="#" onclick="openModal('termsModal')">Uslovima korišćenja</a>. Saglasan/na sam sa obradom ličnih podataka u skladu sa Zakonom o zaštiti podataka o ličnosti (ZZPL) i Opštom uredbom o zaštiti podataka (GDPR) u svrhu zakazivanja medicinskih pregleda.</p>
-      </div>
-      <div class="error-msg" id="regPErr"></div>
-      <button class="btn btn-primary btn-block" id="regPBtn" onclick="submitRegisterPatient()">Kreirajte nalog →</button>
-      <p style="text-align:center;font-size:0.82rem;color:var(--ink-muted);margin-top:14px">
-        Već imate nalog? <a href="#" style="color:var(--teal);font-weight:600" onclick="closeModal('registerPatientModal');openModal('loginModal')">Prijavite se</a>
-      </p>
-    </div>
-  </div>
-</div>
-
-<!-- Register Doctor -->
-<div class="overlay" id="registerDoctorModal">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <h3>Registracija lekara</h3>
-      <button class="modal-close" onclick="closeModal('registerDoctorModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-section-title">Lični podaci</div>
-      <div class="form-row">
-        <div class="form-group"><label>Ime</label><input id="regDFirst" placeholder="Vaše ime"></div>
-        <div class="form-group"><label>Prezime</label><input id="regDLast" placeholder="Vaše prezime"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Email</label><input id="regDEmail" type="email" placeholder="vas@email.com"></div>
-        <div class="form-group"><label>Telefon ordinacije</label><input id="regDPhone" placeholder="+381 11 xxx xxxx"></div>
-      </div>
-      <div class="form-group"><label>Lozinka</label><input id="regDPass" type="password" placeholder="Minimalno 8 karaktera"></div>
-      <div class="form-section-title">Profesionalni podaci</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Specijalnost</label>
-          <select id="regDSpec"></select>
+      <!-- Appointment fields -->
+      <div id="apptFields">
+        <div class="mfield">
+          <label>Ime pacijenta</label>
+          <input id="fPatient" placeholder="Ime i prezime">
         </div>
-        <div class="form-group"><label>Broj licence LKS</label><input id="regDLicense" placeholder="LKS-XXXXX"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Grad</label><select id="regDCity"></select></div>
-        <div class="form-group"><label>Adresa ordinacije</label><input id="regDAddress" placeholder="Ulica i broj"></div>
-      </div>
-      <div class="form-group">
-        <label>Kratki opis / Biografija</label>
-        <textarea id="regDBio" rows="3" placeholder="Opišite vaše iskustvo…" style="resize:vertical"></textarea>
-      </div>
-      <div class="consent-box">
-        <input type="checkbox" id="consentD">
-        <p>Slažem se sa <a href="#" onclick="openModal('privacyModal')">Politikom privatnosti</a> i <a href="#" onclick="openModal('termsModal')">Uslovima korišćenja</a>. Saglasan/na sam sa obradom ličnih podataka u skladu sa Zakonom o zaštiti podataka o ličnosti (ZZPL) i GDPR. Potvrđujem da sam licencovani lekar registrovan pri Lekarskoj komori Srbije i da su svi podaci koje unosim tačni.</p>
-      </div>
-      <div class="error-msg" id="regDErr"></div>
-      <button class="btn btn-primary btn-block" id="regDBtn" onclick="submitRegisterDoctor()">Kreirajte lekarsku stranicu →</button>
-    </div>
-  </div>
-</div>
-
-<!-- Booking Modal -->
-<div class="overlay" id="bookingModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="bookingTitle">Zakazivanje termina</h3>
-      <button class="modal-close" onclick="closeModal('bookingModal')">✕</button>
-    </div>
-    <div class="modal-body" id="bookingBody"></div>
-  </div>
-</div>
-
-<!-- Appointment Detail (Doctor) -->
-<div class="overlay" id="apptDetailModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Detalji termina</h3>
-      <button class="modal-close" onclick="closeModal('apptDetailModal')">✕</button>
-    </div>
-    <div class="modal-body" id="apptDetailBody"></div>
-  </div>
-</div>
-
-<!-- New/Edit Appointment (Doctor) -->
-<div class="overlay" id="newApptModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="newApptTitle">Novi termin</h3>
-      <button class="modal-close" onclick="closeModal('newApptModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Datum</label>
-          <input id="naDate" type="date">
-        </div>
-        <div class="form-group">
-          <label>Vreme početka</label>
-          <input id="naTime" type="time">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Tip termina</label>
-        <select id="naType" onchange="toggleApptType()">
-          <option value="patient">Termin sa pacijentom</option>
-          <option value="blocker">Blokada (nedostupno)</option>
-        </select>
-      </div>
-      <div id="naPatientFields">
-        <div class="form-group" style="position:relative">
-          <label>Pacijent (ime ili pretraga)</label>
-          <input id="naPatient" placeholder="Ukucajte ime pacijenta…" autocomplete="off" oninput="searchPatientSuggest()">
-          <div class="suggestions-box" id="naPatientSugg"></div>
-        </div>
-        <div class="form-group">
+        <div class="mfield">
           <label>Usluga</label>
-          <select id="naService">
-            <option value="">Odaberite uslugu…</option>
-          </select>
+          <input id="fService" placeholder="npr. Kardiološki pregled">
         </div>
-        <div class="form-group">
-          <label>Trajanje (minuta)</label>
-          <input id="naDuration" type="number" value="30" min="5" max="480" step="5">
+        <div class="mrow">
+          <div class="mfield">
+            <label>Datum</label>
+            <input id="fDate" type="date">
+          </div>
+          <div class="mfield">
+            <label>Vreme</label>
+            <input id="fTime" type="time">
+          </div>
         </div>
-        <div class="form-group">
-          <label>Napomena lekara (opciono)</label>
-          <textarea id="naNote" rows="2" style="resize:vertical" placeholder="Interna napomena…"></textarea>
+        <div class="mrow">
+          <div class="mfield">
+            <label>Trajanje (min)</label>
+            <input id="fDuration" type="number" value="30" min="5" step="5">
+          </div>
+          <div class="mfield">
+            <label>Status</label>
+            <select id="fStatus">
+              <option value="confirmed">Potvrđen</option>
+              <option value="pending">Na čekanju</option>
+              <option value="cancelled">Otkazan</option>
+            </select>
+          </div>
+        </div>
+        <div class="mfield">
+          <label>Napomena</label>
+          <textarea id="fNote" placeholder="Interna napomena (opciono)…"></textarea>
         </div>
       </div>
-      <div id="naBlockerFields" style="display:none">
-        <div class="form-group">
-          <label>Trajanje (minuta)</label>
-          <input id="naBlockDuration" type="number" value="60" min="15" step="15">
+
+      <!-- Blocker fields -->
+      <div id="blockFields" style="display:none">
+        <div class="mfield">
+          <label>Opis blokade</label>
+          <input id="bLabel" placeholder="npr. Odmor, Sastanak…">
         </div>
-        <div class="form-group">
-          <label>Opis (interna, nije vidljivo pacijentima)</label>
-          <input id="naBlockLabel" placeholder="npr. Odmor, Sastanak…">
+        <div class="mrow">
+          <div class="mfield">
+            <label>Datum</label>
+            <input id="bDate" type="date">
+          </div>
+          <div class="mfield">
+            <label>Vreme od</label>
+            <input id="bFrom" type="time">
+          </div>
+        </div>
+        <div class="mfield">
+          <label>Trajanje (min)</label>
+          <input id="bDuration" type="number" value="60" min="15" step="15">
         </div>
       </div>
-      <div class="error-msg" id="naErr"></div>
-      <button class="btn btn-primary btn-block" id="naBtn" onclick="submitNewAppt()">Zakaži termin →</button>
+
+      <div class="modal-err" id="editErr"></div>
+      <button class="btn-save" id="saveBtn" onclick="saveEntry()">Sačuvaj →</button>
     </div>
   </div>
 </div>
 
-<!-- Rating Modal -->
-<div class="overlay" id="ratingModal">
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailModal">
   <div class="modal">
-    <div class="modal-header">
-      <h3>Ocenite lekara</h3>
-      <button class="modal-close" onclick="closeModal('ratingModal')">✕</button>
+    <div class="modal-head">
+      <h3 id="detailTitle">Detalji termina</h3>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
     </div>
-    <div class="modal-body" style="text-align:center">
-      <p style="color:var(--ink-soft);margin-bottom:8px" id="ratingDoctorName"></p>
-      <p style="font-size:0.85rem;color:var(--ink-muted);margin-bottom:4px">Kako ocenjujete vaš pregled?</p>
-      <div class="star-picker" id="starPicker">
-        <button class="star-btn" onclick="setRating(1)">★</button>
-        <button class="star-btn" onclick="setRating(2)">★</button>
-        <button class="star-btn" onclick="setRating(3)">★</button>
-        <button class="star-btn" onclick="setRating(4)">★</button>
-        <button class="star-btn" onclick="setRating(5)">★</button>
-      </div>
-      <div class="error-msg" id="ratingErr"></div>
-      <button class="btn btn-primary btn-block" id="ratingBtn" onclick="submitRating()">Pošaljite ocenu →</button>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="closeModal('ratingModal')">Preskočite</button>
-    </div>
+    <div class="modal-body" id="detailBody"></div>
   </div>
 </div>
 
-<!-- Add Service Modal -->
-<div class="overlay" id="addServiceModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="svcModalTitle">Dodaj uslugu</h3>
-      <button class="modal-close" onclick="closeModal('addServiceModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="svcEditId">
-      <div class="form-group"><label>Naziv usluge</label><input id="svcName" placeholder="npr. Kardiološki pregled"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Trajanje (min)</label><input id="svcDuration" type="number" value="30" min="5" step="5"></div>
-        <div class="form-group"><label>Cena (RSD)</label><input id="svcPrice" type="number" placeholder="3500" min="0"></div>
-      </div>
-      <div class="form-group"><label>Opis (opciono)</label><textarea id="svcDesc" rows="2" style="resize:vertical" placeholder="Kratki opis usluge…"></textarea></div>
-      <div class="error-msg" id="svcErr"></div>
-      <button class="btn btn-primary btn-block" id="svcBtn" onclick="submitService()">Sačuvaj uslugu →</button>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Account Confirm -->
-<div class="overlay" id="deleteAccountModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Brisanje naloga</h3>
-      <button class="modal-close" onclick="closeModal('deleteAccountModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="color:var(--ink-soft);margin-bottom:16px">Da li ste sigurni da želite da obrišete vaš nalog? Ova radnja je <strong>nepovratna</strong>. Svi vaši podaci biće trajno obrisani u skladu sa pravom na brisanje podataka propisanim ZZPL i GDPR.</p>
-      <div class="form-group"><label>Unesite vašu lozinku za potvrdu</label><input id="deletePass" type="password" placeholder="Vaša lozinka"></div>
-      <div class="error-msg" id="deleteErr"></div>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('deleteAccountModal')">Odustanite</button>
-        <button class="btn btn-danger" style="flex:1" onclick="confirmDeleteAccount()">Da, obrišite moj nalog</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Privacy Policy -->
-<div class="overlay" id="privacyModal">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <h3>Politika privatnosti</h3>
-      <button class="modal-close" onclick="closeModal('privacyModal')">✕</button>
-    </div>
-    <div class="modal-body privacy-content">
-      <p><strong>PrivatniLekar d.o.o. [PLACEHOLDER]</strong>, sa sedištem u Beogradu, Srbija (u daljem tekstu: „Rukovalac podacima"), obrađuje vaše lične podatke u skladu sa Zakonom o zaštiti podataka o ličnosti Republike Srbije („Sl. glasnik RS", br. 87/2018) (ZZPL) i relevantnim propisima EU.</p>
-      <h4>1. Rukovalac podacima</h4>
-      <p>PrivatniLekar d.o.o. [PLACEHOLDER], Beograd, Srbija. PIB: [PLACEHOLDER]. Email: privatnost@privatnilekar.rs</p>
-      <h4>2. Koje podatke prikupljamo</h4>
-      <ul>
-        <li><strong>Pacijenti:</strong> ime, prezime, email adresa, broj telefona</li>
-        <li><strong>Lekari:</strong> ime, prezime, email adresa, broj telefona, broj licence LKS, adresa ordinacije, fotografija (opciono), radno vreme, opis usluga</li>
-        <li><strong>Termini:</strong> datum, vreme, usluga, komentar pacijenta, status termina</li>
-        <li><strong>Ocene:</strong> numerička ocena (1–5) vezana za završen pregled</li>
-      </ul>
-      <h4>3. Svrha i pravni osnov obrade</h4>
-      <ul>
-        <li>Zakazivanje i upravljanje medicinskim pregledima — na osnovu ugovora (čl. 12 st. 1 tač. 2 ZZPL)</li>
-        <li>Obaveštavanje o statusu termina — na osnovu legitimnog interesa i saglasnosti</li>
-        <li>Poboljšanje platforme — na osnovu legitimnog interesa</li>
-      </ul>
-      <h4>4. Vaša prava</h4>
-      <p>U skladu sa ZZPL i GDPR imate pravo na: pristup, ispravku, brisanje („pravo na zaborav"), ograničenje obrade, prenosivost podataka i prigovor. Zahteve upućujte na: privatnost@privatnilekar.rs. Rok za odgovor: 30 dana.</p>
-      <h4>5. Čuvanje podataka</h4>
-      <p>Podatke čuvamo najduže 5 godina od poslednjeg korišćenja naloga, ili do opoziva saglasnosti. Podatke o terminima čuvamo u skladu sa zakonskim obavezama u oblasti zdravstvene dokumentacije.</p>
-      <h4>6. Deljenje podataka</h4>
-      <p>Podatke pacijenata delimo isključivo sa lekarom kod kojeg je termin zakazan. Ne prodajemo niti ustupamo podatke trećim licima u marketinške svrhe. Koristimo Supabase (EU region) za čuvanje podataka.</p>
-      <h4>7. Kolačići</h4>
-      <p>Koristimo samo neophodne tehničke kolačiće za funkcionisanje platforme (autentifikacija). Ne koristimo reklamne kolačiće.</p>
-      <h4>8. Prigovor nadzornom organu</h4>
-      <p>Imate pravo da podnese prigovor Povereniku za informacije od javnog značaja i zaštitu podataka o ličnosti Republike Srbije.</p>
-      <h4>9. Izmene politike</h4>
-      <p>O svim bitnim izmenama bićete obavešteni putem email adrese registrovane na platformi.</p>
-      <p style="margin-top:16px;color:var(--ink-muted);font-size:0.8rem">Poslednja izmena: jun 2025. Ova politika sadrži placeholder podatke koji će biti ažurirani pri registraciji pravnog lica.</p>
-    </div>
-  </div>
-</div>
-
-<!-- Terms -->
-<div class="overlay" id="termsModal">
-  <div class="modal modal-wide">
-    <div class="modal-header">
-      <h3>Uslovi korišćenja</h3>
-      <button class="modal-close" onclick="closeModal('termsModal')">✕</button>
-    </div>
-    <div class="modal-body privacy-content">
-      <p>Korišćenjem platforme PrivatniLekar.rs prihvatate sledeće uslove.</p>
-      <h4>1. Platforma</h4>
-      <p>PrivatniLekar.rs je informaciono-posrednička platforma koja omogućava zakazivanje pregleda kod privatnih lekara. Platforma nije pružalac zdravstvenih usluga.</p>
-      <h4>2. Odgovornost lekara</h4>
-      <p>Svaki lekar registrovan na platformi samostalno odgovara za tačnost podataka o sebi i za pružene zdravstvene usluge. PrivatniLekar d.o.o. ne snosi odgovornost za kvalitet medicinskih usluga.</p>
-      <h4>3. Odgovornost pacijenta</h4>
-      <p>Pacijent je dužan da na vreme otkaže termin koji ne može da ispuni (najmanje 24 sata unapred).</p>
-      <h4>4. Zabranjena upotreba</h4>
-      <p>Zabranjeno je lažno predstavljanje, unos netačnih podataka, zloupotreba sistema ocenjivanja i svaka upotreba koja nije u skladu sa svrhom platforme.</p>
-      <h4>5. Merodavno pravo</h4>
-      <p>Primenjuje se pravo Republike Srbije. Za sporove nadležan je sud u Beogradu.</p>
-    </div>
-  </div>
-</div>
 <script>
-// ══════════════════════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════════════════════
+// ── CONFIG ────────────────────────────────────────────
 const SUPA_URL = 'https://vuwjngaeimzeraytfqyp.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1d2puZ2FlaW16ZXJheXRmcXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDIxMjcsImV4cCI6MjA4ODQ3ODEyN30.G1iw4_Expb2ey11LTbpQoSj6OecC2NLN5saPFGHfMaM';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ══════════════════════════════════════════════════════
-//  DATA
-// ══════════════════════════════════════════════════════
-const SPECIALTIES = [
-  {name:'Alergologija i klinička imunologija', icon:'🤧'},
-  {name:'Anesteziologija', icon:'💉'},
-  {name:'Audiologija', icon:'👂'},
-  {name:'Dermatovenerologija', icon:'🔬'},
-  {name:'Endokrinologija i dijabetes', icon:'🩸'},
-  {name:'Fizikalna medicina i rehabilitacija', icon:'🏃'},
-  {name:'Gastroenterologija', icon:'🫁'},
-  {name:'Ginekologija i akušerstvo', icon:'👶'},
-  {name:'Hematologija', icon:'🩸'},
-  {name:'Hirurgija - abdominalna', icon:'🔪'},
-  {name:'Hirurgija - plastična', icon:'💆'},
-  {name:'Hirurgija - vaskularna', icon:'❤️'},
-  {name:'Infektologija', icon:'🦠'},
-  {name:'Interna medicina', icon:'🩺'},
-  {name:'Kardiologija', icon:'❤️'},
-  {name:'Nefrologija', icon:'🫘'},
-  {name:'Neurologija', icon:'🧠'},
-  {name:'Neurohirurgija', icon:'🧠'},
-  {name:'Oftalmologija', icon:'👁️'},
-  {name:'Onkologija', icon:'🎗️'},
-  {name:'Ortopedija i traumatologija', icon:'🦴'},
-  {name:'Otorinolaringologija', icon:'👃'},
-  {name:'Pedijatrija', icon:'🧒'},
-  {name:'Pluća i alergija', icon:'🫁'},
-  {name:'Psihijatrija', icon:'🧠'},
-  {name:'Psihologija', icon:'💬'},
-  {name:'Reumatologija', icon:'🦴'},
-  {name:'Stomatologija', icon:'🦷'},
-  {name:'Urologija', icon:'🫘'},
-  {name:'Opšta medicina', icon:'🏥'},
-];
+const CAL_START = 7;   // 07:00
+const CAL_END   = 21;  // 21:00
+const SLOT_H    = 36;  // px per 30-min slot
+const DAYS = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
 
-const CITIES = [
-  'Beograd','Novi Sad','Niš','Kragujevac','Subotica',
-  'Zrenjanin','Pančevo','Čačak','Novi Pazar','Kraljevo',
-  'Smederevo','Leskovac','Valjevo','Vranje','Šabac',
-  'Užice','Požarevac','Zaječar','Kruševac','Jagodina',
-  'Sombor','Pirot','Priboj','Kikinda','Vršac',
-  'Ruma','Sremska Mitrovica','Loznica','Bor','Prokuplje',
-];
+// ── STATE ─────────────────────────────────────────────
+let doctor       = null;
+let calOffset    = 0;
+let calAppts     = [];
+let calBlocks    = [];
+let listFilter   = 'all';
+let editingId    = null;
+let editingType  = null; // 'appt' | 'block'
+let modalType    = 'appt';
 
-const AVATAR_COLORS = [
-  'linear-gradient(135deg,#065a4f,#0d9b87)',
-  'linear-gradient(135deg,#1e40af,#3b82f6)',
-  'linear-gradient(135deg,#7c3aed,#a78bfa)',
-  'linear-gradient(135deg,#b45309,#f59e0b)',
-  'linear-gradient(135deg,#be185d,#f472b6)',
-  'linear-gradient(135deg,#0e7490,#22d3ee)',
-];
+// ── UTILS ─────────────────────────────────────────────
+const localDate = d => {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+};
+const todayLocal = () => localDate(new Date());
+const parseTime  = t => { const [h,m] = (t||'00:00').split(':').map(Number); return h*60+m; };
+const minsToTime = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+const fmtDate    = d => new Date(d+'T12:00:00').toLocaleDateString('sr-RS',{weekday:'short',day:'numeric',month:'short'});
+const fmtDateLong= d => new Date(d+'T12:00:00').toLocaleDateString('sr-RS',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-// ══════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════
-let currentUser     = null;
-let currentUserRole = null; // 'patient' | 'doctor'
-let currentDoctor   = null; // doctor row from DB
-let currentPatient  = null; // patient row from DB
-let calWeekOffset   = 0;
-let calAppointments = [];
-let calBlockers     = [];
-let doctorServices  = [];
-let workHours       = {};
-let ratingApptId    = null;
-let ratingDoctorId  = null;
-let selectedRating  = 0;
-let editingApptId   = null;
-let naPatientId     = null;
-let loginTab        = 'patient';
-let profileMap      = null;
-let profileMarker   = null;
-let profileCoords   = null;
+function getMondayOf(offset) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dow = (today.getDay() + 6) % 7; // Mon=0
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dow + offset * 7);
+  return monday;
+}
 
-// ══════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════
+function weekDays(offset) {
+  const mon = getMondayOf(offset);
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return d;
+  });
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg; el.style.display = 'block';
+}
+function clearErr(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+// ── AUTH ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  populateSearchDropdowns();
-  renderSpecialtyGrid();
-  buildWorkHoursEditor();
-
-  // Auth state
   const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) await handleAuthUser(session.user);
-
-  sb.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) await handleAuthUser(session.user);
-    else handleLogout();
-  });
-
-  // Close panels on outside click
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#notifBtn') && !e.target.closest('#notifPanel')) {
-      document.getElementById('notifPanel').classList.remove('open');
-    }
-    if (!e.target.closest('#naPatient') && !e.target.closest('#naPatientSugg')) {
-      document.getElementById('naPatientSugg').style.display = 'none';
-    }
-  });
+  if (session?.user) await initApp(session.user);
 });
 
-function populateSearchDropdowns() {
-  const specSelects = ['searchSpecialty','regDSpec','dprofSpec'];
-  specSelects.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (id === 'searchSpecialty') {
-      el.innerHTML = '<option value="">Sve specijalnosti</option>' +
-        SPECIALTIES.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-    } else {
-      el.innerHTML = SPECIALTIES.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-    }
-  });
-  const citySelects = ['searchCity','regDCity','dprofCity'];
-  citySelects.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (id === 'searchCity') {
-      el.innerHTML = '<option value="">Svi gradovi</option>' +
-        CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
-    } else {
-      el.innerHTML = CITIES.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-  });
+async function doLogin() {
+  const email = document.getElementById('lgEmail').value.trim();
+  const pass  = document.getElementById('lgPass').value;
+  if (!email || !pass) return showErr('lgErr','Unesite email i lozinku.');
+  const btn = document.getElementById('lgBtn');
+  btn.disabled = true; btn.textContent = 'Prijavljujem…';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Prijavite se →';
+  if (error) return showErr('lgErr', 'Pogrešan email ili lozinka.');
+  clearErr('lgErr');
+  await initApp(data.user);
 }
 
-function renderSpecialtyGrid() {
-  const grid = document.getElementById('specialtyGrid');
-  grid.innerHTML = SPECIALTIES.map((s, i) =>
-    `<div class="specialty-card ${i >= 12 ? 'specialty-hidden' : ''}" onclick="clickSpecialty('${s.name}')">
-      <div class="spec-icon">${s.icon}</div>
-      <div class="spec-name">${s.name}</div>
-    </div>`
-  ).join('');
+async function initApp(user) {
+  // Find or create doctor row
+  let { data: doc } = await sb.from('doctors').select('*').eq('email', user.email).maybeSingle();
+  if (!doc) {
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    const { data: created } = await sb.from('doctors').insert({ email: user.email, full_name: name }).select().single();
+    doc = created;
+  }
+  doctor = doc;
+
+  // Set UI
+  document.getElementById('doctorName').textContent = doctor.full_name;
+  const initials = doctor.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('doctorAvatar').textContent = initials;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  renderCalendar();
 }
 
-function toggleMoreSpec() {
-  const hidden = document.querySelectorAll('.specialty-hidden');
-  const btn = document.getElementById('showMoreSpec');
-  const showing = btn.dataset.expanded === '1';
-  hidden.forEach(el => el.style.display = showing ? '' : 'grid');
-  btn.textContent = showing ? 'Prikaži sve specijalnosti ↓' : 'Prikaži manje ↑';
-  btn.dataset.expanded = showing ? '' : '1';
+async function doLogout() {
+  await sb.auth.signOut();
+  doctor = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('lgEmail').value = '';
+  document.getElementById('lgPass').value  = '';
 }
 
-function clickSpecialty(name) {
-  document.getElementById('searchSpecialty').value = name;
-  searchDoctors();
-  document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ══════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════
-async function handleAuthUser(user) {
-  currentUser = user;
-
-  // Check if doctor first
-  const { data: doc } = await sb.from('doctors')
-    .select('*').eq('email', user.email).maybeSingle();
-
-  if (doc) {
-    currentUserRole = 'doctor';
-    currentDoctor   = doc;
-    showNavLoggedIn(doc.full_name || user.email);
-    await openDoctorDashboard();
+// ── TABS ──────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if (tab === 'calendar') {
+    document.getElementById('panelCalendar').classList.add('active');
+    renderCalendar();
   } else {
-    // Check patient
-    const { data: pat } = await sb.from('patients')
-      .select('*').eq('email', user.email).maybeSingle();
-    currentUserRole = 'patient';
-    currentPatient  = pat;
-    showNavLoggedIn(pat?.full_name || user.email);
-    loadNotifications();
-    // Stay on landing if no pending action, else open patient dash
-    if (window._pendingBooking) {
-      const b = window._pendingBooking;
-      window._pendingBooking = null;
-      openBookingModal(b.doctorId, b.date, b.time);
-    }
+    document.getElementById('panelList').classList.add('active');
+    renderList();
   }
 }
 
-function handleLogout() {
-  currentUser = currentUserRole = currentDoctor = currentPatient = null;
-  showNavLoggedOut();
-  showView('landing');
-}
+// ── CALENDAR ──────────────────────────────────────────
+function calNav(dir) { calOffset += dir; renderCalendar(); }
+function calGoToday() { calOffset = 0; renderCalendar(); }
 
-function showNavLoggedIn(name) {
-  document.getElementById('navLoggedOut').style.display = 'none';
-  document.getElementById('navLoggedIn').style.display  = 'flex';
-  document.getElementById('navUsername').textContent = '👤 ' + name;
-}
-function showNavLoggedOut() {
-  document.getElementById('navLoggedOut').style.display = 'flex';
-  document.getElementById('navLoggedIn').style.display  = 'none';
-}
+async function renderCalendar() {
+  const days = weekDays(calOffset);
+  const from = localDate(days[0]);
+  const to   = localDate(days[6]);
+  const todayStr = todayLocal();
 
-// ── Login ────────────────────────────────────────────
-let loginTab_current = 'patient';
-function switchLoginTab(tab, btn) {
-  loginTab_current = tab;
-  document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const link = document.getElementById('loginRegisterLink');
-  link.onclick = () => { closeModal('loginModal'); tab === 'doctor' ? openRegisterDoctor() : openRegisterPatient(); };
-}
+  // Week label
+  document.getElementById('calWeekLabel').textContent =
+    days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'}) + ' – ' +
+    days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
 
-async function submitLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPassword').value;
-  if (!email || !pass) return showErr('loginErr', 'Unesite email i lozinku.');
-  setBtnLoading('loginBtn', true, 'Prijavljujem…');
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  setBtnLoading('loginBtn', false, 'Prijavite se →');
-  if (error) {
-    showErr('loginErr', error.message.includes('Invalid') ? 'Pogrešan email ili lozinka.' : error.message);
-    return;
-  }
-  closeModal('loginModal');
-}
+  // Fetch data
+  const [{ data: appts }, { data: blocks }] = await Promise.all([
+    sb.from('appointments').select('*').eq('doctor_id', doctor.id).gte('date', from).lte('date', to),
+    sb.from('blockers').select('*').eq('doctor_id', doctor.id).gte('date', from).lte('date', to),
+  ]);
+  calAppts  = appts  || [];
+  calBlocks = blocks || [];
 
-async function logout() {
-  await sb.auth.signOut();
-  showView('landing');
-}
+  const grid = document.getElementById('calGrid');
+  const slots = (CAL_END - CAL_START) * 2; // 30-min slots
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
 
-// ── Register Patient ─────────────────────────────────
-function openRegisterPatient() {
-  closeModal('loginModal');
-  openModal('registerPatientModal');
-}
-function openRegisterDoctor() {
-  closeModal('loginModal');
-  openModal('registerDoctorModal');
-}
+  let html = '';
 
-async function submitRegisterPatient() {
-  const first = document.getElementById('regPFirst').value.trim();
-  const last  = document.getElementById('regPLast').value.trim();
-  const email = document.getElementById('regPEmail').value.trim();
-  const phone = document.getElementById('regPPhone').value.trim();
-  const pass  = document.getElementById('regPPass').value;
-  const consent = document.getElementById('consentP').checked;
-
-  if (!first || !last)  return showErr('regPErr', 'Unesite ime i prezime.');
-  if (!email)           return showErr('regPErr', 'Unesite email adresu.');
-  if (!phone)           return showErr('regPErr', 'Unesite broj telefona.');
-  if (pass.length < 8)  return showErr('regPErr', 'Lozinka mora imati najmanje 8 karaktera.');
-  if (!consent)         return showErr('regPErr', 'Morate prihvatiti politiku privatnosti.');
-
-  setBtnLoading('regPBtn', true, 'Kreiram nalog…');
-  const { data, error } = await sb.auth.signUp({
-    email, password: pass,
-    options: { data: { full_name: first + ' ' + last, role: 'patient' } }
-  });
-  if (error) { setBtnLoading('regPBtn', false, 'Kreirajte nalog →'); return showErr('regPErr', error.message); }
-
-  if (data.user) {
-    await sb.from('patients').insert({
-      email, full_name: first + ' ' + last, phone
-    });
-  }
-  setBtnLoading('regPBtn', false, 'Kreirajte nalog →');
-  closeModal('registerPatientModal');
-}
-
-async function submitRegisterDoctor() {
-  const first   = document.getElementById('regDFirst').value.trim();
-  const last    = document.getElementById('regDLast').value.trim();
-  const email   = document.getElementById('regDEmail').value.trim();
-  const phone   = document.getElementById('regDPhone').value.trim();
-  const pass    = document.getElementById('regDPass').value;
-  const spec    = document.getElementById('regDSpec').value;
-  const license = document.getElementById('regDLicense').value.trim();
-  const city    = document.getElementById('regDCity').value;
-  const address = document.getElementById('regDAddress').value.trim();
-  const bio     = document.getElementById('regDBio').value.trim();
-  const consent = document.getElementById('consentD').checked;
-
-  if (!first || !last)  return showErr('regDErr', 'Unesite ime i prezime.');
-  if (!email)           return showErr('regDErr', 'Unesite email adresu.');
-  if (!phone)           return showErr('regDErr', 'Unesite broj telefona.');
-  if (pass.length < 8)  return showErr('regDErr', 'Lozinka mora imati najmanje 8 karaktera.');
-  if (!spec)            return showErr('regDErr', 'Odaberite specijalnost.');
-  if (!license)         return showErr('regDErr', 'Unesite broj licence LKS.');
-  if (!city)            return showErr('regDErr', 'Odaberite grad.');
-  if (!consent)         return showErr('regDErr', 'Morate prihvatiti politiku privatnosti.');
-
-  setBtnLoading('regDBtn', true, 'Kreiram profil…');
-  const { data, error } = await sb.auth.signUp({
-    email, password: pass,
-    options: { data: { full_name: first + ' ' + last, role: 'doctor' } }
-  });
-  if (error) { setBtnLoading('regDBtn', false, 'Kreirajte lekarsku stranicu →'); return showErr('regDErr', error.message); }
-
-  const initials = (first[0] || '') + (last[0] || '');
-  const colorIdx = (first.charCodeAt(0) || 0) % AVATAR_COLORS.length;
-
-  if (data.user) {
-    await sb.from('doctors').insert({
-      email, full_name: first + ' ' + last, phone, specialty: spec,
-      license_number: license, city, address, bio,
-      avatar_initials: initials, avatar_color: AVATAR_COLORS[colorIdx],
-      rating: null, rating_count: 0,
-    });
-  }
-  setBtnLoading('regDBtn', false, 'Kreirajte lekarsku stranicu →');
-  closeModal('registerDoctorModal');
-}
-
-// ══════════════════════════════════════════════════════
-//  SEARCH & RESULTS
-// ══════════════════════════════════════════════════════
-async function searchDoctors() {
-  const spec = document.getElementById('searchSpecialty').value;
-  const city = document.getElementById('searchCity').value;
-
-  const rs = document.getElementById('resultsSection');
-  const grid = document.getElementById('doctorGrid');
-  rs.style.display = 'block';
-  grid.innerHTML = '<div class="loading-spinner">⏳ Učitavamo lekare…</div>';
-  rs.scrollIntoView({ behavior: 'smooth' });
-
-  let title = 'Svi lekari';
-  if (spec && city) title = spec + ' — ' + city;
-  else if (spec)    title = spec;
-  else if (city)    title = 'Lekari u gradu: ' + city;
-  document.getElementById('resultsTitle').textContent = title;
-
-  let q = sb.from('doctors').select('*, services(id,name,duration_minutes,price_rsd)');
-  if (spec) q = q.ilike('specialty', '%' + spec + '%');
-  if (city) q = q.eq('city', city);
-  q = q.order('rating', { ascending: false });
-
-  const { data: docs, error } = await q;
-  if (error || !docs || docs.length === 0) {
-    document.getElementById('resultsCount').textContent = '';
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon">🔍</div>
-      <p>Nema lekara koji odgovaraju pretrazi.<br>Pokušajte sa drugom specijalnošću ili gradom.</p>
+  // Header row
+  html += '<div class="cal-head-spacer"></div>';
+  days.forEach((d, i) => {
+    const ds = localDate(d);
+    const isToday = ds === todayStr;
+    html += `<div class="cal-day-head ${isToday ? 'today' : ''}">
+      <div class="dow">${DAYS[i]}</div>
+      <div class="dom">${d.getDate()}</div>
     </div>`;
-    return;
-  }
+  });
 
-  document.getElementById('resultsCount').textContent = docs.length + ' lekara pronađeno';
+  // Time slots
+  for (let s = 0; s < slots; s++) {
+    const slotMins = (CAL_START * 60) + s * 30;
+    const timeStr  = minsToTime(slotMins);
+    const isHour   = s % 2 === 0;
 
-  // Fetch available slots for each doctor for next 7 days
-  const today = new Date().toISOString().split('T')[0];
-  const next7 = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-  const docIds = docs.map(d => d.id);
-  const { data: bookedAppts } = await sb.from('appointments')
-    .select('doctor_id, appointment_date, appointment_time')
-    .in('doctor_id', docIds)
-    .in('status', ['pending','confirmed'])
-    .gte('appointment_date', today)
-    .lte('appointment_date', next7);
+    // Time label cell
+    html += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
 
-  const { data: blockers } = await sb.from('blockers')
-    .select('doctor_id, date, time_from, time_to')
-    .in('doctor_id', docIds)
-    .gte('date', today).lte('date', next7);
+    days.forEach((d, di) => {
+      const ds      = localDate(d);
+      const isToday = ds === todayStr;
+      const isPast  = isToday ? slotMins < nowMins : ds < todayStr;
 
-  grid.innerHTML = docs.map(doc => renderDoctorCard(doc, bookedAppts || [], blockers || [])).join('');
-}
+      // Find appt starting this slot
+      const appt = calAppts.find(a => a.date === ds && a.time_from === timeStr);
+      // Check if inside a blocker
+      const blocker = calBlocks.find(b => b.date === ds && parseTime(b.time_from) <= slotMins && parseTime(b.time_to) > slotMins);
+      const blockerStarts = calBlocks.find(b => b.date === ds && b.time_from === timeStr);
 
-function renderDoctorCard(doc, bookedAppts, blockers) {
-  const color = doc.avatar_color || AVATAR_COLORS[0];
-  const initials = doc.avatar_initials || '??';
-  const rating = doc.rating ? Number(doc.rating).toFixed(1) : null;
-  const ratingCount = doc.rating_count || 0;
+      let blockHtml = '';
 
-  // Compute available slots for next 3 days
-  const slots = computeAvailableSlots(doc, bookedAppts, blockers, 3);
-
-  const servicesHtml = (doc.services || []).slice(0,3).map(s =>
-    `<span class="chip">${s.name}</span>`
-  ).join('');
-
-  const slotsHtml = slots.length === 0
-    ? '<div class="no-slots">Nema slobodnih termina u narednih 7 dana</div>'
-    : slots.slice(0,5).map(s =>
-        `<button class="slot-btn" onclick="onSlotClick('${doc.id}','${s.date}','${s.time}')">${s.label}</button>`
-      ).join('') + (slots.length > 5 ? `<span class="chip" style="cursor:pointer" onclick="onSlotClick('${doc.id}','${slots[5].date}','${slots[5].time}')">+${slots.length-5} više</span>` : '');
-
-  return `<div class="doctor-card">
-    <div class="doctor-card-header">
-      <div class="doctor-avatar" style="background:${color}">${initials}</div>
-      <div class="doctor-info">
-        <h3>${doc.full_name}</h3>
-        <div class="doctor-spec">${doc.specialty}</div>
-        <div class="doctor-city">📍 ${doc.city || ''}</div>
-        ${rating ? `<div class="doctor-rating">
-          <span class="stars">${'★'.repeat(Math.round(parseFloat(rating)))}${'☆'.repeat(5-Math.round(parseFloat(rating)))}</span>
-          <span class="rating-num">${rating}</span>
-          <span class="rating-count">(${ratingCount})</span>
-        </div>` : ''}
-      </div>
-    </div>
-    <div class="doctor-card-body">
-      ${doc.bio ? `<div class="doctor-bio">${doc.bio.slice(0,120)}${doc.bio.length > 120 ? '…' : ''}</div>` : ''}
-      ${servicesHtml ? `<div class="service-chips">${servicesHtml}</div>` : ''}
-      <div class="slots-row">
-        <div class="slots-label">Slobodni termini (narednih 7 dana)</div>
-        <div class="slots">${slotsHtml}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function computeAvailableSlots(doc, bookedAppts, blockers, days) {
-  const wh = doc.working_hours || defaultWorkHours();
-  const slots = [];
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  for (let d = 0; d < 7 && slots.length < 10; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + d);
-    const dayIdx = (date.getDay() + 6) % 7; // Mon=0
-    const whDay = wh[dayIdx];
-    if (!whDay || !whDay.active || !whDay.from || !whDay.to) continue;
-
-    const y = date.getFullYear(), mo = String(date.getMonth()+1).padStart(2,'0'), dy = String(date.getDate()).padStart(2,'0');
-    const dateStr = `${y}-${mo}-${dy}`;
-    const [fh, fm] = whDay.from.split(':').map(Number);
-    const [th, tm] = whDay.to.split(':').map(Number);
-
-    for (let m = fh * 60 + fm; m < th * 60 + tm; m += 30) {
-      if (slots.length >= 10) break;
-      const hh = String(Math.floor(m / 60)).padStart(2, '0');
-      const mm = String(m % 60).padStart(2, '0');
-      const timeStr = hh + ':' + mm;
-
-      // Skip past slots today
-      if (d === 0) {
-        const now = new Date();
-        if (m <= now.getHours() * 60 + now.getMinutes()) continue;
+      if (appt) {
+        const durSlots = Math.max(1, appt.duration / 30);
+        const h = durSlots * SLOT_H - 4;
+        blockHtml = `<div class="cal-block ${appt.status}" style="height:${h}px"
+          onclick="event.stopPropagation();openDetail('appt','${appt.id}')">
+          <div class="cal-block-name">${appt.patient_name}</div>
+          ${appt.service ? `<div class="cal-block-svc">${appt.service}</div>` : ''}
+        </div>`;
+      } else if (blockerStarts) {
+        const durMins = parseTime(blocker.time_to) - parseTime(blocker.time_from);
+        const durSlots = Math.max(1, durMins / 30);
+        const h = durSlots * SLOT_H - 4;
+        blockHtml = `<div class="cal-block blocker" style="height:${h}px"
+          onclick="event.stopPropagation();openDetail('block','${blockerStarts.id}')">
+          <div class="cal-block-name">🚫 ${blockerStarts.label || 'Nedostupno'}</div>
+        </div>`;
       }
 
-      // Check if booked
-      const isBooked = bookedAppts.some(a =>
-        a.doctor_id === doc.id && a.appointment_date === dateStr && a.appointment_time?.slice(0,5) === timeStr
-      );
-      // Check if blocked
-      const isBlocked = blockers.some(b =>
-        b.doctor_id === doc.id && b.date === dateStr && timeStr >= b.time_from && timeStr < b.time_to
-      );
-
-      if (!isBooked && !isBlocked) {
-        const dayNames = ['Ned','Pon','Uto','Sre','Čet','Pet','Sub'];
-        const label = d === 0 ? 'Danas ' + timeStr : d === 1 ? 'Sutra ' + timeStr : dayNames[date.getDay()] + ' ' + timeStr;
-        slots.push({ date: dateStr, time: timeStr, label });
-      }
-    }
-  }
-  return slots;
-}
-
-function defaultWorkHours() {
-  const wh = {};
-  for (let i = 0; i < 7; i++) {
-    wh[i] = i < 5 ? { active: true, from: '09:00', to: '17:00' } : { active: false, from: '', to: '' };
-  }
-  return wh;
-}
-
-function clearResults() {
-  document.getElementById('resultsSection').style.display = 'none';
-  document.getElementById('searchSpecialty').value = '';
-  document.getElementById('searchCity').value = '';
-  document.getElementById('specialtiesSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ══════════════════════════════════════════════════════
-//  BOOKING FLOW (Patient)
-// ══════════════════════════════════════════════════════
-function onSlotClick(doctorId, date, time) {
-  if (!currentUser) {
-    // Not logged in — save intent and open login
-    window._pendingBooking = { doctorId, date, time };
-    switchLoginTab('patient', document.querySelectorAll('.modal-tab')[0]);
-    openModal('loginModal');
-    return;
-  }
-  if (currentUserRole !== 'patient') {
-    alert('Samo pacijenti mogu zakazivati termine. Odjava lekarskog naloga je potrebna.');
-    return;
-  }
-  openBookingModal(doctorId, date, time);
-}
-
-async function openBookingModal(doctorId, date, time) {
-  document.getElementById('bookingTitle').textContent = 'Zakazivanje termina';
-
-  const body = document.getElementById('bookingBody');
-  body.innerHTML = '<div class="loading-spinner">⏳ Učitavamo…</div>';
-  openModal('bookingModal');
-
-  const { data: doc } = await sb.from('doctors').select('*, services(*)').eq('id', doctorId).single();
-  if (!doc) { body.innerHTML = '<p>Greška pri učitavanju podataka lekara.</p>'; return; }
-
-  const dateLabel = new Date(date).toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long' });
-  const servicesOptions = (doc.services || []).map((s, i) =>
-    `<option value="${s.id}" data-duration="${s.duration_minutes}">${s.name} (${s.duration_minutes} min${s.price_rsd ? ' — ' + s.price_rsd.toLocaleString() + ' RSD' : ''})</option>`
-  ).join('');
-
-  body.innerHTML = `
-    <div style="display:flex;gap:14px;align-items:center;margin-bottom:20px;padding:14px;background:var(--bg);border-radius:var(--r)">
-      <div class="doctor-avatar" style="background:${doc.avatar_color || AVATAR_COLORS[0]};width:46px;height:46px;border-radius:12px;flex-shrink:0">${doc.avatar_initials || '?'}</div>
-      <div>
-        <div style="font-weight:700;color:var(--ink)">${doc.full_name}</div>
-        <div style="font-size:0.82rem;color:var(--teal)">${doc.specialty}</div>
-        <div style="font-size:0.82rem;color:var(--ink-muted)">📅 ${dateLabel} u ${time}</div>
-      </div>
-    </div>
-    ${servicesOptions ? `<div class="form-group">
-      <label>Odaberite uslugu</label>
-      <select id="bookingService" onchange="updateBookingDuration()">
-        <option value="">Odaberite uslugu…</option>
-        ${servicesOptions}
-      </select>
-    </div>` : ''}
-    <div class="form-group">
-      <label>Komentar / napomena (opciono)</label>
-      <textarea id="bookingNote" rows="3" style="resize:vertical" placeholder="Opišite razlog posete ili dodajte napomenu…"></textarea>
-    </div>
-    <div style="background:var(--teal-pale);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--teal-dark)">
-      ℹ️ Vaš termin biće <strong>poslat lekaru na potvrdu</strong>. Dobićete obaveštenje kada lekar potvrdi ili odbije zahtev.
-    </div>
-    <div class="error-msg" id="bookingErr"></div>
-    <button class="btn btn-primary btn-block" id="bookingBtn" onclick="submitBooking('${doctorId}','${date}','${time}')">
-      Pošaljite zahtev za termin →
-    </button>`;
-}
-
-async function submitBooking(doctorId, date, time) {
-  const serviceEl = document.getElementById('bookingService');
-  const note = document.getElementById('bookingNote')?.value?.trim() || '';
-  const serviceId = serviceEl?.value || null;
-
-  if (serviceEl && !serviceId) return showErr('bookingErr', 'Molimo odaberite uslugu.');
-
-  setBtnLoading('bookingBtn', true, 'Šaljem zahtev…');
-
-  // Get duration
-  let duration = 30;
-  if (serviceId && serviceEl) {
-    const opt = serviceEl.querySelector('option:checked');
-    duration = parseInt(opt?.dataset?.duration || '30');
-  }
-
-  const { error } = await sb.from('appointments').insert({
-    doctor_id:        doctorId,
-    patient_id:       currentPatient?.id || null,
-    service_id:       serviceId || null,
-    appointment_date: date,
-    appointment_time: time + ':00',
-    duration_minutes: duration,
-    status:           'pending',
-    patient_note:     note,
-    rating_requested: false,
-  });
-
-  setBtnLoading('bookingBtn', false, 'Pošaljite zahtev za termin →');
-  if (error) return showErr('bookingErr', error.message);
-
-  // Notify doctor
-  const { data: doc } = await sb.from('doctors').select('*').eq('id', doctorId).single();
-  if (doc) {
-    await sb.from('notifications').insert({
-      user_id:   doctorId,
-      user_type: 'doctor',
-      title:     'Novi zahtev za termin',
-      body:      (currentPatient?.full_name || 'Pacijent') + ' — ' + date + ' u ' + time,
-      is_read:   false,
+      html += `<div class="cal-slot ${isHour ? '' : 'half-hour'} ${isPast ? 'past' : ''}"
+        onclick="${isPast ? '' : `calSlotClick('${ds}','${timeStr}')`}">${blockHtml}</div>`;
     });
   }
 
-  closeModal('bookingModal');
-  pushNotif('✅', 'Zahtev poslat!', 'Čekajte potvrdu lekara. Dobićete obaveštenje.');
-}
+  grid.innerHTML = html;
 
-// ══════════════════════════════════════════════════════
-//  PATIENT DASHBOARD
-// ══════════════════════════════════════════════════════
-async function openPatientDashboard() {
-  showView('patient');
-  showPatientPanel('appointments');
-
-  // Pre-fill profile
-  if (currentPatient) {
-    const parts = (currentPatient.full_name || '').split(' ');
-    document.getElementById('profPatientFirst').value = parts[0] || '';
-    document.getElementById('profPatientLast').value  = parts.slice(1).join(' ') || '';
-    document.getElementById('profPatientEmail').value = currentPatient.email || '';
-    document.getElementById('profPatientPhone').value = currentPatient.phone || '';
-  }
-}
-
-function showPatientPanel(panel) {
-  document.querySelectorAll('#viewPatient .dash-panel').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('#viewPatient .dash-nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('ppanel-' + panel).classList.add('active');
-  const navEl = document.getElementById('pnav-' + panel);
-  if (navEl) navEl.classList.add('active');
-  if (panel === 'appointments') loadPatientAppointments();
-}
-
-let patientApptFilter = 'all';
-function filterPatientAppts(f, btn) {
-  patientApptFilter = f;
-  document.querySelectorAll('#ppanel-appointments .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  loadPatientAppointments();
-}
-
-async function loadPatientAppointments() {
-  const list = document.getElementById('patientApptList');
-  list.innerHTML = '<div class="loading-spinner">⏳ Učitavamo…</div>';
-  if (!currentPatient) { list.innerHTML = '<div class="empty-state"><p>Prijavite se da vidite termine.</p></div>'; return; }
-
-  let q = sb.from('appointments')
-    .select('*, doctors(full_name,specialty,city,avatar_color,avatar_initials), services(name,duration_minutes,price_rsd)')
-    .eq('patient_id', currentPatient.id)
-    .order('appointment_date', { ascending: false });
-
-  if (patientApptFilter !== 'all') q = q.eq('status', patientApptFilter);
-
-  const { data: appts, error } = await q;
-  if (error || !appts?.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Nema termina.</p></div>`;
-    return;
-  }
-
-  list.innerHTML = appts.map(a => {
-    const doc = a.doctors || {};
-    const svc = a.services || {};
-    const dateStr = new Date(a.appointment_date).toLocaleDateString('sr-RS', { weekday: 'short', day: 'numeric', month: 'long' });
-    const canRate = a.status === 'completed' && !a.rating_requested;
-
-    return `<div class="appt-row ${a.status}">
-      <div class="appt-time">${a.appointment_time?.slice(0,5)}<br><span style="font-size:0.72rem;font-weight:400;color:var(--ink-muted)">${dateStr}</span></div>
-      <div class="appt-info">
-        <div class="appt-who">${doc.full_name || '—'} · ${doc.specialty || ''}</div>
-        <div class="appt-what">${svc.name || '—'}${doc.city ? ' · ' + doc.city : ''}</div>
-      </div>
-      <div class="appt-actions">
-        ${badgeHtml(a.status)}
-        ${a.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelPatientAppt('${a.id}')">Otkaži</button>` : ''}
-        ${canRate ? `<button class="btn btn-primary btn-sm" onclick="openRating('${a.id}','${a.doctor_id}','${doc.full_name}')">⭐ Oceni</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function cancelPatientAppt(id) {
-  if (!confirm('Da li ste sigurni da želite da otkažete ovaj termin?')) return;
-  await sb.from('appointments').update({ status: 'rejected' }).eq('id', id);
-  loadPatientAppointments();
-}
-
-async function savePatientProfile() {
-  const first = document.getElementById('profPatientFirst').value.trim();
-  const last  = document.getElementById('profPatientLast').value.trim();
-  const phone = document.getElementById('profPatientPhone').value.trim();
-  if (!first || !last) return showErr('profPatientErr', 'Unesite ime i prezime.');
-
-  const { error } = await sb.from('patients')
-    .update({ full_name: first + ' ' + last, phone })
-    .eq('id', currentPatient.id);
-
-  if (error) return showErr('profPatientErr', error.message);
-  currentPatient.full_name = first + ' ' + last;
-  showSuccess('profPatientOk');
-  showNavLoggedIn(first + ' ' + last);
-}
-
-function openDeleteAccount() {
-  document.getElementById('deletePass').value = '';
-  document.getElementById('deleteErr').style.display = 'none';
-  openModal('deleteAccountModal');
-}
-
-async function confirmDeleteAccount() {
-  const pass = document.getElementById('deletePass').value;
-  if (!pass) return showErr('deleteErr', 'Unesite lozinku.');
-
-  // Re-authenticate
-  const { error: reErr } = await sb.auth.signInWithPassword({
-    email: currentUser.email, password: pass
-  });
-  if (reErr) return showErr('deleteErr', 'Pogrešna lozinka.');
-
-  // Soft-delete patient record (ZZPL right to erasure)
-  await sb.from('patients').update({ deleted_at: new Date().toISOString(), full_name: '[DELETED]', phone: null })
-    .eq('id', currentPatient.id);
-
-  await sb.auth.signOut();
-  closeModal('deleteAccountModal');
-  showView('landing');
-  alert('Vaš nalog je uspešno obrisan. Svi vaši lični podaci su obrisani u skladu sa ZZPL.');
-}
-
-// ══════════════════════════════════════════════════════
-//  RATING
-// ══════════════════════════════════════════════════════
-function openRating(apptId, doctorId, doctorName) {
-  ratingApptId  = apptId;
-  ratingDoctorId = doctorId;
-  selectedRating = 0;
-  document.getElementById('ratingDoctorName').textContent = doctorName;
-  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('ratingErr').style.display = 'none';
-  openModal('ratingModal');
-}
-
-function setRating(val) {
-  selectedRating = val;
-  document.querySelectorAll('.star-btn').forEach((b, i) => {
-    b.classList.toggle('active', i < val);
+  // Scroll to 08:00
+  const scrollTarget = (CAL_START === 7 ? 2 : 0) * SLOT_H;
+  requestAnimationFrame(() => {
+    const scroller = document.querySelector('.cal-scroll');
+    if (scroller) scroller.scrollTop = 2 * SLOT_H; // 1 hour in = 08:00
   });
 }
 
-async function submitRating() {
-  if (!selectedRating) return showErr('ratingErr', 'Odaberite ocenu.');
-  setBtnLoading('ratingBtn', true, 'Šaljem…');
-
-  // Insert rating
-  await sb.from('ratings').insert({
-    appointment_id: ratingApptId,
-    doctor_id:      ratingDoctorId,
-    patient_id:     currentPatient?.id,
-    rating:         selectedRating,
-  });
-
-  // Mark appointment as rated
-  await sb.from('appointments').update({ rating_requested: true }).eq('id', ratingApptId);
-
-  // Recompute doctor rating
-  const { data: ratings } = await sb.from('ratings').select('rating').eq('doctor_id', ratingDoctorId);
-  if (ratings?.length) {
-    const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
-    await sb.from('doctors').update({ rating: avg.toFixed(1), rating_count: ratings.length }).eq('id', ratingDoctorId);
-  }
-
-  setBtnLoading('ratingBtn', false, 'Pošaljite ocenu →');
-  closeModal('ratingModal');
-  pushNotif('⭐', 'Hvala na oceni!', 'Vaša ocena je uspešno poslata.');
-  loadPatientAppointments();
+function calSlotClick(date, time) {
+  openNewModal(date, time);
 }
 
-// ══════════════════════════════════════════════════════
-//  DOCTOR DASHBOARD
-// ══════════════════════════════════════════════════════
-async function openDoctorDashboard() {
-  showView('doctor');
-  showDoctorPanel('overview');
+// ── APPOINTMENTS LIST ──────────────────────────────────
+async function renderList() {
+  const tbody = document.getElementById('apptTableBody');
+  const empty = document.getElementById('listEmpty');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate)">Učitavamo…</td></tr>';
 
-  // Fill profile fields
-  if (currentDoctor) {
-    const parts = (currentDoctor.full_name || '').split(' ');
-    document.getElementById('dprofFirst').value   = parts[0] || '';
-    document.getElementById('dprofLast').value    = parts.slice(1).join(' ') || '';
-    document.getElementById('dprofEmail').value   = currentDoctor.email || '';
-    document.getElementById('dprofPhone').value   = currentDoctor.phone || '';
-    document.getElementById('dprofSpec').value    = currentDoctor.specialty || '';
-    document.getElementById('dprofCity').value    = currentDoctor.city || '';
-    document.getElementById('dprofAddress').value = currentDoctor.address || '';
-    document.getElementById('dprofBio').value     = currentDoctor.bio || '';
-    document.getElementById('dprofLicense').value = currentDoctor.license_number || '';
-    document.getElementById('statRating').textContent = currentDoctor.rating ? Number(currentDoctor.rating).toFixed(1) : '–';
+  let q = sb.from('appointments').select('*').eq('doctor_id', doctor.id).order('date').order('time_from');
+  if (listFilter !== 'all') q = q.eq('status', listFilter);
 
-    workHours = currentDoctor.working_hours || defaultWorkHours();
-    buildWorkHoursEditor();
-  }
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Dobro jutro' : hour < 18 ? 'Dobar dan' : 'Dobro veče';
-  document.getElementById('docWelcome').textContent = greeting + ', ' + (currentDoctor?.full_name?.split(' ')[0] || 'Doktore') + '!';
-
-  await loadNotifications();
-  await loadDoctorStats();
-  await loadPendingAppts();
-  await loadDoctorServices();
-}
-
-function showDoctorPanel(panel) {
-  document.querySelectorAll('#viewDoctor .dash-panel').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('#viewDoctor .dash-nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('dpanel-' + panel).classList.add('active');
-  const navEl = document.getElementById('dnav-' + panel);
-  if (navEl) navEl.classList.add('active');
-
-  if (panel === 'calendar')     { calWeekOffset = 0; renderCalendar(); }
-  if (panel === 'appointments') loadDoctorAppointments();
-  if (panel === 'profile')      setTimeout(initProfileMap, 150);
-  if (panel === 'workhours')    buildWorkHoursEditor();
-}
-
-async function loadDoctorStats() {
-  const today = new Date().toISOString().split('T')[0];
-  const { data: appts } = await sb.from('appointments').select('status, appointment_date').eq('doctor_id', currentDoctor.id);
-  if (!appts) return;
-  document.getElementById('statToday').textContent   = appts.filter(a => a.appointment_date === today).length;
-  document.getElementById('statPending').textContent  = appts.filter(a => a.status === 'pending').length;
-  document.getElementById('statTotal').textContent    = appts.length;
-}
-
-async function loadPendingAppts() {
-  const list = document.getElementById('pendingApptList');
-  const { data: appts } = await sb.from('appointments')
-    .select('*, patients(full_name,phone), services(name)')
-    .eq('doctor_id', currentDoctor.id).eq('status', 'pending')
-    .order('appointment_date');
-
+  const { data: appts } = await q;
   if (!appts?.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Nema termina na čekanju.</p></div>';
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
     return;
   }
-  list.innerHTML = appts.map(a => renderDoctorApptRow(a, true)).join('');
-}
+  empty.style.display = 'none';
 
-let doctorApptFilter = 'all';
-function filterDoctorAppts(f, btn) {
-  doctorApptFilter = f;
-  document.querySelectorAll('#dpanel-appointments .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  loadDoctorAppointments();
-}
-
-async function loadDoctorAppointments() {
-  const list = document.getElementById('doctorApptList');
-  list.innerHTML = '<div class="loading-spinner">⏳ Učitavamo…</div>';
-
-  let q = sb.from('appointments')
-    .select('*, patients(full_name,phone), services(name,duration_minutes), doctor_note')
-    .eq('doctor_id', currentDoctor.id)
-    .order('appointment_date', { ascending: false });
-
-  if (doctorApptFilter !== 'all') q = q.eq('status', doctorApptFilter);
-
-  const { data: appts, error } = await q;
-  if (!appts?.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>Nema termina.</p></div>';
-    return;
-  }
-  list.innerHTML = appts.map(a => renderDoctorApptRow(a, false)).join('');
-}
-
-function renderDoctorApptRow(a, compact) {
-  const pat = a.patients || {};
-  const svc = a.services || {};
-  const dateStr = new Date(a.appointment_date).toLocaleDateString('sr-RS', { weekday: 'short', day: 'numeric', month: 'long' });
-
-  return `<div class="appt-row ${a.status}" id="apptrow-${a.id}">
-    <div class="appt-time">${a.appointment_time?.slice(0,5)}<br><span style="font-size:0.72rem;font-weight:400;color:var(--ink-muted)">${dateStr}</span></div>
-    <div class="appt-info">
-      <div class="appt-who">${patientNameFromAppt(a)}${pat.phone ? ' · ' + pat.phone : ''}</div>
-      <div class="appt-what">${svc.name || serviceNameFromAppt(a) || '—'}${doctorNoteText(a) ? ' · ' + doctorNoteText(a).slice(0,50) : (a.patient_note ? ' · "' + a.patient_note.slice(0,50) + '"' : '')}</div>
-    </div>
-    <div class="appt-actions">
-      ${badgeHtml(a.status)}
-      ${a.status === 'pending' ? `
-        <button class="btn btn-primary btn-sm" onclick="confirmAppt('${a.id}','${a.patient_id || ''}','${pat.full_name || ''}','${a.appointment_date}','${a.appointment_time?.slice(0,5) || ''}')">✓ Potvrdi</button>
-        <button class="btn btn-danger btn-sm"  onclick="rejectAppt('${a.id}','${a.patient_id || ''}')">✕ Odbij</button>
-      ` : ''}
-      ${a.status === 'confirmed' ? `
-        <button class="btn btn-secondary btn-sm" onclick="markCompleted('${a.id}','${a.patient_id || ''}','${a.doctor_id}')">✓ Završen</button>
-        <button class="btn btn-danger btn-sm"    onclick="rejectAppt('${a.id}','${a.patient_id || ''}')">Otkaži</button>
-      ` : ''}
-    </div>
-  </div>`;
-}
-
-async function confirmAppt(id, patientId, patientName, date, time) {
-  await sb.from('appointments').update({ status: 'confirmed' }).eq('id', id);
-  if (patientId) {
-    await sb.from('notifications').insert({
-      user_id: patientId, user_type: 'patient',
-      title: 'Termin potvrđen ✅',
-      body: currentDoctor.full_name + ' — ' + date + ' u ' + time,
-      is_read: false,
-    });
-  }
-  pushNotif('✅', 'Termin potvrđen', patientName + ' — ' + date);
-  const row = document.getElementById('apptrow-' + id);
-  if (row) row.remove();
-  await loadDoctorStats();
-  if (document.getElementById('dpanel-appointments').classList.contains('active')) loadDoctorAppointments();
-  if (document.getElementById('dpanel-calendar').classList.contains('active')) renderCalendar();
-}
-
-async function rejectAppt(id, patientId) {
-  if (!confirm('Da li ste sigurni da želite da odbijete/otkažete ovaj termin?')) return;
-  await sb.from('appointments').update({ status: 'rejected' }).eq('id', id);
-  if (patientId) {
-    await sb.from('notifications').insert({
-      user_id: patientId, user_type: 'patient',
-      title: 'Termin odbijen ❌',
-      body: 'Lekar ' + currentDoctor.full_name + ' nije mogao da prihvati vaš termin.',
-      is_read: false,
-    });
-  }
-  pushNotif('❌', 'Termin odbijen', '');
-  const row = document.getElementById('apptrow-' + id);
-  if (row) row.remove();
-  await loadDoctorStats();
-  if (document.getElementById('dpanel-calendar').classList.contains('active')) renderCalendar();
-}
-
-async function markCompleted(id, patientId, doctorId) {
-  await sb.from('appointments').update({ status: 'completed', rating_requested: true }).eq('id', id);
-  // Notify patient to rate
-  if (patientId) {
-    await sb.from('notifications').insert({
-      user_id: patientId, user_type: 'patient',
-      title: 'Ocenite lekara ⭐',
-      body: 'Kako je prošao pregled kod lekara ' + currentDoctor.full_name + '?',
-      is_read: false,
-    });
-  }
-  loadDoctorAppointments();
-}
-
-// ── Services ────────────────────────────────────────
-async function loadDoctorServices() {
-  const tbody = document.getElementById('servicesTableBody');
-  const { data: svcs, error } = await sb.from('services').select('*').eq('doctor_id', currentDoctor.id);
-  doctorServices = svcs || [];
-  if (!svcs?.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink-muted)">Nema usluga. Dodajte uslugu klikom na dugme.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = svcs.map(s => `
-    <tr>
-      <td><strong>${s.name}</strong></td>
-      <td>${s.duration_minutes} min</td>
-      <td style="color:var(--ink-soft);font-size:0.85rem">${s.description || '—'}</td>
-      <td>${s.price_rsd ? s.price_rsd.toLocaleString() + ' RSD' : '—'}</td>
-      <td style="text-align:right">
-        <button class="btn btn-ghost btn-sm" onclick="openEditService('${s.id}','${escHtml(s.name)}','${s.duration_minutes}','${s.price_rsd || ''}','${escHtml(s.description || '')}')">Uredi</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteService('${s.id}')">Briši</button>
-      </td>
+  tbody.innerHTML = appts.map(a => `
+    <tr onclick="openDetail('appt','${a.id}')">
+      <td><div class="appt-name">${a.patient_name}</div>${a.service ? `<div class="appt-svc">${a.service}</div>` : ''}</td>
+      <td><div class="appt-date">${fmtDate(a.date)}</div></td>
+      <td><div class="appt-date">${a.time_from}</div><div class="appt-time-val">${a.duration} min</div></td>
+      <td><div class="appt-note">${a.note || '—'}</div></td>
+      <td>${badgeHtml(a.status)}</td>
     </tr>`).join('');
 }
 
-function openAddService() {
-  document.getElementById('svcModalTitle').textContent = 'Dodaj uslugu';
-  document.getElementById('svcEditId').value = '';
-  document.getElementById('svcName').value = '';
-  document.getElementById('svcDuration').value = '30';
-  document.getElementById('svcPrice').value = '';
-  document.getElementById('svcDesc').value = '';
-  document.getElementById('svcErr').style.display = 'none';
-  openModal('addServiceModal');
+function setFilter(f, btn) {
+  listFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
 }
 
-function openEditService(id, name, duration, price, desc) {
-  document.getElementById('svcModalTitle').textContent = 'Uredi uslugu';
-  document.getElementById('svcEditId').value = id;
-  document.getElementById('svcName').value = name;
-  document.getElementById('svcDuration').value = duration;
-  document.getElementById('svcPrice').value = price;
-  document.getElementById('svcDesc').value = desc;
-  document.getElementById('svcErr').style.display = 'none';
-  openModal('addServiceModal');
+function badgeHtml(status) {
+  const map = { confirmed:'Potvrđen', pending:'Na čekanju', cancelled:'Otkazan' };
+  return `<span class="badge badge-${status}">${map[status]||status}</span>`;
 }
 
-async function submitService() {
-  const id       = document.getElementById('svcEditId').value;
-  const name     = document.getElementById('svcName').value.trim();
-  const duration = parseInt(document.getElementById('svcDuration').value);
-  const price    = parseInt(document.getElementById('svcPrice').value) || null;
-  const desc     = document.getElementById('svcDesc').value.trim();
-
-  if (!name)          return showErr('svcErr', 'Unesite naziv usluge.');
-  if (!duration || duration < 5) return showErr('svcErr', 'Unesite trajanje (minimalno 5 minuta).');
-
-  setBtnLoading('svcBtn', true, 'Čuvam…');
-  let error;
-  if (id) {
-    ({ error } = await sb.from('services').update({ name, duration_minutes: duration, price_rsd: price, description: desc }).eq('id', id));
-  } else {
-    ({ error } = await sb.from('services').insert({ doctor_id: currentDoctor.id, name, duration_minutes: duration, price_rsd: price, description: desc }));
-  }
-  setBtnLoading('svcBtn', false, 'Sačuvaj uslugu →');
-  if (error) return showErr('svcErr', error.message);
-  closeModal('addServiceModal');
-  loadDoctorServices();
-}
-
-async function deleteService(id) {
-  if (!confirm('Obrisati ovu uslugu?')) return;
-  await sb.from('services').delete().eq('id', id);
-  loadDoctorServices();
-}
-
-// ── Working Hours ────────────────────────────────────
-function buildWorkHoursEditor() {
-  const editor = document.getElementById('workHoursEditor');
-  if (!editor) return;
-  const days = ['Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota','Nedelja'];
-  editor.innerHTML = days.map((d, i) => {
-    const wh = workHours[i] || { active: i < 5, from: '09:00', to: '17:00' };
-    return `<div class="wh-row">
-      <div class="wh-day">${d}</div>
-      <div class="wh-toggle">
-        <input type="checkbox" id="wh_on_${i}" ${wh.active ? 'checked' : ''}
-          onchange="whToggle(${i})">
-        <label for="wh_on_${i}">Radni dan</label>
-      </div>
-      <div class="wh-times" id="wh_times_${i}" ${!wh.active ? 'style="opacity:0.4;pointer-events:none"' : ''}>
-        <input type="time" id="wh_from_${i}" value="${wh.from || '09:00'}" style="width:110px">
-        <span style="color:var(--ink-muted)">–</span>
-        <input type="time" id="wh_to_${i}"   value="${wh.to || '17:00'}"   style="width:110px">
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function whToggle(i) {
-  const on = document.getElementById('wh_on_' + i)?.checked;
-  const times = document.getElementById('wh_times_' + i);
-  if (times) { times.style.opacity = on ? '1' : '0.4'; times.style.pointerEvents = on ? 'auto' : 'none'; }
-}
-
-async function saveWorkHours() {
-  for (let i = 0; i < 7; i++) {
-    workHours[i] = {
-      active: document.getElementById('wh_on_' + i)?.checked || false,
-      from:   document.getElementById('wh_from_' + i)?.value || '',
-      to:     document.getElementById('wh_to_' + i)?.value || '',
-    };
-  }
-  const { error } = await sb.from('doctors').update({ working_hours: workHours }).eq('id', currentDoctor.id);
-  if (error) { alert('Greška: ' + error.message); return; }
-  currentDoctor.working_hours = workHours;
-  const msg = document.getElementById('whSaved');
-  msg.style.display = 'inline';
-  setTimeout(() => msg.style.display = 'none', 3000);
-}
-
-// ── Doctor Profile ───────────────────────────────────
-async function saveDoctorProfile() {
-  const first   = document.getElementById('dprofFirst').value.trim();
-  const last    = document.getElementById('dprofLast').value.trim();
-  const phone   = document.getElementById('dprofPhone').value.trim();
-  const spec    = document.getElementById('dprofSpec').value;
-  const city    = document.getElementById('dprofCity').value;
-  const address = document.getElementById('dprofAddress').value.trim();
-  const bio     = document.getElementById('dprofBio').value.trim();
-  const license = document.getElementById('dprofLicense').value.trim();
-
-  if (!first || !last) return showErr('dprofErr', 'Unesite ime i prezime.');
-
-  const updates = {
-    full_name: first + ' ' + last, phone, specialty: spec,
-    city, address, bio, license_number: license,
-    avatar_initials: (first[0] || '') + (last[0] || ''),
-  };
-
-  if (profileCoords) {
-    updates.lat = profileCoords.lat;
-    updates.lng = profileCoords.lng;
-    if (profileCoords.address) updates.address = profileCoords.address;
-  }
-
-  const { error } = await sb.from('doctors').update(updates).eq('id', currentDoctor.id);
-  if (error) return showErr('dprofErr', error.message);
-
-  currentDoctor = { ...currentDoctor, ...updates };
-  showSuccess('dprofOk');
-  showNavLoggedIn(currentDoctor.full_name);
-  document.getElementById('docWelcome').textContent =
-    'Dobro jutro, ' + (first) + '!';
-}
-
-// ── Profile Map ──────────────────────────────────────
-function initProfileMap() {
-  const el = document.getElementById('doctorMapEl');
-  if (!el) return;
-  if (profileMap) { setTimeout(() => profileMap.invalidateSize(), 100); return; }
-
-  const lat = currentDoctor?.lat || 44.8177;
-  const lng = currentDoctor?.lng || 20.4569;
-
-  profileMap = L.map('doctorMapEl').setView([lat, lng], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(profileMap);
-
-  const icon = L.divIcon({
-    className: '',
-    html: '<div style="width:26px;height:26px;background:var(--teal);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',
-    iconSize: [26, 26], iconAnchor: [13, 26]
-  });
-
-  if (currentDoctor?.lat) {
-    profileMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(profileMap);
-    profileCoords = { lat, lng };
-    profileMarker.on('dragend', async ev => {
-      const p = ev.target.getLatLng();
-      profileCoords = { lat: p.lat, lng: p.lng };
-      await reverseGeocode(p.lat, p.lng);
-    });
-  }
-
-  profileMap.on('click', async e => {
-    const { lat, lng } = e.latlng;
-    profileCoords = { lat, lng };
-    if (profileMarker) profileMarker.setLatLng([lat, lng]);
-    else {
-      profileMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(profileMap);
-      profileMarker.on('dragend', async ev => {
-        const p = ev.target.getLatLng();
-        profileCoords = { lat: p.lat, lng: p.lng };
-        await reverseGeocode(p.lat, p.lng);
-      });
-    }
-    await reverseGeocode(lat, lng);
-  });
-
-  setTimeout(() => profileMap.invalidateSize(), 200);
-}
-
-async function reverseGeocode(lat, lng) {
-  try {
-    const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=sr`);
-    const data = await res.json();
-    const addr = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    document.getElementById('mapAddrDisplay').value = addr;
-    profileCoords.address = addr;
-  } catch { document.getElementById('mapAddrDisplay').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; }
-}
-
-async function searchMapAddr() {
-  const q = document.getElementById('mapSearchInput').value.trim();
-  if (!q) return;
-  try {
-    const res  = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', Srbija')}&limit=1&accept-language=sr`);
-    const data = await res.json();
-    if (data.length) {
-      const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
-      profileMap.setView([lat, lng], 16);
-      profileMap.fire('click', { latlng: L.latLng(lat, lng) });
-    } else alert('Adresa nije pronađena.');
-  } catch { alert('Greška pri pretrazi.'); }
-}
-
-// ══════════════════════════════════════════════════════
-//  CALENDAR
-// ══════════════════════════════════════════════════════
-async function renderCalendar() {
-  const header = document.getElementById('calHeader');
-  const body   = document.getElementById('calBody');
-  const label  = document.getElementById('calWeekLabel');
-  if (!header || !body) return;
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // local midnight, no UTC shift
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + calWeekOffset * 7);
-  const days = Array.from({length: 7}, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
-
-  // Use local date string (not toISOString which is UTC and shifts dates in CET/EET)
-  const toLocalDate = d => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  label.textContent = days[0].toLocaleDateString('sr-RS', {day:'numeric',month:'long'}) + ' – ' + days[6].toLocaleDateString('sr-RS', {day:'numeric',month:'long',year:'numeric'});
-
-  const from = toLocalDate(days[0]);
-  const to   = toLocalDate(days[6]);
-
-  const [{ data: appts }, { data: blockers }] = await Promise.all([
-    sb.from('appointments').select('*, patients(full_name,phone), services(name,duration_minutes), doctor_note')
-      .eq('doctor_id', currentDoctor.id)
-      .in('status', ['pending','confirmed'])
-      .gte('appointment_date', from).lte('appointment_date', to),
-    sb.from('blockers').select('*')
-      .eq('doctor_id', currentDoctor.id)
-      .gte('date', from).lte('date', to)
-  ]);
-
-  calAppointments = appts || [];
-  calBlockers     = blockers || [];
-
-  const todayStr = toLocalDate(today);
-  const dayNames = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
-  header.innerHTML = '<div></div>' + days.map((d, i) => {
-    const isToday = toLocalDate(d) === todayStr;
-    return `<div class="cal-day-head ${isToday ? 'today' : ''}">${dayNames[i]}<br><strong>${d.getDate()}</strong></div>`;
-  }).join('');
-
-  const startH = 7, endH = 21, step = 30;
-  const slots = (endH - startH) * (60 / step);
-  let bodyHtml = '';
-  const wh = currentDoctor?.working_hours || workHours || defaultWorkHours();
-
-  for (let s = 0; s < slots; s++) {
-    const totalMin = startH * 60 + s * step;
-    const hh = String(Math.floor(totalMin / 60)).padStart(2, '0');
-    const mm = String(totalMin % 60).padStart(2, '0');
-    const timeStr = hh + ':' + mm;
-    const showLabel = mm === '00';
-
-    bodyHtml += `<div class="cal-time-label" style="padding-top:${showLabel?'4px':'0'}">${showLabel ? timeStr : ''}</div>`;
-
-    days.forEach((d, di) => {
-      const dateStr = toLocalDate(d);
-      const dayWh   = wh[(di)]; // Mon=0
-      const inWork  = dayWh?.active && timeStr >= dayWh.from && timeStr < dayWh.to;
-
-      const appt    = calAppointments.find(a => a.appointment_date === dateStr && a.appointment_time?.slice(0,5) === timeStr);
-      const blocker = calBlockers.find(b => b.date === dateStr && timeStr >= b.time_from && timeStr < b.time_to);
-      const isBlockerStart = blocker && blocker.time_from === timeStr;
-
-      let inner = '';
-      if (appt) {
-        const apptIdx = calAppointments.indexOf(appt);
-        const patName = patientNameFromAppt(appt).split(' ')[0];
-        const svcName = (appt.services?.name || '').slice(0, 14);
-        const durSlots = Math.ceil((appt.duration_minutes || appt.services?.duration_minutes || 30) / step);
-        inner = `<div class="cal-appt-block ${appt.status}" style="bottom:${-(durSlots-1)*20}px"
-          onclick="openApptDetail(${apptIdx})" title="${patName} — ${appt.services?.name || ''}">
-          <div>${patName}</div>
-          <div style="font-weight:400;opacity:0.8">${svcName}</div>
-        </div>`;
-      } else if (isBlockerStart) {
-        const durSlots = Math.ceil(((new Date('1970-01-01T'+blocker.time_to) - new Date('1970-01-01T'+blocker.time_from)) / 60000) / step);
-        inner = `<div class="cal-appt-block blocker" style="bottom:${-(durSlots-1)*20}px" title="${blocker.label || 'Blokada'}">
-          <div>🚫 ${blocker.label || 'Nedostupno'}</div>
-        </div>`;
-      } else if (blocker) {
-        inner = '';
-      }
-
-      bodyHtml += `<div class="cal-cell ${inWork ? 'work-hour' : ''} ${(appt || blocker) ? 'has-appt' : ''}"
-        onclick="calCellClick('${dateStr}','${timeStr}',${!!appt || !!blocker})">${inner}</div>`;
-    });
-  }
-
-  body.innerHTML = bodyHtml;
-}
-
-function calNav(dir) { calWeekOffset += dir; renderCalendar(); }
-
-function calCellClick(date, time, hasAppt) {
-  if (!hasAppt) openNewAppt(date, time);
-}
-
-function openApptDetail(idx) {
-  const appt = calAppointments[idx];
-  if (!appt) return;
-  const pat    = appt.patients || {};
-  const _patName = patientNameFromAppt(appt);
-  const _svcName = serviceNameFromAppt(appt);
-  const svc    = appt.services || {};
-  const dateStr = new Date(appt.appointment_date).toLocaleDateString('sr-RS', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  const timeStr = appt.appointment_time?.slice(0,5) || '';
-
-  document.getElementById('apptDetailBody').innerHTML = `
-    <div style="margin-bottom:16px">${badgeHtml(appt.status)}</div>
-    <div style="display:grid;gap:10px;margin-bottom:20px">
-      <div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
-        <span style="font-size:1.4rem">👤</span>
-        <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Pacijent</div>
-        <div style="font-weight:600">${_patName}${pat.phone ? ' · ' + pat.phone : ''}</div></div>
-      </div>
-      <div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
-        <span style="font-size:1.4rem">🩺</span>
-        <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Usluga</div>
-        <div style="font-weight:600">${svc.name || '—'}${svc.duration_minutes ? ' · ' + svc.duration_minutes + ' min' : ''}</div></div>
-      </div>
-      <div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
-        <span style="font-size:1.4rem">📅</span>
-        <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Datum i vreme</div>
-        <div style="font-weight:600">${dateStr}, ${timeStr}h</div></div>
-      </div>
-      ${appt.patient_note ? `<div style="display:flex;gap:12px;padding:12px;background:var(--bg);border-radius:var(--r)">
-        <span style="font-size:1.4rem">📝</span>
-        <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Napomena pacijenta</div>
-        <div style="color:var(--ink-soft)">${appt.patient_note}</div></div>
-      </div>` : ''}
-      ${doctorNoteText(appt) ? `<div style="display:flex;gap:12px;padding:12px;background:#fefce8;border-radius:var(--r);border:1px solid #fde68a">
-        <span style="font-size:1.4rem">🗒️</span>
-        <div><div style="font-size:0.72rem;color:#92400e;font-weight:700;text-transform:uppercase">Vaša napomena</div>
-        <div style="color:#78350f">${doctorNoteText(appt)}</div></div>
-      </div>` : ''}
-    </div>
-    ${appt.status === 'pending' ? `
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-primary" style="flex:1" onclick="confirmAppt('${appt.id}','${appt.patient_id||''}','${(pat.full_name||'').replace(/'/g,"\\'")}','${appt.appointment_date}','${timeStr}');closeModal('apptDetailModal')">✓ Potvrdi termin</button>
-        <button class="btn btn-danger" style="flex:1" onclick="rejectAppt('${appt.id}','${appt.patient_id||''}');closeModal('apptDetailModal')">✕ Odbij termin</button>
-      </div>` : ''}
-    ${appt.status === 'confirmed' ? `
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-secondary" style="flex:1" onclick="openReschedule('${appt.id}')">🗓 Izmeni termin</button>
-        <button class="btn btn-danger" style="flex:1" onclick="rejectAppt('${appt.id}','${appt.patient_id||''}');closeModal('apptDetailModal')">❌ Otkaži termin</button>
-      </div>` : ''}`;
-
-  openModal('apptDetailModal');
-}
-
-function openReschedule(id) {
-  const appt = calAppointments.find(a => a.id === id);
-  if (!appt) return;
-  closeModal('apptDetailModal');
-  editingApptId = id;
-  openNewAppt(appt.appointment_date, appt.appointment_time?.slice(0,5), true);
-}
-
-// ── Helpers ──────────────────────────────────────────
-function patientNameFromAppt(appt) {
-  // Prefer joined patients table, fall back to doctor_note prefix
-  if (appt.patients?.full_name) return appt.patients.full_name;
-  const note = appt.doctor_note || '';
-  const m = note.match(/Pacijent:\s*([^|]+)/);
-  return m ? m[1].trim() : 'Pacijent';
-}
-
-function serviceNameFromAppt(appt) {
-  if (appt.services?.name) return appt.services.name;
-  const note = appt.doctor_note || '';
-  const m = note.match(/Usluga:\s*([^|]+)/);
-  return m ? m[1].trim() : (appt.doctor_note || '');
-}
-
-function doctorNoteText(appt) {
-  // doctor_note format: "Pacijent: X | Usluga: Y | actual note"
-  // Strip the auto-generated prefix and return only the free-text part
-  const raw = appt.doctor_note || '';
-  // Remove known prefixes
-  let text = raw
-    .replace(/Pacijent:\s*[^|]+\|?/g, '')
-    .replace(/Usluga:\s*[^|]+\|?/g, '')
-    .trim()
-    .replace(/^\|\s*/, '')
-    .trim();
-  return text;
-}
-
-// ── New Appointment ──────────────────────────────────
-function openNewAppt(date, time, isEdit) {
-  editingApptId = isEdit ? editingApptId : null;
-  naPatientId   = null;
-  document.getElementById('newApptTitle').textContent = isEdit ? 'Izmeni termin' : 'Novi termin';
-  document.getElementById('naDate').value  = date || new Date().toISOString().split('T')[0];
-  document.getElementById('naTime').value  = time || '09:00';
-  document.getElementById('naType').value  = 'patient';
-  document.getElementById('naPatient').value = '';
-  document.getElementById('naNote').value  = '';
-  document.getElementById('naDuration').value = '30';
-  document.getElementById('naErr').style.display = 'none';
-  document.getElementById('naPatientSugg').style.display = 'none';
-  toggleApptType();
-
-  // Populate services
-  const sel = document.getElementById('naService');
-  sel.innerHTML = '<option value="">Odaberite uslugu…</option>' +
-    doctorServices.map(s => `<option value="${s.id}" data-duration="${s.duration_minutes}">${s.name} (${s.duration_minutes} min)</option>`).join('');
-  sel.onchange = function() {
-    const opt = this.querySelector('option:checked');
-    if (opt?.dataset?.duration) document.getElementById('naDuration').value = opt.dataset.duration;
-  };
-
-  document.getElementById('naBtn').textContent = isEdit ? 'Sačuvaj izmene →' : 'Zakaži termin →';
-  openModal('newApptModal');
-}
-
-function toggleApptType() {
-  const isPatient = document.getElementById('naType').value === 'patient';
-  document.getElementById('naPatientFields').style.display = isPatient ? 'block' : 'none';
-  document.getElementById('naBlockerFields').style.display = isPatient ? 'none'  : 'block';
-}
-
-let patientSearchTimer = null;
-async function searchPatientSuggest() {
-  const q   = document.getElementById('naPatient').value.trim();
-  const box = document.getElementById('naPatientSugg');
-  clearTimeout(patientSearchTimer);
-  if (q.length < 2) { box.style.display = 'none'; return; }
-  patientSearchTimer = setTimeout(async () => {
-    const { data } = await sb.from('patients').select('id,full_name,phone').ilike('full_name', '%' + q + '%').limit(6);
-    if (!data?.length) { box.style.display = 'none'; return; }
-    box.innerHTML = data.map(p =>
-      `<div class="suggestion-item" onclick="selectPatient('${p.id}','${escHtml(p.full_name)}')">
-        <strong>${p.full_name}</strong>${p.phone ? ' <span style="color:var(--ink-muted);font-size:0.8rem">' + p.phone + '</span>' : ''}
-      </div>`
-    ).join('');
-    box.style.display = 'block';
-  }, 250);
-}
-
-function selectPatient(id, name) {
-  naPatientId = id;
-  document.getElementById('naPatient').value = name;
-  document.getElementById('naPatientSugg').style.display = 'none';
-}
-
-async function submitNewAppt() {
-  const date = document.getElementById('naDate').value;
-  const time = document.getElementById('naTime').value;
-  const type = document.getElementById('naType').value;
-
-  if (!date) return showErr('naErr', 'Odaberite datum.');
-  if (!time) return showErr('naErr', 'Odaberite vreme.');
-
-  setBtnLoading('naBtn', true, 'Čuvam…');
-
-  if (type === 'blocker') {
-    const dur   = parseInt(document.getElementById('naBlockDuration').value) || 60;
-    const label = document.getElementById('naBlockLabel').value.trim();
-    // Parse time HH:MM into total minutes, add duration, convert back
-    const parts  = time.split(':');
-    const startM = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    const endM   = startM + dur;
-    const toH    = String(Math.floor(endM / 60)).padStart(2, '0');
-    const toM    = String(endM % 60).padStart(2, '0');
-
-    const { error } = await sb.from('blockers').insert({
-      doctor_id: currentDoctor.id,
-      date:      date,
-      time_from: time,        // store as HH:MM — matches Postgres time
-      time_to:   toH + ':' + toM,
-      label:     label || 'Nedostupno',
-    });
-    setBtnLoading('naBtn', false, 'Zakaži termin →');
-    if (error) { showErr('naErr', error.message); return; }
-
-  } else {
-    const patientName = document.getElementById('naPatient').value.trim();
-    const serviceEl   = document.getElementById('naService');
-    const serviceId   = serviceEl.value || null;
-    const serviceName = serviceId ? serviceEl.options[serviceEl.selectedIndex]?.text?.split(' (')[0] : '';
-    const duration    = parseInt(document.getElementById('naDuration').value) || 30;
-    const note        = document.getElementById('naNote').value.trim();
-
-    if (!patientName && !naPatientId) {
-      setBtnLoading('naBtn', false, 'Zakaži termin →');
-      return showErr('naErr', 'Unesite ime pacijenta.');
-    }
-
-    // Resolve patient_id — search DB, but always keep free-text name in doctor_note as fallback
-    let patientId = naPatientId;
-    if (!patientId && patientName) {
-      const { data: found } = await sb.from('patients')
-        .select('id').ilike('full_name', patientName).limit(1);
-      patientId = found?.[0]?.id || null;
-    }
-
-    // Build doctor_note: always prefix with patient name + service so calendar
-    // can display them even when patient_id is null (walk-in / unregistered patient)
-    const autoNote = [
-      patientName ? 'Pacijent: ' + patientName : '',
-      serviceName ? 'Usluga: ' + serviceName : '',
-      note,
-    ].filter(Boolean).join(' | ');
-
-    let error;
-    if (editingApptId) {
-      ({ error } = await sb.from('appointments').update({
-        appointment_date: date,
-        appointment_time: time,
-        service_id:       serviceId,
-        duration_minutes: duration,
-        doctor_note:      autoNote,
-      }).eq('id', editingApptId));
-    } else {
-      ({ error } = await sb.from('appointments').insert({
-        doctor_id:        currentDoctor.id,
-        patient_id:       patientId,
-        service_id:       serviceId,
-        appointment_date: date,
-        appointment_time: time,
-        duration_minutes: duration,
-        status:           'confirmed',
-        doctor_note:      autoNote,
-        patient_note:     '',
-        rating_requested: false,
-      }));
-    }
-    setBtnLoading('naBtn', false, 'Zakaži termin →');
-    if (error) { showErr('naErr', error.message); return; }
-    editingApptId = null;
-  }
-
-  closeModal('newApptModal');
-  pushNotif('✅', 'Termin sačuvan', date + ' u ' + time);
-  await loadDoctorStats();
-  renderCalendar();
-  if (document.getElementById('dpanel-appointments').classList.contains('active')) loadDoctorAppointments();
-}
-
-// ══════════════════════════════════════════════════════
-//  NOTIFICATIONS
-// ══════════════════════════════════════════════════════
-async function loadNotifications() {
-  if (!currentUser) return;
-  const userId = currentDoctor?.id || currentPatient?.id;
-  const userType = currentUserRole;
-  if (!userId) return;
-
-  const { data: notifs } = await sb.from('notifications')
-    .select('*').eq('user_id', userId).eq('user_type', userType)
-    .order('created_at', { ascending: false }).limit(20);
-
-  renderNotifications(notifs || []);
-}
-
-function renderNotifications(notifs) {
-  const list  = document.getElementById('notifList');
-  const badge = document.getElementById('notifBadge');
-  const unread = notifs.filter(n => !n.is_read).length;
-
-  badge.textContent = unread;
-  badge.style.display = unread > 0 ? 'flex' : 'none';
-
-  if (!notifs.length) {
-    list.innerHTML = '<div class="notif-empty">Nema obaveštenja</div>';
-    return;
-  }
-
-  list.innerHTML = notifs.map(n => `
-    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markNotifRead('${n.id}')">
-      <div class="notif-icon">${n.title.includes('✅') ? '✅' : n.title.includes('❌') ? '❌' : n.title.includes('⭐') ? '⭐' : '🔔'}</div>
-      <div class="notif-content">
-        <p>${n.title}</p>
-        <span>${n.body}</span>
-      </div>
-    </div>`).join('');
-}
-
-async function markNotifRead(id) {
-  await sb.from('notifications').update({ is_read: true }).eq('id', id);
-  loadNotifications();
-}
-
-async function markAllRead() {
-  const userId = currentDoctor?.id || currentPatient?.id;
-  if (!userId) return;
-  await sb.from('notifications').update({ is_read: true })
-    .eq('user_id', userId).eq('user_type', currentUserRole);
-  loadNotifications();
-  document.getElementById('notifPanel').classList.remove('open');
-}
-
-// Push in-app notification (instant, before DB reload)
-function pushNotif(icon, title, body) {
-  const list = document.getElementById('notifList');
-  const badge = document.getElementById('notifBadge');
-  const empty = list.querySelector('.notif-empty');
-  if (empty) empty.remove();
-
-  const el = document.createElement('div');
-  el.className = 'notif-item unread';
-  el.innerHTML = `<div class="notif-icon">${icon}</div><div class="notif-content"><p>${title}</p><span>${body}</span></div>`;
-  list.prepend(el);
-
-  const count = parseInt(badge.textContent || '0') + 1;
-  badge.textContent = count;
-  badge.style.display = 'flex';
-}
-
-function toggleNotif() {
-  document.getElementById('notifPanel').classList.toggle('open');
-}
-
-// ══════════════════════════════════════════════════════
-//  VIEW ROUTING
-// ══════════════════════════════════════════════════════
-function showView(id) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view' + id.charAt(0).toUpperCase() + id.slice(1)).classList.add('active');
-  window.scrollTo(0, 0);
-}
-
-function goHome() {
-  if (currentUserRole === 'doctor') { openDoctorDashboard(); return; }
-  if (currentUserRole === 'patient') { loadNotifications(); }
-  showView('landing');
-}
-
-// ══════════════════════════════════════════════════════
-//  MODAL HELPERS
-// ══════════════════════════════════════════════════════
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-}
+// ── MODALS ─────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  // Clear errors
-  document.querySelectorAll('#' + id + ' .error-msg').forEach(e => e.style.display = 'none');
+  clearErr('editErr');
 }
-
-// Close modal on overlay click
 document.addEventListener('click', e => {
   if (e.target.classList.contains('overlay')) closeModal(e.target.id);
 });
 
-function switchToRegister() {
-  closeModal('loginModal');
-  if (loginTab_current === 'doctor') openRegisterDoctor();
-  else openRegisterPatient();
+// ── NEW / EDIT MODAL ───────────────────────────────────
+function setType(t) {
+  modalType = t;
+  document.getElementById('typeAppt').classList.toggle('active', t === 'appt');
+  document.getElementById('typeBlock').classList.toggle('active', t === 'block');
+  document.getElementById('apptFields').style.display = t === 'appt' ? 'block' : 'none';
+  document.getElementById('blockFields').style.display = t === 'block' ? 'block' : 'none';
 }
 
-// ══════════════════════════════════════════════════════
-//  UTILITY
-// ══════════════════════════════════════════════════════
-function showErr(id, msg) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
+function openNewModal(date, time) {
+  editingId   = null;
+  editingType = null;
+  document.getElementById('editModalTitle').textContent = 'Novi termin';
+  setType('appt');
+
+  const d = date || todayLocal();
+  const t = time || '09:00';
+  document.getElementById('fPatient').value  = '';
+  document.getElementById('fService').value  = '';
+  document.getElementById('fDate').value     = d;
+  document.getElementById('fTime').value     = t;
+  document.getElementById('fDuration').value = '30';
+  document.getElementById('fStatus').value   = 'confirmed';
+  document.getElementById('fNote').value     = '';
+  document.getElementById('bDate').value     = d;
+  document.getElementById('bFrom').value     = t;
+  document.getElementById('bDuration').value = '60';
+  document.getElementById('bLabel').value    = '';
+  document.getElementById('saveBtn').textContent = 'Sačuvaj →';
+  clearErr('editErr');
+  openModal('editModal');
 }
 
-function showSuccess(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 3000);
+function openEditModal(type, entry) {
+  editingId   = entry.id;
+  editingType = type;
+  document.getElementById('editModalTitle').textContent = 'Izmeni ' + (type === 'appt' ? 'termin' : 'blokadu');
+  setType(type);
+
+  if (type === 'appt') {
+    document.getElementById('fPatient').value  = entry.patient_name || '';
+    document.getElementById('fService').value  = entry.service || '';
+    document.getElementById('fDate').value     = entry.date || '';
+    document.getElementById('fTime').value     = entry.time_from || '';
+    document.getElementById('fDuration').value = entry.duration || 30;
+    document.getElementById('fStatus').value   = entry.status || 'confirmed';
+    document.getElementById('fNote').value     = entry.note || '';
+  } else {
+    document.getElementById('bLabel').value    = entry.label || '';
+    document.getElementById('bDate').value     = entry.date || '';
+    document.getElementById('bFrom').value     = entry.time_from || '';
+    const dur = parseTime(entry.time_to) - parseTime(entry.time_from);
+    document.getElementById('bDuration').value = dur || 60;
+  }
+  document.getElementById('saveBtn').textContent = 'Sačuvaj izmene →';
+  clearErr('editErr');
+  closeModal('detailModal');
+  openModal('editModal');
 }
 
-function setBtnLoading(id, loading, originalText) {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  btn.disabled = loading;
-  if (loading) { btn.dataset.orig = btn.textContent; btn.textContent = originalText; }
-  else { btn.textContent = originalText || btn.dataset.orig; }
+async function saveEntry() {
+  clearErr('editErr');
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+
+  let error;
+
+  if (modalType === 'appt') {
+    const patient  = document.getElementById('fPatient').value.trim();
+    const service  = document.getElementById('fService').value.trim();
+    const date     = document.getElementById('fDate').value;
+    const time     = document.getElementById('fTime').value;
+    const duration = parseInt(document.getElementById('fDuration').value) || 30;
+    const status   = document.getElementById('fStatus').value;
+    const note     = document.getElementById('fNote').value.trim();
+
+    if (!patient) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Unesite ime pacijenta.'); }
+    if (!date)    { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Odaberite datum.'); }
+    if (!time)    { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Odaberite vreme.'); }
+
+    const payload = { doctor_id: doctor.id, patient_name: patient, service, date, time_from: time, duration, status, note };
+
+    if (editingId) {
+      ({ error } = await sb.from('appointments').update(payload).eq('id', editingId));
+    } else {
+      ({ error } = await sb.from('appointments').insert(payload));
+    }
+
+  } else {
+    const label    = document.getElementById('bLabel').value.trim() || 'Nedostupno';
+    const date     = document.getElementById('bDate').value;
+    const timeFrom = document.getElementById('bFrom').value;
+    const dur      = parseInt(document.getElementById('bDuration').value) || 60;
+
+    if (!date)     { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Odaberite datum.'); }
+    if (!timeFrom) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Odaberite vreme.'); }
+
+    const timeTo = minsToTime(parseTime(timeFrom) + dur);
+    const payload = { doctor_id: doctor.id, label, date, time_from: timeFrom, time_to: timeTo };
+
+    if (editingId) {
+      ({ error } = await sb.from('blockers').update(payload).eq('id', editingId));
+    } else {
+      ({ error } = await sb.from('blockers').insert(payload));
+    }
+  }
+
+  btn.disabled = false; btn.textContent = editingId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+
+  if (error) return showErr('editErr', error.message);
+
+  closeModal('editModal');
+  editingId = editingType = null;
+  renderCalendar();
+  if (document.getElementById('panelList').classList.contains('active')) renderList();
 }
 
-function badgeHtml(status) {
-  const map = {
-    pending:   ['Na čekanju', 'badge-pending'],
-    confirmed: ['Potvrđen',   'badge-confirmed'],
-    rejected:  ['Odbijen',    'badge-rejected'],
-    completed: ['Završen',    'badge-completed'],
-    blocker:   ['Blokada',    'badge-blocker'],
-  };
-  const [label, cls] = map[status] || ['Nepoznat', 'badge-pending'];
-  return `<span class="badge ${cls}">${label}</span>`;
+// ── DETAIL MODAL ───────────────────────────────────────
+async function openDetail(type, id) {
+  let entry;
+  if (type === 'appt') {
+    const { data } = await sb.from('appointments').select('*').eq('id', id).single();
+    entry = data;
+  } else {
+    const { data } = await sb.from('blockers').select('*').eq('id', id).single();
+    entry = data;
+  }
+  if (!entry) return;
+
+  const isAppt = type === 'appt';
+  document.getElementById('detailTitle').textContent = isAppt ? 'Detalji termina' : 'Detalji blokade';
+
+  let html = '';
+  if (isAppt) {
+    html += detailRow('👤', 'Pacijent',  entry.patient_name);
+    html += detailRow('🩺', 'Usluga',    entry.service || '—');
+    html += detailRow('📅', 'Datum',     fmtDateLong(entry.date));
+    html += detailRow('🕐', 'Vreme',     entry.time_from + ' · ' + entry.duration + ' min');
+    html += detailRow('📊', 'Status',    badgeHtml(entry.status));
+    if (entry.note) html += detailRow('📝', 'Napomena', entry.note);
+  } else {
+    html += detailRow('🚫', 'Blokada', entry.label || 'Nedostupno');
+    html += detailRow('📅', 'Datum',   fmtDateLong(entry.date));
+    html += detailRow('🕐', 'Vreme',   entry.time_from + ' – ' + entry.time_to);
+  }
+
+  html += `<div class="detail-actions">
+    <button class="btn-edit" onclick="openEditModal('${type}', ${JSON.stringify(entry).replace(/"/g,'&quot;')})">✏️ Izmeni</button>
+    <button class="btn-delete" onclick="deleteEntry('${type}','${entry.id}')">🗑 Briši</button>
+  </div>`;
+
+  document.getElementById('detailBody').innerHTML = html;
+  openModal('detailModal');
 }
 
-function escHtml(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+function detailRow(icon, label, val) {
+  return `<div class="detail-row">
+    <div class="detail-icon">${icon}</div>
+    <div><div class="detail-label">${label}</div><div class="detail-val">${val}</div></div>
+  </div>`;
+}
+
+async function deleteEntry(type, id) {
+  if (!confirm('Obrisati ovaj unos?')) return;
+  const table = type === 'appt' ? 'appointments' : 'blockers';
+  await sb.from(table).delete().eq('id', id);
+  closeModal('detailModal');
+  renderCalendar();
+  if (document.getElementById('panelList').classList.contains('active')) renderList();
 }
 </script>
 </body>
