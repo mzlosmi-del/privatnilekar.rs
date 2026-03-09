@@ -2308,7 +2308,13 @@ function buildOdontogram() {
 
 async function surfaceClick(e, num, surface) {
   e.stopPropagation();
-  if (!activeStatus || !currentPatientId) return; // no status selected yet — ignore
+  if (!currentPatientId) return;
+  if (!activeStatus) {
+    // Flash the palette to hint user to pick a status first
+    const palette = document.getElementById('odoPalette');
+    if (palette) { palette.style.outline = '2px solid var(--blue)'; setTimeout(() => palette.style.outline = '', 700); }
+    return;
+  }
 
   const isWhole = WHOLE_TOOTH_STATUSES.has(activeStatus);
   const surfacesToSet = isWhole ? SURFACES : [surface];
@@ -2326,12 +2332,55 @@ async function surfaceClick(e, num, surface) {
   // Persist all affected surfaces
   const upserts = surfacesToSet.map(sf => ({
     patient_id: currentPatientId,
-    tooth_num:  num,
+    tooth_num:  parseInt(num),
     surface:    sf,
     status:     activeStatus,
     updated_at: new Date().toISOString()
   }));
-  await sb.from('tooth_records').upsert(upserts, { onConflict: 'patient_id,tooth_num,surface' });
+  const { error: upsertErr } = await sb.from('tooth_records')
+    .upsert(upserts, { onConflict: 'patient_id,tooth_num,surface' });
+  if (upsertErr) {
+    console.error('tooth_records upsert error:', upsertErr);
+    // Fallback: try one by one with explicit insert-or-update
+    let anyFailed = false;
+    for (const row of upserts) {
+      const { data: existing } = await sb.from('tooth_records')
+        .select('id').eq('patient_id', row.patient_id)
+        .eq('tooth_num', row.tooth_num).eq('surface', row.surface).maybeSingle();
+      if (existing) {
+        const { error: updErr } = await sb.from('tooth_records')
+          .update({ status: row.status, updated_at: row.updated_at })
+          .eq('id', existing.id);
+        if (updErr) { console.error('update error:', updErr); anyFailed = true; }
+      } else {
+        const { error: insErr } = await sb.from('tooth_records').insert(row);
+        if (insErr) { console.error('insert error:', insErr); anyFailed = true; }
+      }
+    }
+    showOdoSaveStatus(anyFailed ? 'error' : 'ok');
+  } else {
+    showOdoSaveStatus('ok');
+  }
+}
+
+function showOdoSaveStatus(state) {
+  let indicator = document.getElementById('odoSaveStatus');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'odoSaveStatus';
+    indicator.style.cssText = 'position:fixed;bottom:80px;right:20px;padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:700;z-index:9999;transition:opacity 0.4s;pointer-events:none;';
+    document.body.appendChild(indicator);
+  }
+  if (state === 'ok') {
+    indicator.textContent = '✓ Sačuvano';
+    indicator.style.background = '#dcfce7'; indicator.style.color = '#15803d';
+  } else {
+    indicator.textContent = '✗ Greška pri čuvanju — proverite konzolu';
+    indicator.style.background = '#fee2e2'; indicator.style.color = '#dc2626';
+  }
+  indicator.style.opacity = '1';
+  clearTimeout(indicator._t);
+  indicator._t = setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
 }
 
 async function saveOdoNotes() {
@@ -2406,8 +2455,9 @@ async function openPatientDetail(id) {
   const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
   toothData = {};
   (teeth || []).forEach(t => {
-    if (!toothData[t.tooth_num]) toothData[t.tooth_num] = {};
-    toothData[t.tooth_num][t.surface] = t.status;
+    const k = parseInt(t.tooth_num);
+    if (!toothData[k]) toothData[k] = {};
+    toothData[k][t.surface] = t.status;
   });
   buildOdontogram();
 
