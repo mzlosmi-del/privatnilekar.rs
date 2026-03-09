@@ -475,6 +475,35 @@ body {
 .status-opt[data-val="pending"].sel   { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
 .status-opt[data-val="cancelled"].sel { background: var(--red-dim); border-color: var(--red); color: #fca5a5; }
 
+/* ── VIEW-AS PICKER ───────────────────────────── */
+.view-as-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; border-left: 1px solid var(--line);
+  margin-left: 4px;
+}
+.view-as-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); white-space: nowrap; }
+.view-as-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.view-as-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700; font-family: 'Syne', sans-serif;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
+}
+.view-as-pill:hover { border-color: var(--slate); color: var(--white); }
+.view-as-pill.active { border-color: #a78bfa; background: rgba(167,139,250,0.12); color: #a78bfa; }
+.view-as-pill .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #a78bfa; }
+
+/* Ghost blocks (other doctor, read-only) */
+.cal-block.ghost {
+  background: rgba(167,139,250,0.08);
+  border-left: 3px solid #a78bfa;
+  color: #a78bfa; opacity: 0.7;
+  cursor: default;
+}
+.cal-block.ghost:hover { filter: none; transform: none; }
+.ghost-label { font-size: 0.62rem; opacity: 0.7; }
+
 /* ── SCROLLBAR on list ─────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -545,6 +574,10 @@ body {
           <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal)"></div>Potvrđen</div>
           <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
           <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--slate)"></div>Blokada</div>
+        </div>
+        <div class="view-as-wrap">
+          <span class="view-as-label">Pregled</span>
+          <div class="view-as-pills" id="viewAsPills"></div>
         </div>
         <button class="cal-add-btn" onclick="openNewModal()">+ Novi termin</button>
       </div>
@@ -699,6 +732,10 @@ let listFilter   = 'all';
 let editingId    = null;
 let editingType  = null; // 'appt' | 'block'
 let modalType    = 'appt';
+let viewAsId     = null;   // doctor.id being previewed, or null
+let viewAsAppts  = [];
+let viewAsBlocks = [];
+let allDoctors   = [];
 
 // ── UTILS ─────────────────────────────────────────────
 const localDate = d => {
@@ -775,6 +812,7 @@ async function initApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
 
+  await loadDoctors();
   renderCalendar();
 }
 
@@ -801,6 +839,31 @@ function switchTab(tab, btn) {
   }
 }
 
+// ── VIEW-AS ────────────────────────────────────────────
+async function loadDoctors() {
+  const { data } = await sb.from('doctors').select('id,full_name').order('full_name');
+  allDoctors = (data || []).filter(d => d.id !== doctor.id);
+  renderViewAsPills();
+}
+
+function renderViewAsPills() {
+  const wrap = document.getElementById('viewAsPills');
+  if (!allDoctors.length) { wrap.innerHTML = '<span style="font-size:0.72rem;color:var(--slate)">Nema drugih lekara</span>'; return; }
+  wrap.innerHTML = allDoctors.map(d => {
+    const initials = d.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const isActive = viewAsId === d.id;
+    return `<button class="view-as-pill ${isActive ? 'active' : ''}" onclick="toggleViewAs('${d.id}')" title="${d.full_name}">
+      <div class="pill-dot"></div>${initials}
+    </button>`;
+  }).join('');
+}
+
+async function toggleViewAs(id) {
+  viewAsId = viewAsId === id ? null : id;
+  renderViewAsPills();
+  renderCalendar();
+}
+
 // ── CALENDAR ──────────────────────────────────────────
 function calNav(dir) { calOffset += dir; renderCalendar(); }
 function calGoToday() { calOffset = 0; renderCalendar(); }
@@ -817,12 +880,19 @@ async function renderCalendar() {
     days[6].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
 
   // Fetch data
-  const [{ data: appts }, { data: blocks }] = await Promise.all([
+  const fetches = [
     sb.from('appointments').select('*').eq('doctor_id', doctor.id).gte('date', from).lte('date', to),
     sb.from('blockers').select('*').eq('doctor_id', doctor.id).gte('date', from).lte('date', to),
-  ]);
-  calAppts  = appts  || [];
-  calBlocks = blocks || [];
+  ];
+  if (viewAsId) {
+    fetches.push(sb.from('appointments').select('*').eq('doctor_id', viewAsId).gte('date', from).lte('date', to));
+    fetches.push(sb.from('blockers').select('*').eq('doctor_id', viewAsId).gte('date', from).lte('date', to));
+  }
+  const results = await Promise.all(fetches);
+  calAppts    = results[0].data || [];
+  calBlocks   = results[1].data || [];
+  viewAsAppts  = viewAsId ? (results[2].data || []) : [];
+  viewAsBlocks = viewAsId ? (results[3].data || []) : [];
 
   const grid = document.getElementById('calGrid');
   const slots = (CAL_END - CAL_START) * 2; // 30-min slots
@@ -880,6 +950,28 @@ async function renderCalendar() {
           onclick="event.stopPropagation();openDetail('block','${blockerStarts.id}')">
           <div class="cal-block-name">🚫 ${blockerStarts.label || 'Nedostupno'}</div>
         </div>`;
+      }
+
+      // Ghost blocks from viewed doctor (read-only, layered behind own)
+      if (viewAsId) {
+        const ghostAppt = viewAsAppts.find(a => a.date === ds && a.time_from === timeStr);
+        const ghostBlockerStarts = viewAsBlocks.find(b => b.date === ds && b.time_from === timeStr);
+        const ghostBlocker = viewAsBlocks.find(b => b.date === ds && parseTime(b.time_from) <= slotMins && parseTime(b.time_to) > slotMins);
+        if (ghostAppt && !appt) {
+          const durSlots = Math.max(1, ghostAppt.duration / 30);
+          const h = durSlots * SLOT_H - 4;
+          blockHtml = `<div class="cal-block ghost" style="height:${h}px" title="Kolega: ${ghostAppt.patient_name}">
+            <div class="cal-block-name">👥 ${ghostAppt.patient_name}</div>
+            ${ghostAppt.service ? `<div class="ghost-label">${ghostAppt.service}</div>` : ''}
+          </div>`;
+        } else if (ghostBlockerStarts && !blockerStarts && !appt) {
+          const durMins = parseTime(ghostBlocker.time_to) - parseTime(ghostBlocker.time_from);
+          const durSlots = Math.max(1, durMins / 30);
+          const h = durSlots * SLOT_H - 4;
+          blockHtml = `<div class="cal-block ghost" style="height:${h}px" title="Kolega nedostupan">
+            <div class="cal-block-name">👥 ${ghostBlockerStarts.label || 'Nedostupno'}</div>
+          </div>`;
+        }
       }
 
       html += `<div class="cal-slot ${isHour ? '' : 'half-hour'} ${isPast ? 'past' : ''}"
