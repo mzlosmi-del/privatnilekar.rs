@@ -232,6 +232,15 @@ body {
 .cal-add-btn:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
 /* ── CALENDAR GRID ─────────────────────────────── */
+.cal-header-row {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 52px repeat(7, 1fr); /* synced with calGrid by JS */
+  background: var(--off);
+  border-bottom: 2px solid var(--line);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.07);
+  overflow: hidden; /* clips when horizontal scroll on mobile */
+}
 .cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
 .cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .cal-scroll::-webkit-scrollbar-track { background: var(--off); }
@@ -242,10 +251,9 @@ body {
   grid-template-columns: 52px repeat(7, 1fr); /* overridden by JS */
 }
 
-.cal-head-spacer { background: var(--off); border-bottom: 2px solid var(--line); }
+.cal-head-spacer { background: var(--off); }
 .cal-day-head {
   background: var(--off);
-  border-bottom: 2px solid var(--line);
   border-left: 1px solid var(--line);
   padding: 10px 8px;
   text-align: center;
@@ -720,6 +728,7 @@ body {
           <div class="view-as-pills" id="viewAsPills"></div>
         </div>
       </div>
+      <div class="cal-header-row" id="calHeaderRow"></div>
       <div class="cal-scroll">
         <div class="cal-grid" id="calGrid"></div>
       </div>
@@ -1133,19 +1142,20 @@ async function renderCalendar() {
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  let html = '';
-
-  // Header row
-  html += '<div class="cal-head-spacer"></div>';
-  days.forEach((d, i) => {
+  // ── Sticky header row (outside scroll) ────────────────────────────────────
+  let headerHtml = '<div class="cal-head-spacer"></div>';
+  days.forEach((d) => {
     const ds = localDate(d);
     const isToday = ds === todayStr;
     const dow = (d.getDay() + 6) % 7; // Mon=0
-    html += `<div class="cal-day-head ${isToday ? 'today' : ''}">
+    headerHtml += `<div class="cal-day-head ${isToday ? 'today' : ''}">
       <div class="dow">${DAYS[dow]}</div>
       <div class="dom">${d.getDate()}</div>
     </div>`;
   });
+  document.getElementById('calHeaderRow').innerHTML = headerHtml;
+
+  let html = '';
 
   // ── Pre-compute layout for each day ──────────────────────────────────────
   // For each day, collect all blocks, detect overlaps, assign col/totalCols
@@ -1238,13 +1248,17 @@ async function renderCalendar() {
     dayLayouts[ds] = layout;
   });
 
-  // ── Set grid columns dynamically ─────────────────────────────────────────
+  // ── Set grid columns dynamically (header + body in sync) ────────────────
   const SLOT_H_USED = SLOT_H;
   const timeColW = numDays === 1 ? 60 : 52;
   const minW = numDays >= 7 ? '700px' : numDays >= 5 ? '480px' : 'unset';
   const grid = document.getElementById('calGrid');
-  grid.style.gridTemplateColumns = `${timeColW}px repeat(${numDays}, 1fr)`;
+  const colTemplate = `${timeColW}px repeat(${numDays}, 1fr)`;
+  grid.style.gridTemplateColumns = colTemplate;
   grid.style.minWidth = minW;
+  const hdr = document.getElementById('calHeaderRow');
+  hdr.style.gridTemplateColumns = colTemplate;
+  hdr.style.minWidth = minW;
 
   // ── Render grid ───────────────────────────────────────────────────────────
   for (let s = 0; s < slots; s++) {
@@ -1286,10 +1300,19 @@ async function renderCalendar() {
 
   grid.innerHTML = html;
 
-  // Scroll to 08:00
+  // Scroll to 08:00 + sync horizontal scroll of sticky header
   requestAnimationFrame(() => {
     const scroller = document.querySelector('.cal-scroll');
-    if (scroller) scroller.scrollTop = 2 * SLOT_H_USED;
+    if (scroller) {
+      scroller.scrollTop = 2 * SLOT_H_USED;
+      // Attach horizontal scroll sync (remove old listener first)
+      scroller._syncHeader = () => {
+        hdr.style.transform = `translateX(-${scroller.scrollLeft}px)`;
+      };
+      scroller.removeEventListener('scroll', scroller._prevSyncHeader);
+      scroller.addEventListener('scroll', scroller._syncHeader);
+      scroller._prevSyncHeader = scroller._syncHeader;
+    }
   });
 }
 
