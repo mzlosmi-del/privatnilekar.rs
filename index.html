@@ -6,7 +6,103 @@
 <title>Lekar — Kalendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Spectral:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ── SERVICES ──────────────────────────────────────────
+async function loadServices() {
+  const { data } = await sb.from('services').select('*').order('name');
+  allServices = data || [];
+  populateServiceDropdown();
+}
+
+function populateServiceDropdown() {
+  const sel = document.getElementById('fServiceSel');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Odaberite ili unesite ručno —</option>' +
+    allServices.map(s => `<option value="${s.id}" data-dur="${s.duration}" data-name="${s.name.replace(/"/g,'&quot;')}">${s.name} (${s.duration} min)</option>`).join('');
+  sel.value = cur;
+}
+
+function onServiceSelect() {
+  const sel = document.getElementById('fServiceSel');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.value) {
+    document.getElementById('fService').value   = opt.dataset.name;
+    document.getElementById('fDuration').value  = opt.dataset.dur;
+  }
+}
+
+async function renderServices() {
+  const tbody = document.getElementById('svcTableBody');
+  const empty = document.getElementById('svcEmpty');
+  await loadServices();
+  if (!allServices.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = allServices.map(s => `
+    <tr>
+      <td><div class="appt-name">${s.name}</div></td>
+      <td><div class="appt-note" style="max-width:260px;white-space:normal">${s.description || '—'}</div></td>
+      <td><div class="appt-date">${s.duration} min</div></td>
+      <td style="text-align:right">
+        <button class="btn-edit" style="padding:5px 10px;font-size:0.75rem" onclick="openSvcModal('${s.id}')">✏️</button>
+        <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="deleteSvc('${s.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openSvcModal(id) {
+  editingSvcId = id || null;
+  document.getElementById('svcModalTitle').textContent = id ? 'Izmeni uslugu' : 'Nova usluga';
+  document.getElementById('svcSaveBtn').textContent    = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  clearErr('svcErr');
+  if (id) {
+    const svc = allServices.find(s => s.id === id);
+    if (svc) {
+      document.getElementById('svcName').value = svc.name;
+      document.getElementById('svcDesc').value = svc.description || '';
+      document.getElementById('svcDur').value  = svc.duration;
+    }
+  } else {
+    document.getElementById('svcName').value = '';
+    document.getElementById('svcDesc').value = '';
+    document.getElementById('svcDur').value  = '30';
+  }
+  openModal('svcModal');
+}
+
+async function saveService() {
+  const name = document.getElementById('svcName').value.trim();
+  const desc = document.getElementById('svcDesc').value.trim();
+  const dur  = parseInt(document.getElementById('svcDur').value) || 30;
+  if (!name) return showErr('svcErr', 'Unesite naziv usluge.');
+  const btn = document.getElementById('svcSaveBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+  let error;
+  if (editingSvcId) {
+    ({ error } = await sb.from('services').update({ name, description: desc, duration: dur }).eq('id', editingSvcId));
+  } else {
+    ({ error } = await sb.from('services').insert({ name, description: desc, duration: dur }));
+  }
+  btn.disabled = false; btn.textContent = editingSvcId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  if (error) return showErr('svcErr', error.message);
+  closeModal('svcModal');
+  editingSvcId = null;
+  await loadServices();
+  if (document.getElementById('panelServices').classList.contains('active')) renderServices();
+}
+
+async function deleteSvc(id) {
+  if (!confirm('Obrisati ovu uslugu?')) return;
+  await sb.from('services').delete().eq('id', id);
+  await loadServices();
+  renderServices();
+}
+
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -223,8 +319,7 @@ body {
 
 .cal-grid {
   display: grid;
-  grid-template-columns: 52px repeat(7, 1fr);
-  /* columns overridden by JS; min-width set per breakpoint */
+  grid-template-columns: 52px repeat(7, 1fr); /* overridden by JS */
 }
 
 .cal-head-spacer { background: var(--off); border-bottom: 2px solid var(--line); }
@@ -565,22 +660,7 @@ body {
   .cal-add-btn { margin-left: 0; }
   .view-as-wrap { border-left: none; padding: 0; width: 100%; }
 
-  /* Calendar: 3 columns (3-day view), still scrollable */
-  .cal-grid {
-    grid-template-columns: 40px repeat(3, 1fr);
-    min-width: 0;
-  }
-  .cal-time-cell { height: 32px; font-size: 0.58rem; padding: 0 4px 0 0; }
-  .cal-time-cell span { right: 4px; }
-  .cal-slot { height: 32px; }
-  .cal-day-head { padding: 8px 4px; }
-  .cal-day-head .dow { font-size: 0.62rem; }
-  .cal-day-head .dom { font-size: 0.95rem; }
-  .cal-block { font-size: 0.62rem; padding: 2px 4px; border-radius: 4px; }
-  .cal-block-svc { display: none; }      /* hide service on tiny blocks */
-
-  /* 3-day navigation: show day-range label */
-  .cal-3day-hint { display: block; }
+  /* cal grid columns now handled by JS view selector */
 
   /* List: card layout instead of table */
   .list-panel-inner { padding: 12px; }
@@ -601,21 +681,22 @@ body {
   .appt-card-row { display: flex; align-items: center; justify-content: space-between; }
 }
 
-/* Tablet: 5-day view */
+/* Tablet */
 @media (min-width: 601px) and (max-width: 900px) {
-  .cal-grid {
-    grid-template-columns: 48px repeat(5, 1fr);
-    min-width: 0;
-  }
   .cal-legend { display: none; }
   .cal-toolbar { flex-wrap: wrap; gap: 8px; }
 }
 
-/* Desktop: always show all 7 days */
-@media (min-width: 901px) {
-  .cal-grid {
-    min-width: 780px;
+/* Services table on mobile */
+@media (max-width: 600px) {
+  #svcTable thead { display: none; }
+  #svcTable, #svcTable tbody, #svcTable tr, #svcTable td { display: block; }
+  #svcTable tr {
+    background: #ffffff; border: 1px solid var(--line);
+    border-radius: var(--r); margin-bottom: 8px; padding: 12px 14px;
   }
+  #svcTable td { padding: 2px 0; border: none; font-size: 0.82rem; }
+  #svcTable td:last-child { margin-top: 8px; }
 }
 
 /* Hide desktop-only table cells on mobile */
@@ -628,6 +709,20 @@ body {
 @media (min-width: 601px) {
   /* Hide the in-name badge on desktop (shown in its own column) */
   .appt-card-row .badge { display: none; }
+}
+
+/* ── VIEW SELECTOR ────────────────────────────── */
+.view-sel { display: flex; gap: 2px; background: var(--navy-lite); border-radius: 8px; padding: 2px; }
+.view-sel-btn {
+  padding: 4px 10px; border-radius: 6px; border: none; background: transparent;
+  font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+  color: var(--slate); cursor: pointer; transition: all 0.12s; white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.view-sel-btn:hover { color: var(--ink); }
+.view-sel-btn.active { background: #ffffff; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+@media (max-width: 600px) {
+  .view-sel-btn { padding: 4px 7px; font-size: 0.68rem; }
 }
 </style>
 </head>
@@ -671,6 +766,7 @@ body {
     <div class="tab-nav">
       <button class="tab-btn active" onclick="switchTab('calendar',this)">Kalendar</button>
       <button class="tab-btn" onclick="switchTab('list',this)">Termini</button>
+      <button class="tab-btn" onclick="switchTab('services',this)">Usluge</button>
     </div>
     <div class="topbar-right">
       <div class="doctor-chip">
@@ -692,6 +788,11 @@ body {
           <button class="cal-nav-btn" onclick="calNav(1)">›</button>
           <span class="cal-week-label" id="calWeekLabel"></span>
           <button class="cal-today-btn" onclick="calGoToday()">Danas</button>
+          <div class="view-sel" id="viewSel">
+            <button class="view-sel-btn" onclick="setCalView('day',this)">Dan</button>
+            <button class="view-sel-btn" onclick="setCalView('workweek',this)">Pon–Pet</button>
+            <button class="view-sel-btn active" onclick="setCalView('week',this)">Ned</button>
+          </div>
           <div class="cal-legend">
             <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--blue)"></div>Potvrđen</div>
             <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--amber)"></div>Na čekanju</div>
@@ -706,6 +807,31 @@ body {
       </div>
       <div class="cal-scroll">
         <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="panel" id="panelServices">
+      <div class="list-panel-inner">
+        <div class="list-header">
+          <div class="list-title">Usluge</div>
+          <button class="cal-add-btn" style="margin-left:auto" onclick="openSvcModal()">+ Nova usluga</button>
+        </div>
+        <table class="appt-table" id="svcTable">
+          <thead>
+            <tr>
+              <th>Naziv</th>
+              <th>Opis</th>
+              <th>Trajanje</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="svcTableBody"></tbody>
+        </table>
+        <div class="empty-state" id="svcEmpty" style="display:none">
+          <div class="empty-icon">🩺</div>
+          <div>Nema definisanih usluga</div>
+        </div>
       </div>
     </div>
 
@@ -764,6 +890,12 @@ body {
         </div>
         <div class="mfield">
           <label>Usluga</label>
+          <select id="fServiceSel" onchange="onServiceSelect()">
+            <option value="">— Odaberite ili unesite ručno —</option>
+          </select>
+        </div>
+        <div class="mfield" id="fServiceCustomWrap">
+          <label>Naziv usluge <span style="font-weight:400;text-transform:none;letter-spacing:0">(može se izmeniti)</span></label>
           <input id="fService" placeholder="npr. Kardiološki pregled">
         </div>
         <div class="mrow">
@@ -857,6 +989,9 @@ let editingType  = null; // 'appt' | 'block'
 let modalType    = 'appt';
 let viewAsId     = null;   // doctor.id being previewed, or null
 let mobileDayOffset = 0;   // for 3-day mobile navigation
+let calView        = 'week'; // 'day' | 'workweek' | 'week'
+let allServices    = [];   // all services from DB
+let editingSvcId   = null;
 let viewAsAppts  = [];
 let viewAsBlocks = [];
 let allDoctors   = [];
@@ -937,16 +1072,10 @@ async function initApp(user) {
   document.getElementById('app').classList.add('visible');
 
   await loadDoctors();
+  await loadServices();
+  syncViewSelUI();
   renderCalendar();
 }
-
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    if (doctor) renderCalendar();
-  }, 150);
-});
 
 async function doLogout() {
   await sb.auth.signOut();
@@ -965,6 +1094,9 @@ function switchTab(tab, btn) {
   if (tab === 'calendar') {
     document.getElementById('panelCalendar').classList.add('active');
     renderCalendar();
+  } else if (tab === 'services') {
+    document.getElementById('panelServices').classList.add('active');
+    renderServices();
   } else {
     document.getElementById('panelList').classList.add('active');
     renderList();
@@ -997,8 +1129,29 @@ async function toggleViewAs(id) {
 }
 
 // ── CALENDAR ──────────────────────────────────────────
+function syncViewSelUI() {
+  const map = { day: 0, workweek: 1, week: 2 };
+  const btns = document.querySelectorAll('.view-sel-btn');
+  btns.forEach((b, i) => b.classList.toggle('active', i === map[calView]));
+}
+
+function setCalView(view, btn) {
+  calView = view;
+  calOffset = 0; mobileDayOffset = 0;
+  document.querySelectorAll('.view-sel-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCalendar();
+}
+
+function getNumDays() {
+  if (calView === 'day')      return 1;
+  if (calView === 'workweek') return 5;
+  return 7; // 'week'
+}
+
 function calNav(dir) {
-  if (getVisibleDays() < 7) {
+  // Advance by 1 unit: 1 day for day-view, 1 week for week/workweek
+  if (calView === 'day') {
     mobileDayOffset += dir;
   } else {
     calOffset += dir;
@@ -1007,27 +1160,21 @@ function calNav(dir) {
 }
 function calGoToday() { calOffset = 0; mobileDayOffset = 0; renderCalendar(); }
 
-function getVisibleDays() {
-  const w = window.innerWidth;
-  if (w <= 600) return 3;
-  if (w <= 900) return 5;
-  return 7;
-}
-
 async function renderCalendar() {
-  const numDays = getVisibleDays();
-  const isMobile = numDays < 7;
+  const numDays = getNumDays();
 
-  // For mobile/tablet, use a day-offset approach instead of full weeks
+  // Compute start day based on view
   let startDay;
-  if (isMobile) {
+  if (calView === 'day') {
+    // Day view: navigate one day at a time via mobileDayOffset
     const now = new Date();
     const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    base.setDate(base.getDate() + mobileDayOffset * numDays);
+    base.setDate(base.getDate() + mobileDayOffset);
     startDay = base;
   } else {
+    // Week / workweek: navigate by week via calOffset, always start Monday
     startDay = getMondayOf(calOffset);
-    mobileDayOffset = 0; // reset when on desktop
+    mobileDayOffset = 0;
   }
 
   const days = Array.from({length: numDays}, (_, i) => {
@@ -1041,9 +1188,10 @@ async function renderCalendar() {
   const todayStr = todayLocal();
 
   // Week label
-  document.getElementById('calWeekLabel').textContent =
-    days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'}) + ' – ' +
-    days[days.length-1].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('calWeekLabel').textContent = numDays === 1
+    ? days[0].toLocaleDateString('sr-RS',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+    : days[0].toLocaleDateString('sr-RS',{day:'numeric',month:'long'}) + ' – ' +
+      days[days.length-1].toLocaleDateString('sr-RS',{day:'numeric',month:'long',year:'numeric'});
 
   // Fetch data
   const fetches = [
@@ -1171,10 +1319,12 @@ async function renderCalendar() {
   });
 
   // ── Set grid columns dynamically ─────────────────────────────────────────
-  const slotH = isMobile ? 32 : SLOT_H;
-  document.getElementById('calGrid').style.gridTemplateColumns =
-    `${isMobile ? 40 : 52}px repeat(${numDays}, 1fr)`;
-  const SLOT_H_USED = slotH;
+  const SLOT_H_USED = SLOT_H;
+  const timeColW = numDays === 1 ? 60 : 52;
+  const minW = numDays >= 7 ? '700px' : numDays >= 5 ? '480px' : 'unset';
+  const grid = document.getElementById('calGrid');
+  grid.style.gridTemplateColumns = `${timeColW}px repeat(${numDays}, 1fr)`;
+  grid.style.minWidth = minW;
 
   // ── Render grid ───────────────────────────────────────────────────────────
   for (let s = 0; s < slots; s++) {
@@ -1294,10 +1444,12 @@ function openNewModal(date, time) {
   const d = date || todayLocal();
   const t = time || '09:00';
   document.getElementById('fPatient').value  = '';
+  document.getElementById('fServiceSel').value = '';
   document.getElementById('fService').value  = '';
   document.getElementById('fDate').value     = d;
   document.getElementById('fTime').value     = t;
   document.getElementById('fDuration').value = '30';
+  populateServiceDropdown();
   document.getElementById('fStatus').value   = 'confirmed';
   document.getElementById('fNote').value     = '';
   document.getElementById('bDate').value     = d;
@@ -1317,6 +1469,10 @@ function openEditModal(type, entry) {
 
   if (type === 'appt') {
     document.getElementById('fPatient').value  = entry.patient_name || '';
+    populateServiceDropdown();
+    // Try to match saved service name to a dropdown option
+    const matchedSvc = allServices.find(s => s.name === entry.service);
+    document.getElementById('fServiceSel').value = matchedSvc ? matchedSvc.id : '';
     document.getElementById('fService').value  = entry.service || '';
     document.getElementById('fDate').value     = entry.date || '';
     document.getElementById('fTime').value     = entry.time_from || '';
@@ -1446,6 +1602,128 @@ async function deleteEntry(type, id) {
   renderCalendar();
   if (document.getElementById('panelList').classList.contains('active')) renderList();
 }
+
+// ── SERVICES ──────────────────────────────────────────
+async function loadServices() {
+  const { data } = await sb.from('services').select('*').order('name');
+  allServices = data || [];
+  populateServiceDropdown();
+}
+
+function populateServiceDropdown() {
+  const sel = document.getElementById('fServiceSel');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Odaberite ili unesite ručno —</option>' +
+    allServices.map(s => `<option value="${s.id}" data-dur="${s.duration}" data-name="${s.name.replace(/"/g,'&quot;')}">${s.name} (${s.duration} min)</option>`).join('');
+  sel.value = cur;
+}
+
+function onServiceSelect() {
+  const sel = document.getElementById('fServiceSel');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.value) {
+    document.getElementById('fService').value   = opt.dataset.name;
+    document.getElementById('fDuration').value  = opt.dataset.dur;
+  }
+}
+
+async function renderServices() {
+  const tbody = document.getElementById('svcTableBody');
+  const empty = document.getElementById('svcEmpty');
+  await loadServices();
+  if (!allServices.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = allServices.map(s => `
+    <tr>
+      <td><div class="appt-name">${s.name}</div></td>
+      <td><div class="appt-note" style="max-width:260px;white-space:normal">${s.description || '—'}</div></td>
+      <td><div class="appt-date">${s.duration} min</div></td>
+      <td style="text-align:right">
+        <button class="btn-edit" style="padding:5px 10px;font-size:0.75rem" onclick="openSvcModal('${s.id}')">✏️</button>
+        <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="deleteSvc('${s.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openSvcModal(id) {
+  editingSvcId = id || null;
+  document.getElementById('svcModalTitle').textContent = id ? 'Izmeni uslugu' : 'Nova usluga';
+  document.getElementById('svcSaveBtn').textContent    = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  clearErr('svcErr');
+  if (id) {
+    const svc = allServices.find(s => s.id === id);
+    if (svc) {
+      document.getElementById('svcName').value = svc.name;
+      document.getElementById('svcDesc').value = svc.description || '';
+      document.getElementById('svcDur').value  = svc.duration;
+    }
+  } else {
+    document.getElementById('svcName').value = '';
+    document.getElementById('svcDesc').value = '';
+    document.getElementById('svcDur').value  = '30';
+  }
+  openModal('svcModal');
+}
+
+async function saveService() {
+  const name = document.getElementById('svcName').value.trim();
+  const desc = document.getElementById('svcDesc').value.trim();
+  const dur  = parseInt(document.getElementById('svcDur').value) || 30;
+  if (!name) return showErr('svcErr', 'Unesite naziv usluge.');
+  const btn = document.getElementById('svcSaveBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+  let error;
+  if (editingSvcId) {
+    ({ error } = await sb.from('services').update({ name, description: desc, duration: dur }).eq('id', editingSvcId));
+  } else {
+    ({ error } = await sb.from('services').insert({ name, description: desc, duration: dur }));
+  }
+  btn.disabled = false; btn.textContent = editingSvcId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  if (error) return showErr('svcErr', error.message);
+  closeModal('svcModal');
+  editingSvcId = null;
+  await loadServices();
+  if (document.getElementById('panelServices').classList.contains('active')) renderServices();
+}
+
+async function deleteSvc(id) {
+  if (!confirm('Obrisati ovu uslugu?')) return;
+  await sb.from('services').delete().eq('id', id);
+  await loadServices();
+  renderServices();
+}
+
 </script>
+<!-- SERVICE MODAL -->
+<div class="overlay" id="svcModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="svcModalTitle">Nova usluga</h3>
+      <button class="modal-close" onclick="closeModal('svcModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mfield">
+        <label>Naziv usluge</label>
+        <input id="svcName" placeholder="npr. Kardiološki pregled">
+      </div>
+      <div class="mfield">
+        <label>Opis</label>
+        <textarea id="svcDesc" placeholder="Kratak opis usluge (opciono)…"></textarea>
+      </div>
+      <div class="mfield" style="max-width:180px">
+        <label>Trajanje (min)</label>
+        <input id="svcDur" type="number" value="30" min="5" step="5">
+      </div>
+      <div class="modal-err" id="svcErr"></div>
+      <button class="btn-save" id="svcSaveBtn" onclick="saveService()">Sačuvaj →</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
