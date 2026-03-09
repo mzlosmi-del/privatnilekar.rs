@@ -893,6 +893,70 @@ body {
   .odo-wrap { padding: 12px 8px; }
 }
 
+
+/* ── PATIENT PICKER COMBOBOX ────────────────────── */
+.pt-picker { position: relative; }
+.pt-picker-input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.pt-picker-input {
+  width: 100%; padding: 9px 36px 9px 12px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem; color: var(--ink);
+  background: #fff; outline: none; transition: border-color 0.15s;
+}
+.pt-picker-input:focus { border-color: var(--blue); }
+.pt-picker-input.has-value { font-weight: 700; }
+.pt-picker-clear {
+  position: absolute; right: 10px;
+  font-size: 0.75rem; color: var(--slate);
+  cursor: pointer; padding: 4px; opacity: 0.6;
+  display: none;
+}
+.pt-picker-clear.visible { display: block; }
+.pt-picker-clear:hover { opacity: 1; color: var(--ink); }
+
+.pt-picker-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 200; max-height: 240px; overflow-y: auto;
+  display: none;
+}
+.pt-picker-dropdown.open { display: block; }
+
+.pt-picker-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
+  font-size: 0.85rem; color: var(--ink);
+  border-bottom: 1px solid var(--off);
+  transition: background 0.08s;
+}
+.pt-picker-item:last-child { border-bottom: none; }
+.pt-picker-item:hover, .pt-picker-item.focused { background: var(--blue-dim); }
+.pt-picker-item-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blue-dim); color: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 800; flex-shrink: 0;
+}
+.pt-picker-item-name { font-weight: 700; flex: 1; }
+.pt-picker-item-sub { font-size: 0.72rem; color: var(--slate); }
+.pt-picker-item.new-pt {
+  color: var(--blue); font-weight: 700;
+  border-top: 1px solid var(--line); background: var(--off);
+}
+.pt-picker-item.new-pt:hover { background: var(--blue-dim); }
+.pt-picker-no-results {
+  padding: 12px 14px; font-size: 0.82rem;
+  color: var(--slate); text-align: center;
+}
+
+#newPtInline {
+  background: var(--off); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 12px 14px; margin-top: 4px;
+}
+
 </style>
 </head>
 <body>
@@ -1140,9 +1204,49 @@ body {
 
       <!-- Appointment fields -->
       <div id="apptFields">
+        <!-- Smart patient picker -->
         <div class="mfield">
-          <label>Ime pacijenta</label>
-          <input id="fPatient" placeholder="Ime i prezime">
+          <label>Pacijent</label>
+          <div class="pt-picker" id="ptPicker">
+            <div class="pt-picker-input-wrap">
+              <input id="ptPickerInput" class="pt-picker-input" type="text"
+                placeholder="Pretraži pacijenta ili unesite novo ime…"
+                autocomplete="off"
+                oninput="onPtPickerInput()"
+                onfocus="onPtPickerFocus()"
+              >
+              <span class="pt-picker-clear" id="ptPickerClear" onclick="clearPtPicker()" title="Obriši">✕</span>
+            </div>
+            <div class="pt-picker-dropdown" id="ptPickerDropdown"></div>
+          </div>
+          <!-- hidden actual value -->
+          <input type="hidden" id="fPatient">
+        </div>
+        <!-- New patient inline form (shown when "new" is chosen) -->
+        <div id="newPtInline" style="display:none">
+          <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate);margin-bottom:8px;padding:6px 0 0">
+            ➕ Novi pacijent
+          </div>
+          <div class="mrow">
+            <div class="mfield">
+              <label>Ime</label>
+              <input id="newPtFirst" placeholder="Ime">
+            </div>
+            <div class="mfield">
+              <label>Prezime</label>
+              <input id="newPtLast" placeholder="Prezime">
+            </div>
+          </div>
+          <div class="mrow">
+            <div class="mfield">
+              <label>Datum rodjenja <span style="font-weight:400">(opciono)</span></label>
+              <input id="newPtDob" type="date">
+            </div>
+            <div class="mfield">
+              <label>Telefon <span style="font-weight:400">(opciono)</span></label>
+              <input id="newPtPhone" placeholder="+381 60…">
+            </div>
+          </div>
         </div>
         <div class="mfield">
           <label>Usluga</label>
@@ -1739,7 +1843,7 @@ function openNewModal(date, time) {
 
   const d = date || todayLocal();
   const t = time || '09:00';
-  document.getElementById('fPatient').value  = '';
+  resetPtPicker();
   document.getElementById('fServiceSel').value = '';
   document.getElementById('fService').value  = '';
   document.getElementById('fDate').value     = d;
@@ -1764,7 +1868,7 @@ function openEditModal(type, entry) {
   setType(type);
 
   if (type === 'appt') {
-    document.getElementById('fPatient').value  = entry.patient_name || '';
+    setPtPickerValue(entry.patient_name || '', null);
     populateServiceDropdown();
     // Try to match saved service name to a dropdown option
     const matchedSvc = allServices.find(s => s.name === entry.service);
@@ -1796,6 +1900,22 @@ async function saveEntry() {
   let error;
 
   if (modalType === 'appt') {
+    // If creating new patient, save them first
+    if (ptPickerMode === 'new') {
+      const first = document.getElementById('newPtFirst').value.trim();
+      const last  = document.getElementById('newPtLast').value.trim();
+      if (!first || !last) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Unesite ime i prezime novog pacijenta.'); }
+      const newPt = {
+        first_name: first, last_name: last,
+        dob:   document.getElementById('newPtDob').value   || null,
+        phone: document.getElementById('newPtPhone').value.trim() || null,
+      };
+      const { data: created, error: ptErr } = await sb.from('patients').insert(newPt).select().single();
+      if (ptErr) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr', ptErr.message); }
+      // Add to allPatients cache
+      if (created) allPatients.push(created);
+      document.getElementById('fPatient').value = first + ' ' + last;
+    }
     const patient  = document.getElementById('fPatient').value.trim();
     const service  = document.getElementById('fService').value.trim();
     const date     = document.getElementById('fDate').value;
@@ -2373,6 +2493,178 @@ async function deletePatient(id) {
   if (!confirm('Obrisati ovog pacijenta? Svi zubni zapisi će biti obrisani.')) return;
   await sb.from('patients').delete().eq('id', id);
   await renderPatients();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PATIENT PICKER COMBOBOX
+// ══════════════════════════════════════════════════════════════
+let ptPickerMode = null;  // null | 'existing' | 'new'
+let ptPickerFocusIdx = -1;
+
+function resetPtPicker() {
+  ptPickerMode = null;
+  ptPickerFocusIdx = -1;
+  const input = document.getElementById('ptPickerInput');
+  const hidden = document.getElementById('fPatient');
+  const clear = document.getElementById('ptPickerClear');
+  const dropdown = document.getElementById('ptPickerDropdown');
+  const newInline = document.getElementById('newPtInline');
+  if (input)    { input.value = ''; input.classList.remove('has-value'); }
+  if (hidden)   hidden.value = '';
+  if (clear)    clear.classList.remove('visible');
+  if (dropdown) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); }
+  if (newInline) newInline.style.display = 'none';
+  ['newPtFirst','newPtLast','newPtDob','newPtPhone'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
+
+function setPtPickerValue(name, patientId) {
+  ptPickerMode = patientId ? 'existing' : 'freetext';
+  const input = document.getElementById('ptPickerInput');
+  const hidden = document.getElementById('fPatient');
+  const clear = document.getElementById('ptPickerClear');
+  const dropdown = document.getElementById('ptPickerDropdown');
+  const newInline = document.getElementById('newPtInline');
+  if (input)  { input.value = name; input.classList.add('has-value'); }
+  if (hidden) hidden.value = name;
+  if (clear)  clear.classList.add('visible');
+  if (dropdown) { dropdown.classList.remove('open'); }
+  if (newInline) newInline.style.display = 'none';
+}
+
+function clearPtPicker() {
+  resetPtPicker();
+  document.getElementById('ptPickerInput')?.focus();
+}
+
+function onPtPickerFocus() {
+  const input = document.getElementById('ptPickerInput');
+  if (!input) return;
+  renderPtDropdown(input.value);
+}
+
+function onPtPickerInput() {
+  const input = document.getElementById('ptPickerInput');
+  const hidden = document.getElementById('fPatient');
+  const clear = document.getElementById('ptPickerClear');
+  const q = input.value;
+  // If typing freely (not from a selection), update hidden value for free-text mode
+  hidden.value = q;
+  ptPickerMode = q ? 'freetext' : null;
+  clear.classList.toggle('visible', !!q);
+  renderPtDropdown(q);
+}
+
+function renderPtDropdown(q) {
+  const dropdown = document.getElementById('ptPickerDropdown');
+  if (!dropdown) return;
+  const query = (q || '').toLowerCase().trim();
+
+  // Filter patients
+  const matches = allPatients.filter(p => {
+    const full = (p.first_name + ' ' + p.last_name).toLowerCase();
+    const rev  = (p.last_name + ' ' + p.first_name).toLowerCase();
+    return full.includes(query) || rev.includes(query);
+  }).slice(0, 8);
+
+  let html = '';
+
+  if (matches.length === 0 && query.length > 0) {
+    html += `<div class="pt-picker-no-results">Nema rezultata za „${q}"</div>`;
+  }
+
+  matches.forEach((p, i) => {
+    const full = p.first_name + ' ' + p.last_name;
+    const initials = (p.first_name[0] + p.last_name[0]).toUpperCase();
+    const sub = [p.dob ? fmtDate(p.dob) : null, p.phone].filter(Boolean).join(' · ');
+    // Highlight matching chars
+    const highlighted = highlightMatch(full, query);
+    html += `<div class="pt-picker-item ${i===ptPickerFocusIdx?'focused':''}" 
+      onmousedown="selectExistingPatient(event,'${p.id}','${full.replace(/'/g,"\\'")}')">
+      <div class="pt-picker-item-avatar">${initials}</div>
+      <div style="flex:1">
+        <div class="pt-picker-item-name">${highlighted}</div>
+        ${sub ? `<div class="pt-picker-item-sub">${sub}</div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  // Always offer "new patient" option
+  const newLabel = query ? `➕ Dodaj novog: „${q}"` : `➕ Novi pacijent`;
+  html += `<div class="pt-picker-item new-pt" onmousedown="selectNewPatient(event,'${q.replace(/'/g,"\\'")}')">
+    ${newLabel}
+  </div>`;
+
+  dropdown.innerHTML = html;
+  dropdown.classList.add('open');
+
+  // Close on outside click
+  const closeHandler = (e) => {
+    if (!e.target.closest('#ptPicker')) {
+      dropdown.classList.remove('open');
+      document.removeEventListener('mousedown', closeHandler);
+    }
+  };
+  document.removeEventListener('mousedown', dropdown._closeHandler);
+  dropdown._closeHandler = closeHandler;
+  document.addEventListener('mousedown', closeHandler);
+}
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return text.slice(0,idx) +
+    `<mark style="background:#dbeafe;color:#1d4ed8;border-radius:2px;padding:0 1px">${text.slice(idx,idx+query.length)}</mark>` +
+    text.slice(idx+query.length);
+}
+
+function selectExistingPatient(e, id, name) {
+  e.preventDefault();
+  ptPickerMode = 'existing';
+  const input = document.getElementById('ptPickerInput');
+  const hidden = document.getElementById('fPatient');
+  const clear = document.getElementById('ptPickerClear');
+  const dropdown = document.getElementById('ptPickerDropdown');
+  const newInline = document.getElementById('newPtInline');
+  input.value = name; input.classList.add('has-value');
+  hidden.value = name;
+  clear.classList.add('visible');
+  dropdown.classList.remove('open');
+  if (newInline) newInline.style.display = 'none';
+}
+
+function selectNewPatient(e, prefill) {
+  e.preventDefault();
+  ptPickerMode = 'new';
+  const input = document.getElementById('ptPickerInput');
+  const hidden = document.getElementById('fPatient');
+  const clear = document.getElementById('ptPickerClear');
+  const dropdown = document.getElementById('ptPickerDropdown');
+  const newInline = document.getElementById('newPtInline');
+  const newPtFirst = document.getElementById('newPtFirst');
+  const newPtLast = document.getElementById('newPtLast');
+
+  // Pre-fill name fields from typed text
+  if (prefill && prefill.trim()) {
+    const parts = prefill.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      newPtFirst.value = parts[0];
+      newPtLast.value  = parts.slice(1).join(' ');
+    } else {
+      newPtFirst.value = parts[0];
+      newPtLast.value  = '';
+    }
+  }
+
+  input.value = prefill ? `Novi pacijent: ${prefill}` : 'Novi pacijent';
+  input.classList.add('has-value');
+  hidden.value = ''; // will be set on save
+  clear.classList.add('visible');
+  dropdown.classList.remove('open');
+  if (newInline) { newInline.style.display = 'block'; newPtFirst.focus(); }
 }
 
 </script>
