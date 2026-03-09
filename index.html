@@ -6,7 +6,307 @@
 <title>Lekar — Kalendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Spectral:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ══════════════════════════════════════════════════════════════
+// PATIENTS
+// ══════════════════════════════════════════════════════════════
+let allPatients     = [];
+let currentPatientId = null;
+let editingPatientId = null;
+let toothRecords    = {};   // { toothNum: status }
+let odoNotesTimer   = null;
+
+// ── FDI tooth layout ──────────────────────────────────────────
+// Upper right: 18-11, upper left: 21-28
+// Lower right: 48-41, lower left: 31-38
+const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
+const FDI_UPPER_LEFT  = [21,22,23,24,25,26,27,28];
+const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
+const FDI_LOWER_LEFT  = [31,32,33,34,35,36,37,38];
+
+const TOOTH_STATUSES = [
+  { val: 'healthy',  label: 'Zdrav',       color: '#e5e7eb', border: '#d1d5db' },
+  { val: 'caries',   label: 'Karijes',     color: '#fef08a', border: '#eab308' },
+  { val: 'filled',   label: 'Plomba',      color: '#86efac', border: '#22c55e' },
+  { val: 'crown',    label: 'Kruna',       color: '#93c5fd', border: '#3b82f6' },
+  { val: 'endo',     label: 'Endodoncija', color: '#f9a8d4', border: '#ec4899' },
+  { val: 'missing',  label: 'Nedostaje',   color: '#d1d5db', border: '#6b7280' },
+  { val: 'implant',  label: 'Implant',     color: '#c4b5fd', border: '#7c3aed' },
+];
+
+function toothColor(status) {
+  const s = TOOTH_STATUSES.find(x => x.val === status);
+  return s || TOOTH_STATUSES[0];
+}
+
+// ── SVG tooth shape ───────────────────────────────────────────
+function toothSVG(num, status) {
+  const { color, border } = toothColor(status || 'healthy');
+  const isMolar = [6,7,8,16,17,18,36,37,38,46,47,48].includes(num);
+  const isIncisor = [1,2,11,12,21,22,31,32,41,42].includes(num);
+  // Simple shape: rounded rect with root suggestion
+  const w = 22, h = 28, r = isMolar ? 5 : 4;
+  const crownH = isIncisor ? 14 : 16;
+  const missing = status === 'missing';
+  const opacity = missing ? 0.35 : 1;
+  return `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:${opacity}">
+    <!-- root -->
+    <path d="M7 ${crownH} Q7 ${h} ${w/2} ${h} Q${w-7} ${h} ${w-7} ${crownH}" fill="${border}" opacity="0.35"/>
+    <!-- crown -->
+    <rect x="1" y="1" width="${w-2}" height="${crownH-1}" rx="${r}" fill="${color}" stroke="${border}" stroke-width="1.5"/>
+    ${isMolar ? `<line x1="8" y1="4" x2="8" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>
+    <line x1="${w-8}" y1="4" x2="${w-8}" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>` : ''}
+    ${status === 'filled' ? `<rect x="5" y="4" width="${w-10}" height="${crownH-7}" rx="2" fill="#16a34a" opacity="0.35"/>` : ''}
+    ${status === 'endo' ? `<line x1="${w/2}" y1="3" x2="${w/2}" y2="${crownH-2}" stroke="#ec4899" stroke-width="1.5"/>` : ''}
+    ${status === 'crown' ? `<rect x="2" y="2" width="${w-4}" height="${crownH-3}" rx="${r-1}" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 2"/>` : ''}
+    ${status === 'implant' ? `<line x1="${w/2}" y1="${crownH+2}" x2="${w/2}" y2="${h-3}" stroke="#7c3aed" stroke-width="2"/>
+    <circle cx="${w/2}" cy="${h-3}" r="2" fill="#7c3aed"/>` : ''}
+    ${missing ? `<line x1="4" y1="4" x2="${w-4}" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>
+    <line x1="${w-4}" y1="4" x2="4" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>` : ''}
+  </svg>`;
+}
+
+function buildOdontogram() {
+  const wrap = document.getElementById('odontogram');
+  if (!wrap) return;
+
+  const makeRow = (teeth, flip) => {
+    let html = '<div class="odo-row">';
+    teeth.forEach((num, i) => {
+      if (i === 4) html += '<div class="odo-divider"></div>';
+      const status = toothRecords[num] || 'healthy';
+      html += `<div class="odo-tooth" id="tooth-${num}" onclick="openToothMenu(event,${num})" title="Zub ${num}">
+        <div class="odo-tooth-num" style="${flip ? 'order:2' : ''}">${num}</div>
+        <div class="odo-tooth-svg" style="${flip ? 'transform:scaleY(-1)' : ''}">${toothSVG(num, status)}</div>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  };
+
+  wrap.innerHTML = `
+    <div class="odo-arch-label">Gornja vilica</div>
+    ${makeRow([...FDI_UPPER_RIGHT, ...FDI_UPPER_LEFT], false)}
+    <div style="height:6px"></div>
+    ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
+    <div class="odo-arch-label" style="margin-top:2px">Donja vilica</div>
+  `;
+
+  // Context menu
+  if (!document.getElementById('odoMenu')) {
+    const menu = document.createElement('div');
+    menu.id = 'odoMenu'; menu.className = 'odo-menu';
+    menu.innerHTML = TOOTH_STATUSES.map(s =>
+      `<div class="odo-menu-item" onclick="setToothStatus('${s.val}')">
+        <span class="odo-menu-dot" style="background:${s.color};border:1.5px solid ${s.border}"></span>${s.label}
+      </div>`
+    ).join('');
+    document.body.appendChild(menu);
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#odoMenu') && !e.target.closest('.odo-tooth')) {
+        document.getElementById('odoMenu').classList.remove('open');
+        document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+      }
+    });
+  }
+}
+
+let activeToothNum = null;
+function openToothMenu(e, num) {
+  e.stopPropagation();
+  activeToothNum = num;
+  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+  document.getElementById('tooth-' + num).classList.add('selected');
+  const menu = document.getElementById('odoMenu');
+  menu.classList.add('open');
+  const r = e.currentTarget.getBoundingClientRect();
+  let top = r.bottom + 4, left = r.left;
+  if (left + 170 > window.innerWidth) left = window.innerWidth - 175;
+  if (top + 220 > window.innerHeight) top = r.top - 225;
+  menu.style.top = top + 'px'; menu.style.left = left + 'px';
+}
+
+async function setToothStatus(status) {
+  if (!activeToothNum || !currentPatientId) return;
+  document.getElementById('odoMenu').classList.remove('open');
+  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+  toothRecords[activeToothNum] = status;
+  // Update SVG in place
+  const toothEl = document.getElementById('tooth-' + activeToothNum);
+  if (toothEl) toothEl.querySelector('.odo-tooth-svg').innerHTML = toothSVG(activeToothNum, status);
+  // Persist to DB
+  await sb.from('tooth_records').upsert({
+    patient_id: currentPatientId,
+    tooth_num: activeToothNum,
+    status: status,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'patient_id,tooth_num' });
+}
+
+async function saveOdoNotes() {
+  clearTimeout(odoNotesTimer);
+  odoNotesTimer = setTimeout(async () => {
+    const notes = document.getElementById('odoNotes')?.value || '';
+    if (currentPatientId) {
+      await sb.from('patients').update({ odo_notes: notes }).eq('id', currentPatientId);
+    }
+  }, 800);
+}
+
+// ── Patient CRUD ──────────────────────────────────────────────
+async function renderPatients() {
+  const tbody = document.getElementById('patientTableBody');
+  const empty = document.getElementById('patientEmpty');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate)">Učitavamo…</td></tr>';
+  const { data } = await sb.from('patients').select('*').order('last_name').order('first_name');
+  allPatients = data || [];
+  renderPatientTable(allPatients);
+}
+
+function renderPatientTable(list) {
+  const tbody = document.getElementById('patientTableBody');
+  const empty = document.getElementById('patientEmpty');
+  if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(p => `
+    <tr onclick="openPatientDetail('${p.id}')">
+      <td><div class="appt-name">${p.last_name}, ${p.first_name}</div></td>
+      <td><div class="appt-date">${p.dob ? fmtDate(p.dob) : '—'}</div></td>
+      <td><div class="appt-date">${p.phone || '—'}</div></td>
+      <td><div class="appt-date" id="last-appt-${p.id}">…</div></td>
+      <td style="text-align:right">
+        <button class="btn-edit" style="padding:5px 10px;font-size:0.75rem" onclick="event.stopPropagation();openPatientModal('${p.id}')">✏️</button>
+        <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+  // Load last appointment dates async
+  list.forEach(async p => {
+    const { data } = await sb.from('appointments').select('date').eq('patient_name', p.first_name + ' ' + p.last_name).order('date', {ascending:false}).limit(1);
+    const el = document.getElementById('last-appt-' + p.id);
+    if (el) el.textContent = data?.[0]?.date ? fmtDate(data[0].date) : '—';
+  });
+}
+
+function filterPatients() {
+  const q = document.getElementById('ptSearch')?.value.toLowerCase() || '';
+  renderPatientTable(allPatients.filter(p =>
+    (p.first_name + ' ' + p.last_name).toLowerCase().includes(q)
+  ));
+}
+
+async function openPatientDetail(id) {
+  currentPatientId = id;
+  const p = allPatients.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('patientListView').style.display = 'none';
+  const dv = document.getElementById('patientDetailView');
+  dv.style.display = 'flex';
+
+  document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
+
+  // Info strip
+  document.getElementById('ptInfoStrip').innerHTML = [
+    p.dob     ? { l: 'Datum rodjenja', v: fmtDate(p.dob) } : null,
+    p.phone   ? { l: 'Telefon',        v: p.phone }         : null,
+    p.email   ? { l: 'Email',          v: p.email }         : null,
+    p.notes   ? { l: 'Napomene',       v: p.notes }         : null,
+  ].filter(Boolean).map(x =>
+    `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
+  ).join('');
+
+  // Load tooth records
+  const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
+  toothRecords = {};
+  (teeth || []).forEach(t => { toothRecords[t.tooth_num] = t.status; });
+  buildOdontogram();
+
+  // Odo notes
+  const notesEl = document.getElementById('odoNotes');
+  if (notesEl) notesEl.value = p.odo_notes || '';
+
+  // Appointment history
+  const { data: appts } = await sb.from('appointments')
+    .select('*').eq('patient_name', p.first_name + ' ' + p.last_name)
+    .order('date', {ascending: false}).limit(30);
+  const histEl = document.getElementById('ptHistory');
+  if (!appts || !appts.length) {
+    histEl.innerHTML = '<div class="pt-empty">Nema evidentiranih termina</div>';
+  } else {
+    histEl.innerHTML = appts.map(a => `
+      <div class="pt-history-item">
+        <div class="pt-history-date">${fmtDate(a.date)}<br><span style="font-weight:400">${a.time_from}</span></div>
+        <div class="pt-history-body">
+          <div class="pt-history-svc">${a.service || 'Pregled'}</div>
+          ${a.note ? `<div class="pt-history-note">${a.note}</div>` : ''}
+        </div>
+        ${badgeHtml(a.status)}
+      </div>`).join('');
+  }
+}
+
+function showPatientList() {
+  currentPatientId = null;
+  document.getElementById('patientDetailView').style.display = 'none';
+  document.getElementById('patientListView').style.display = 'block';
+}
+
+function openPatientModal(id) {
+  editingPatientId = id || null;
+  document.getElementById('patientModalTitle').textContent = id ? 'Izmeni pacijenta' : 'Novi pacijent';
+  document.getElementById('ptSaveBtn').textContent = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  clearErr('ptErr');
+  if (id) {
+    const p = allPatients.find(x => x.id === id);
+    if (p) {
+      document.getElementById('ptFirstName').value = p.first_name || '';
+      document.getElementById('ptLastName').value  = p.last_name  || '';
+      document.getElementById('ptDob').value       = p.dob        || '';
+      document.getElementById('ptPhone').value     = p.phone      || '';
+      document.getElementById('ptEmail').value     = p.email      || '';
+      document.getElementById('ptNotes').value     = p.notes      || '';
+    }
+  } else {
+    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+  }
+  openModal('patientModal');
+}
+
+async function savePatient() {
+  const first = document.getElementById('ptFirstName').value.trim();
+  const last  = document.getElementById('ptLastName').value.trim();
+  if (!first || !last) return showErr('ptErr', 'Unesite ime i prezime.');
+  const btn = document.getElementById('ptSaveBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+  const payload = {
+    first_name: first, last_name: last,
+    dob:   document.getElementById('ptDob').value   || null,
+    phone: document.getElementById('ptPhone').value.trim() || null,
+    email: document.getElementById('ptEmail').value.trim() || null,
+    notes: document.getElementById('ptNotes').value.trim() || null,
+  };
+  let error;
+  if (editingPatientId) {
+    ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
+  } else {
+    ({ error } = await sb.from('patients').insert(payload));
+  }
+  btn.disabled = false; btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  if (error) return showErr('ptErr', error.message);
+  closeModal('patientModal');
+  editingPatientId = null;
+  await renderPatients();
+}
+
+async function deletePatient(id) {
+  if (!confirm('Obrisati ovog pacijenta? Svi zubni zapisi će biti obrisani.')) return;
+  await sb.from('patients').delete().eq('id', id);
+  await renderPatients();
+}
+
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -681,6 +981,143 @@ body {
   /* give panels bottom padding so content isn't hidden behind bottom nav */
   .panels { padding-bottom: 0; }
 }
+
+/* ══════════════════════════════════════════════════
+   PATIENTS & ODONTOGRAM
+══════════════════════════════════════════════════ */
+.pt-search-wrap { margin-bottom: 16px; }
+.pt-search {
+  width: 100%; max-width: 360px;
+  padding: 8px 14px; border-radius: var(--r);
+  border: 1px solid var(--line); background: #fff;
+  font-family: 'Syne', sans-serif; font-size: 0.85rem; color: var(--ink);
+  outline: none; transition: border-color 0.15s;
+}
+.pt-search:focus { border-color: var(--blue); }
+
+/* Detail view */
+.pt-detail-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 24px; background: #fff;
+  border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.pt-back-btn {
+  padding: 6px 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--off);
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
+  color: var(--slate); cursor: pointer; transition: all 0.12s;
+}
+.pt-back-btn:hover { border-color: var(--blue); color: var(--blue); }
+.pt-detail-name {
+  flex: 1; font-size: 1.1rem; font-weight: 800;
+  color: var(--ink); letter-spacing: -0.02em;
+}
+.pt-detail-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+.pt-info-strip {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  background: var(--off); border-radius: var(--r);
+  padding: 14px 18px; border: 1px solid var(--line);
+}
+.pt-info-item { display: flex; flex-direction: column; gap: 2px; }
+.pt-info-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate); }
+.pt-info-value { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+
+.pt-section { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.pt-section-title {
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--slate);
+  padding: 12px 18px; border-bottom: 1px solid var(--line);
+  background: var(--off);
+}
+
+/* ── ODONTOGRAM ─────────────────────────────────── */
+.odo-legend {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  padding: 12px 18px; border-bottom: 1px solid var(--line);
+}
+.odo-leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--slate); font-weight: 600; }
+.odo-leg-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+.odo-wrap {
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-x: auto;
+}
+.odo-arch-label {
+  font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--slate); text-align: center;
+  margin-bottom: 2px;
+}
+.odo-row {
+  display: flex; gap: 3px; justify-content: center;
+}
+.odo-divider {
+  width: 1px; background: var(--line); margin: 0 6px; flex-shrink: 0;
+}
+.odo-tooth {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; user-select: none;
+}
+.odo-tooth-num {
+  font-size: 0.58rem; font-weight: 700; color: var(--slate);
+  line-height: 1;
+}
+.odo-tooth-svg {
+  width: 28px; height: 32px;
+  transition: transform 0.1s;
+}
+.odo-tooth:hover .odo-tooth-svg { transform: scale(1.15); }
+.odo-tooth.selected .odo-tooth-svg { transform: scale(1.15); filter: drop-shadow(0 0 3px rgba(37,99,235,0.5)); }
+
+/* Status context menu */
+.odo-menu {
+  position: fixed; z-index: 1000;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 4px; min-width: 160px;
+  display: none;
+}
+.odo-menu.open { display: block; }
+.odo-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 6px;
+  font-size: 0.8rem; font-weight: 600; color: var(--ink);
+  cursor: pointer; transition: background 0.08s;
+}
+.odo-menu-item:hover { background: var(--blue-dim); }
+.odo-menu-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.odo-notes-wrap { padding: 12px 18px; border-top: 1px solid var(--line); }
+.odo-notes {
+  width: 100%; min-height: 60px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; color: var(--ink);
+  resize: vertical; outline: none; transition: border-color 0.15s;
+}
+.odo-notes:focus { border-color: var(--blue); }
+
+/* History items */
+.pt-history-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid var(--line);
+}
+.pt-history-item:last-child { border-bottom: none; }
+.pt-history-date { font-size: 0.75rem; font-weight: 700; color: var(--slate); white-space: nowrap; min-width: 90px; }
+.pt-history-body { flex: 1; }
+.pt-history-svc { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+.pt-history-note { font-size: 0.75rem; color: var(--slate); margin-top: 2px; }
+
+.pt-empty { padding: 32px 18px; text-align: center; color: var(--slate); font-size: 0.85rem; }
+
+@media (max-width: 600px) {
+  .pt-detail-header { padding: 10px 12px; }
+  .pt-detail-body { padding: 12px; }
+  .odo-tooth-svg { width: 24px; height: 28px; }
+  .odo-tooth-num { font-size: 0.52rem; }
+  .odo-wrap { padding: 12px; gap: 6px; }
+}
+
 </style>
 </head>
 <body>
@@ -724,6 +1161,7 @@ body {
       <button class="tab-btn active" data-tab="calendar" onclick="switchTab('calendar',this)">Kalendar</button>
       <button class="tab-btn" data-tab="list" onclick="switchTab('list',this)">Termini</button>
       <button class="tab-btn" data-tab="services" onclick="switchTab('services',this)">Usluge</button>
+      <button class="tab-btn" data-tab="patients" onclick="switchTab('patients',this)">Pacijenti</button>
     </div>
     <div class="topbar-right">
       <div class="doctor-chip">
@@ -747,6 +1185,10 @@ body {
     <button class="bottom-nav-btn" onclick="switchTab('services',this)" data-tab="services">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3v14M3 10h14" stroke-linecap="round"/><circle cx="10" cy="10" r="7"/></svg>
       <span>Usluge</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="switchTab('patients',this)" data-tab="patients">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke-linecap="round"/></svg>
+      <span>Pacijenti</span>
     </button>
   </nav>
 
@@ -782,6 +1224,72 @@ body {
       <div class="cal-header-row" id="calHeaderRow"></div>
       <div class="cal-scroll">
         <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+
+    <!-- PATIENTS -->
+    <div class="panel" id="panelPatients">
+      <!-- Patient List View -->
+      <div id="patientListView" class="list-panel-inner">
+        <div class="list-header">
+          <div class="list-title">Pacijenti</div>
+          <button class="cal-add-btn" onclick="openPatientModal()">+ Novi pacijent</button>
+        </div>
+        <div class="pt-search-wrap">
+          <input id="ptSearch" type="text" placeholder="Pretraži po imenu…" oninput="filterPatients()" class="pt-search">
+        </div>
+        <table class="appt-table" id="patientTable">
+          <thead><tr>
+            <th>Ime i prezime</th>
+            <th>Datum rodjenja</th>
+            <th>Telefon</th>
+            <th>Poslednji pregled</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="patientTableBody"></tbody>
+        </table>
+        <div class="empty-state" id="patientEmpty" style="display:none">
+          <div class="empty-icon">🦷</div>
+          <div>Nema pacijenata</div>
+        </div>
+      </div>
+
+      <!-- Patient Detail View (odontogram + history) -->
+      <div id="patientDetailView" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+        <div class="pt-detail-header">
+          <button class="pt-back-btn" onclick="showPatientList()">← Nazad</button>
+          <div class="pt-detail-name" id="ptDetailName"></div>
+          <button class="cal-add-btn" onclick="openPatientModal(currentPatientId)">✏️ Izmeni</button>
+        </div>
+        <div class="pt-detail-body">
+          <!-- Info strip -->
+          <div class="pt-info-strip" id="ptInfoStrip"></div>
+
+          <!-- Odontogram -->
+          <div class="pt-section">
+            <div class="pt-section-title">Odontogram</div>
+            <div class="odo-legend">
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#e5e7eb;border:2px solid #d1d5db"></span>Zdrav</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#fef08a;border:2px solid #eab308"></span>Karijes</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#86efac;border:2px solid #22c55e"></span>Plomba</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#93c5fd;border:2px solid #3b82f6"></span>Kruna</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#f9a8d4;border:2px solid #ec4899"></span>Endodoncija</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#d1d5db;border:2px solid #6b7280;opacity:0.4"></span>Nedostaje</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#c4b5fd;border:2px solid #7c3aed"></span>Implant</span>
+            </div>
+            <div class="odo-wrap" id="odontogram"></div>
+            <div class="odo-notes-wrap">
+              <textarea id="odoNotes" class="odo-notes" placeholder="Napomena za odontogram…" oninput="saveOdoNotes()"></textarea>
+            </div>
+          </div>
+
+          <!-- Appointment history -->
+          <div class="pt-section">
+            <div class="pt-section-title">Istorija termina</div>
+            <div id="ptHistory"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1090,6 +1598,9 @@ function switchTab(tab, btn) {
   } else if (tab === 'services') {
     document.getElementById('panelServices').classList.add('active');
     renderServices();
+  } else if (tab === 'patients') {
+    document.getElementById('panelPatients').classList.add('active');
+    renderPatients();
   } else {
     document.getElementById('panelList').classList.add('active');
     renderList();
@@ -1710,6 +2221,306 @@ async function deleteSvc(id) {
   renderServices();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// PATIENTS
+// ══════════════════════════════════════════════════════════════
+let allPatients     = [];
+let currentPatientId = null;
+let editingPatientId = null;
+let toothRecords    = {};   // { toothNum: status }
+let odoNotesTimer   = null;
+
+// ── FDI tooth layout ──────────────────────────────────────────
+// Upper right: 18-11, upper left: 21-28
+// Lower right: 48-41, lower left: 31-38
+const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
+const FDI_UPPER_LEFT  = [21,22,23,24,25,26,27,28];
+const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
+const FDI_LOWER_LEFT  = [31,32,33,34,35,36,37,38];
+
+const TOOTH_STATUSES = [
+  { val: 'healthy',  label: 'Zdrav',       color: '#e5e7eb', border: '#d1d5db' },
+  { val: 'caries',   label: 'Karijes',     color: '#fef08a', border: '#eab308' },
+  { val: 'filled',   label: 'Plomba',      color: '#86efac', border: '#22c55e' },
+  { val: 'crown',    label: 'Kruna',       color: '#93c5fd', border: '#3b82f6' },
+  { val: 'endo',     label: 'Endodoncija', color: '#f9a8d4', border: '#ec4899' },
+  { val: 'missing',  label: 'Nedostaje',   color: '#d1d5db', border: '#6b7280' },
+  { val: 'implant',  label: 'Implant',     color: '#c4b5fd', border: '#7c3aed' },
+];
+
+function toothColor(status) {
+  const s = TOOTH_STATUSES.find(x => x.val === status);
+  return s || TOOTH_STATUSES[0];
+}
+
+// ── SVG tooth shape ───────────────────────────────────────────
+function toothSVG(num, status) {
+  const { color, border } = toothColor(status || 'healthy');
+  const isMolar = [6,7,8,16,17,18,36,37,38,46,47,48].includes(num);
+  const isIncisor = [1,2,11,12,21,22,31,32,41,42].includes(num);
+  // Simple shape: rounded rect with root suggestion
+  const w = 22, h = 28, r = isMolar ? 5 : 4;
+  const crownH = isIncisor ? 14 : 16;
+  const missing = status === 'missing';
+  const opacity = missing ? 0.35 : 1;
+  return `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:${opacity}">
+    <!-- root -->
+    <path d="M7 ${crownH} Q7 ${h} ${w/2} ${h} Q${w-7} ${h} ${w-7} ${crownH}" fill="${border}" opacity="0.35"/>
+    <!-- crown -->
+    <rect x="1" y="1" width="${w-2}" height="${crownH-1}" rx="${r}" fill="${color}" stroke="${border}" stroke-width="1.5"/>
+    ${isMolar ? `<line x1="8" y1="4" x2="8" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>
+    <line x1="${w-8}" y1="4" x2="${w-8}" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>` : ''}
+    ${status === 'filled' ? `<rect x="5" y="4" width="${w-10}" height="${crownH-7}" rx="2" fill="#16a34a" opacity="0.35"/>` : ''}
+    ${status === 'endo' ? `<line x1="${w/2}" y1="3" x2="${w/2}" y2="${crownH-2}" stroke="#ec4899" stroke-width="1.5"/>` : ''}
+    ${status === 'crown' ? `<rect x="2" y="2" width="${w-4}" height="${crownH-3}" rx="${r-1}" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 2"/>` : ''}
+    ${status === 'implant' ? `<line x1="${w/2}" y1="${crownH+2}" x2="${w/2}" y2="${h-3}" stroke="#7c3aed" stroke-width="2"/>
+    <circle cx="${w/2}" cy="${h-3}" r="2" fill="#7c3aed"/>` : ''}
+    ${missing ? `<line x1="4" y1="4" x2="${w-4}" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>
+    <line x1="${w-4}" y1="4" x2="4" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>` : ''}
+  </svg>`;
+}
+
+function buildOdontogram() {
+  const wrap = document.getElementById('odontogram');
+  if (!wrap) return;
+
+  const makeRow = (teeth, flip) => {
+    let html = '<div class="odo-row">';
+    teeth.forEach((num, i) => {
+      if (i === 4) html += '<div class="odo-divider"></div>';
+      const status = toothRecords[num] || 'healthy';
+      html += `<div class="odo-tooth" id="tooth-${num}" onclick="openToothMenu(event,${num})" title="Zub ${num}">
+        <div class="odo-tooth-num" style="${flip ? 'order:2' : ''}">${num}</div>
+        <div class="odo-tooth-svg" style="${flip ? 'transform:scaleY(-1)' : ''}">${toothSVG(num, status)}</div>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  };
+
+  wrap.innerHTML = `
+    <div class="odo-arch-label">Gornja vilica</div>
+    ${makeRow([...FDI_UPPER_RIGHT, ...FDI_UPPER_LEFT], false)}
+    <div style="height:6px"></div>
+    ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
+    <div class="odo-arch-label" style="margin-top:2px">Donja vilica</div>
+  `;
+
+  // Context menu
+  if (!document.getElementById('odoMenu')) {
+    const menu = document.createElement('div');
+    menu.id = 'odoMenu'; menu.className = 'odo-menu';
+    menu.innerHTML = TOOTH_STATUSES.map(s =>
+      `<div class="odo-menu-item" onclick="setToothStatus('${s.val}')">
+        <span class="odo-menu-dot" style="background:${s.color};border:1.5px solid ${s.border}"></span>${s.label}
+      </div>`
+    ).join('');
+    document.body.appendChild(menu);
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#odoMenu') && !e.target.closest('.odo-tooth')) {
+        document.getElementById('odoMenu').classList.remove('open');
+        document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+      }
+    });
+  }
+}
+
+let activeToothNum = null;
+function openToothMenu(e, num) {
+  e.stopPropagation();
+  activeToothNum = num;
+  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+  document.getElementById('tooth-' + num).classList.add('selected');
+  const menu = document.getElementById('odoMenu');
+  menu.classList.add('open');
+  const r = e.currentTarget.getBoundingClientRect();
+  let top = r.bottom + 4, left = r.left;
+  if (left + 170 > window.innerWidth) left = window.innerWidth - 175;
+  if (top + 220 > window.innerHeight) top = r.top - 225;
+  menu.style.top = top + 'px'; menu.style.left = left + 'px';
+}
+
+async function setToothStatus(status) {
+  if (!activeToothNum || !currentPatientId) return;
+  document.getElementById('odoMenu').classList.remove('open');
+  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+  toothRecords[activeToothNum] = status;
+  // Update SVG in place
+  const toothEl = document.getElementById('tooth-' + activeToothNum);
+  if (toothEl) toothEl.querySelector('.odo-tooth-svg').innerHTML = toothSVG(activeToothNum, status);
+  // Persist to DB
+  await sb.from('tooth_records').upsert({
+    patient_id: currentPatientId,
+    tooth_num: activeToothNum,
+    status: status,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'patient_id,tooth_num' });
+}
+
+async function saveOdoNotes() {
+  clearTimeout(odoNotesTimer);
+  odoNotesTimer = setTimeout(async () => {
+    const notes = document.getElementById('odoNotes')?.value || '';
+    if (currentPatientId) {
+      await sb.from('patients').update({ odo_notes: notes }).eq('id', currentPatientId);
+    }
+  }, 800);
+}
+
+// ── Patient CRUD ──────────────────────────────────────────────
+async function renderPatients() {
+  const tbody = document.getElementById('patientTableBody');
+  const empty = document.getElementById('patientEmpty');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate)">Učitavamo…</td></tr>';
+  const { data } = await sb.from('patients').select('*').order('last_name').order('first_name');
+  allPatients = data || [];
+  renderPatientTable(allPatients);
+}
+
+function renderPatientTable(list) {
+  const tbody = document.getElementById('patientTableBody');
+  const empty = document.getElementById('patientEmpty');
+  if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(p => `
+    <tr onclick="openPatientDetail('${p.id}')">
+      <td><div class="appt-name">${p.last_name}, ${p.first_name}</div></td>
+      <td><div class="appt-date">${p.dob ? fmtDate(p.dob) : '—'}</div></td>
+      <td><div class="appt-date">${p.phone || '—'}</div></td>
+      <td><div class="appt-date" id="last-appt-${p.id}">…</div></td>
+      <td style="text-align:right">
+        <button class="btn-edit" style="padding:5px 10px;font-size:0.75rem" onclick="event.stopPropagation();openPatientModal('${p.id}')">✏️</button>
+        <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+  // Load last appointment dates async
+  list.forEach(async p => {
+    const { data } = await sb.from('appointments').select('date').eq('patient_name', p.first_name + ' ' + p.last_name).order('date', {ascending:false}).limit(1);
+    const el = document.getElementById('last-appt-' + p.id);
+    if (el) el.textContent = data?.[0]?.date ? fmtDate(data[0].date) : '—';
+  });
+}
+
+function filterPatients() {
+  const q = document.getElementById('ptSearch')?.value.toLowerCase() || '';
+  renderPatientTable(allPatients.filter(p =>
+    (p.first_name + ' ' + p.last_name).toLowerCase().includes(q)
+  ));
+}
+
+async function openPatientDetail(id) {
+  currentPatientId = id;
+  const p = allPatients.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('patientListView').style.display = 'none';
+  const dv = document.getElementById('patientDetailView');
+  dv.style.display = 'flex';
+
+  document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
+
+  // Info strip
+  document.getElementById('ptInfoStrip').innerHTML = [
+    p.dob     ? { l: 'Datum rodjenja', v: fmtDate(p.dob) } : null,
+    p.phone   ? { l: 'Telefon',        v: p.phone }         : null,
+    p.email   ? { l: 'Email',          v: p.email }         : null,
+    p.notes   ? { l: 'Napomene',       v: p.notes }         : null,
+  ].filter(Boolean).map(x =>
+    `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
+  ).join('');
+
+  // Load tooth records
+  const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
+  toothRecords = {};
+  (teeth || []).forEach(t => { toothRecords[t.tooth_num] = t.status; });
+  buildOdontogram();
+
+  // Odo notes
+  const notesEl = document.getElementById('odoNotes');
+  if (notesEl) notesEl.value = p.odo_notes || '';
+
+  // Appointment history
+  const { data: appts } = await sb.from('appointments')
+    .select('*').eq('patient_name', p.first_name + ' ' + p.last_name)
+    .order('date', {ascending: false}).limit(30);
+  const histEl = document.getElementById('ptHistory');
+  if (!appts || !appts.length) {
+    histEl.innerHTML = '<div class="pt-empty">Nema evidentiranih termina</div>';
+  } else {
+    histEl.innerHTML = appts.map(a => `
+      <div class="pt-history-item">
+        <div class="pt-history-date">${fmtDate(a.date)}<br><span style="font-weight:400">${a.time_from}</span></div>
+        <div class="pt-history-body">
+          <div class="pt-history-svc">${a.service || 'Pregled'}</div>
+          ${a.note ? `<div class="pt-history-note">${a.note}</div>` : ''}
+        </div>
+        ${badgeHtml(a.status)}
+      </div>`).join('');
+  }
+}
+
+function showPatientList() {
+  currentPatientId = null;
+  document.getElementById('patientDetailView').style.display = 'none';
+  document.getElementById('patientListView').style.display = 'block';
+}
+
+function openPatientModal(id) {
+  editingPatientId = id || null;
+  document.getElementById('patientModalTitle').textContent = id ? 'Izmeni pacijenta' : 'Novi pacijent';
+  document.getElementById('ptSaveBtn').textContent = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  clearErr('ptErr');
+  if (id) {
+    const p = allPatients.find(x => x.id === id);
+    if (p) {
+      document.getElementById('ptFirstName').value = p.first_name || '';
+      document.getElementById('ptLastName').value  = p.last_name  || '';
+      document.getElementById('ptDob').value       = p.dob        || '';
+      document.getElementById('ptPhone').value     = p.phone      || '';
+      document.getElementById('ptEmail').value     = p.email      || '';
+      document.getElementById('ptNotes').value     = p.notes      || '';
+    }
+  } else {
+    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+  }
+  openModal('patientModal');
+}
+
+async function savePatient() {
+  const first = document.getElementById('ptFirstName').value.trim();
+  const last  = document.getElementById('ptLastName').value.trim();
+  if (!first || !last) return showErr('ptErr', 'Unesite ime i prezime.');
+  const btn = document.getElementById('ptSaveBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+  const payload = {
+    first_name: first, last_name: last,
+    dob:   document.getElementById('ptDob').value   || null,
+    phone: document.getElementById('ptPhone').value.trim() || null,
+    email: document.getElementById('ptEmail').value.trim() || null,
+    notes: document.getElementById('ptNotes').value.trim() || null,
+  };
+  let error;
+  if (editingPatientId) {
+    ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
+  } else {
+    ({ error } = await sb.from('patients').insert(payload));
+  }
+  btn.disabled = false; btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  if (error) return showErr('ptErr', error.message);
+  closeModal('patientModal');
+  editingPatientId = null;
+  await renderPatients();
+}
+
+async function deletePatient(id) {
+  if (!confirm('Obrisati ovog pacijenta? Svi zubni zapisi će biti obrisani.')) return;
+  await sb.from('patients').delete().eq('id', id);
+  await renderPatients();
+}
+
 </script>
 <!-- SERVICE MODAL -->
 <div class="overlay" id="svcModal">
@@ -1733,6 +2544,48 @@ async function deleteSvc(id) {
       </div>
       <div class="modal-err" id="svcErr"></div>
       <button class="btn-save" id="svcSaveBtn" onclick="saveService()">Sačuvaj →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENT MODAL -->
+<div class="overlay" id="patientModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="patientModalTitle">Novi pacijent</h3>
+      <button class="modal-close" onclick="closeModal('patientModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mrow">
+        <div class="mfield">
+          <label>Ime</label>
+          <input id="ptFirstName" placeholder="Ime">
+        </div>
+        <div class="mfield">
+          <label>Prezime</label>
+          <input id="ptLastName" placeholder="Prezime">
+        </div>
+      </div>
+      <div class="mrow">
+        <div class="mfield">
+          <label>Datum rodjenja</label>
+          <input id="ptDob" type="date">
+        </div>
+        <div class="mfield">
+          <label>Telefon</label>
+          <input id="ptPhone" placeholder="+381 60 123 4567">
+        </div>
+      </div>
+      <div class="mfield">
+        <label>Email</label>
+        <input id="ptEmail" type="email" placeholder="pacijent@email.com">
+      </div>
+      <div class="mfield">
+        <label>Alergije / napomene</label>
+        <textarea id="ptNotes" placeholder="Alergije, hronične bolesti, lekovi…"></textarea>
+      </div>
+      <div class="modal-err" id="ptErr"></div>
+      <button class="btn-save" id="ptSaveBtn" onclick="savePatient()">Sačuvaj →</button>
     </div>
   </div>
 </div>
