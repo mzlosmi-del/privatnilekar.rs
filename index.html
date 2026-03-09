@@ -733,64 +733,87 @@ body {
 
 /* ── ODONTOGRAM ─────────────────────────────────── */
 .odo-legend {
-  display: flex; flex-wrap: wrap; gap: 10px;
+  display: flex; flex-wrap: wrap; gap: 8px;
   padding: 12px 18px; border-bottom: 1px solid var(--line);
 }
-.odo-leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--slate); font-weight: 600; }
-.odo-leg-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.odo-leg-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--slate); font-weight: 600; }
+.odo-leg-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 
 .odo-wrap {
-  padding: 16px 18px;
-  display: flex; flex-direction: column; gap: 8px;
+  padding: 20px 18px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   overflow-x: auto;
 }
 .odo-arch-label {
-  font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.1em; color: var(--slate); text-align: center;
-  margin-bottom: 2px;
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate); text-align: center;
+  margin: 2px 0;
 }
 .odo-row {
-  display: flex; gap: 3px; justify-content: center;
+  display: flex; gap: 4px; justify-content: center; align-items: flex-start;
 }
-.odo-divider {
-  width: 1px; background: var(--line); margin: 0 6px; flex-shrink: 0;
+.odo-quadrant-sep {
+  width: 2px; background: var(--line); margin: 0 6px;
+  align-self: stretch; border-radius: 1px; min-height: 60px;
 }
-.odo-tooth {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  cursor: pointer; user-select: none;
+/* Each tooth wrapper */
+.odo-tooth-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: default; user-select: none;
 }
-.odo-tooth-num {
-  font-size: 0.58rem; font-weight: 700; color: var(--slate);
-  line-height: 1;
+.odo-tooth-label {
+  font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1;
+  text-align: center;
 }
-.odo-tooth-svg {
-  width: 28px; height: 32px;
-  transition: transform 0.1s;
+/* The diagram box — size controlled here */
+.odo-tooth-diagram {
+  width: 52px; height: 52px; position: relative; flex-shrink: 0;
 }
-.odo-tooth:hover .odo-tooth-svg { transform: scale(1.15); }
-.odo-tooth.selected .odo-tooth-svg { transform: scale(1.15); filter: drop-shadow(0 0 3px rgba(37,99,235,0.5)); }
+.odo-tooth-diagram svg {
+  width: 52px; height: 52px; display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
+  transition: filter 0.12s;
+}
+.odo-tooth-wrap:hover .odo-tooth-diagram svg {
+  filter: drop-shadow(0 2px 6px rgba(37,99,235,0.25));
+}
+/* Surface paths */
+.odo-surface {
+  cursor: pointer;
+  stroke-width: 0.6;
+  transition: opacity 0.1s, stroke-width 0.1s;
+}
+.odo-surface:hover {
+  opacity: 0.78;
+  stroke-width: 1.4 !important;
+}
 
 /* Status context menu */
 .odo-menu {
-  position: fixed; z-index: 1000;
+  position: fixed; z-index: 9999;
   background: #fff; border: 1px solid var(--line);
-  border-radius: var(--r); box-shadow: var(--shadow);
-  padding: 4px; min-width: 160px;
+  border-radius: var(--r); box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+  padding: 4px; min-width: 180px;
   display: none;
 }
 .odo-menu.open { display: block; }
+.odo-menu-head {
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate);
+  padding: 7px 12px 5px; border-bottom: 1px solid var(--line); margin-bottom: 3px;
+}
 .odo-menu-item {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 9px;
   padding: 7px 12px; border-radius: 6px;
-  font-size: 0.8rem; font-weight: 600; color: var(--ink);
+  font-size: 0.82rem; font-weight: 600; color: var(--ink);
   cursor: pointer; transition: background 0.08s;
 }
-.odo-menu-item:hover { background: var(--blue-dim); }
-.odo-menu-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.odo-menu-item:hover { background: var(--blue-dim); color: var(--blue); }
+.odo-menu-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.12); }
 
-.odo-notes-wrap { padding: 12px 18px; border-top: 1px solid var(--line); }
+.odo-notes-wrap { padding: 14px 18px; border-top: 1px solid var(--line); }
 .odo-notes {
-  width: 100%; min-height: 60px; padding: 8px 12px;
+  width: 100%; min-height: 68px; padding: 8px 12px;
   border: 1px solid var(--line); border-radius: var(--r);
   font-family: 'Syne', sans-serif; font-size: 0.82rem; color: var(--ink);
   resize: vertical; outline: none; transition: border-color 0.15s;
@@ -807,15 +830,16 @@ body {
 .pt-history-body { flex: 1; }
 .pt-history-svc { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
 .pt-history-note { font-size: 0.75rem; color: var(--slate); margin-top: 2px; }
-
 .pt-empty { padding: 32px 18px; text-align: center; color: var(--slate); font-size: 0.85rem; }
 
 @media (max-width: 600px) {
   .pt-detail-header { padding: 10px 12px; }
   .pt-detail-body { padding: 12px; }
-  .odo-tooth-svg { width: 24px; height: 28px; }
-  .odo-tooth-num { font-size: 0.52rem; }
-  .odo-wrap { padding: 12px; gap: 6px; }
+  .odo-tooth-diagram { width: 40px; height: 40px; }
+  .odo-tooth-diagram svg { width: 40px; height: 40px; }
+  .odo-tooth-label { font-size: 0.58rem; }
+  .odo-row { gap: 3px; }
+  .odo-wrap { padding: 12px 8px; }
 }
 
 </style>
@@ -1978,7 +2002,7 @@ function isIncisor(num) { return (num % 10) <= 2; }
 // Convention here: top=B, bottom=L, left=M, right=D, center=O
 function toothDiagramSVG(num, surfaces) {
   const s = surfaces || {};
-  const sz = 34; const c = sz/2; const m = 6; // margin for B/L/M/D triangles
+  const sz = 50; const c = sz/2; const m = 9; // margin for B/L/M/D triangles
 
   // 5 regions as SVG paths:
   // Center square (Occlusal/Incisal)
