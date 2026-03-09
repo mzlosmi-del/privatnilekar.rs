@@ -2118,7 +2118,7 @@ function renderDoctorApptRow(a, compact) {
     <div class="appt-time">${a.appointment_time?.slice(0,5)}<br><span style="font-size:0.72rem;font-weight:400;color:var(--ink-muted)">${dateStr}</span></div>
     <div class="appt-info">
       <div class="appt-who">${patientNameFromAppt(a)}${pat.phone ? ' · ' + pat.phone : ''}</div>
-      <div class="appt-what">${svc.name || '—'}${a.patient_note ? ' · "' + a.patient_note.slice(0,60) + '"' : ''}</div>
+      <div class="appt-what">${svc.name || serviceNameFromAppt(a) || '—'}${doctorNoteText(a) ? ' · ' + doctorNoteText(a).slice(0,50) : (a.patient_note ? ' · "' + a.patient_note.slice(0,50) + '"' : '')}</div>
     </div>
     <div class="appt-actions">
       ${badgeHtml(a.status)}
@@ -2537,6 +2537,11 @@ function openApptDetail(idx) {
         <div><div style="font-size:0.72rem;color:var(--ink-muted);font-weight:700;text-transform:uppercase">Napomena pacijenta</div>
         <div style="color:var(--ink-soft)">${appt.patient_note}</div></div>
       </div>` : ''}
+      ${doctorNoteText(appt) ? `<div style="display:flex;gap:12px;padding:12px;background:#fefce8;border-radius:var(--r);border:1px solid #fde68a">
+        <span style="font-size:1.4rem">🗒️</span>
+        <div><div style="font-size:0.72rem;color:#92400e;font-weight:700;text-transform:uppercase">Vaša napomena</div>
+        <div style="color:#78350f">${doctorNoteText(appt)}</div></div>
+      </div>` : ''}
     </div>
     ${appt.status === 'pending' ? `
       <div style="display:flex;gap:10px">
@@ -2574,6 +2579,20 @@ function serviceNameFromAppt(appt) {
   const note = appt.doctor_note || '';
   const m = note.match(/Usluga:\s*([^|]+)/);
   return m ? m[1].trim() : (appt.doctor_note || '');
+}
+
+function doctorNoteText(appt) {
+  // doctor_note format: "Pacijent: X | Usluga: Y | actual note"
+  // Strip the auto-generated prefix and return only the free-text part
+  const raw = appt.doctor_note || '';
+  // Remove known prefixes
+  let text = raw
+    .replace(/Pacijent:\s*[^|]+\|?/g, '')
+    .replace(/Usluga:\s*[^|]+\|?/g, '')
+    .trim()
+    .replace(/^\|\s*/, '')
+    .trim();
+  return text;
 }
 
 // ── New Appointment ──────────────────────────────────
