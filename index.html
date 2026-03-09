@@ -6,307 +6,7 @@
 <title>Lekar — Kalendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Spectral:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// ══════════════════════════════════════════════════════════════
-// PATIENTS
-// ══════════════════════════════════════════════════════════════
-let allPatients     = [];
-let currentPatientId = null;
-let editingPatientId = null;
-let toothRecords    = {};   // { toothNum: status }
-let odoNotesTimer   = null;
-
-// ── FDI tooth layout ──────────────────────────────────────────
-// Upper right: 18-11, upper left: 21-28
-// Lower right: 48-41, lower left: 31-38
-const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
-const FDI_UPPER_LEFT  = [21,22,23,24,25,26,27,28];
-const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
-const FDI_LOWER_LEFT  = [31,32,33,34,35,36,37,38];
-
-const TOOTH_STATUSES = [
-  { val: 'healthy',  label: 'Zdrav',       color: '#e5e7eb', border: '#d1d5db' },
-  { val: 'caries',   label: 'Karijes',     color: '#fef08a', border: '#eab308' },
-  { val: 'filled',   label: 'Plomba',      color: '#86efac', border: '#22c55e' },
-  { val: 'crown',    label: 'Kruna',       color: '#93c5fd', border: '#3b82f6' },
-  { val: 'endo',     label: 'Endodoncija', color: '#f9a8d4', border: '#ec4899' },
-  { val: 'missing',  label: 'Nedostaje',   color: '#d1d5db', border: '#6b7280' },
-  { val: 'implant',  label: 'Implant',     color: '#c4b5fd', border: '#7c3aed' },
-];
-
-function toothColor(status) {
-  const s = TOOTH_STATUSES.find(x => x.val === status);
-  return s || TOOTH_STATUSES[0];
-}
-
-// ── SVG tooth shape ───────────────────────────────────────────
-function toothSVG(num, status) {
-  const { color, border } = toothColor(status || 'healthy');
-  const isMolar = [6,7,8,16,17,18,36,37,38,46,47,48].includes(num);
-  const isIncisor = [1,2,11,12,21,22,31,32,41,42].includes(num);
-  // Simple shape: rounded rect with root suggestion
-  const w = 22, h = 28, r = isMolar ? 5 : 4;
-  const crownH = isIncisor ? 14 : 16;
-  const missing = status === 'missing';
-  const opacity = missing ? 0.35 : 1;
-  return `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:${opacity}">
-    <!-- root -->
-    <path d="M7 ${crownH} Q7 ${h} ${w/2} ${h} Q${w-7} ${h} ${w-7} ${crownH}" fill="${border}" opacity="0.35"/>
-    <!-- crown -->
-    <rect x="1" y="1" width="${w-2}" height="${crownH-1}" rx="${r}" fill="${color}" stroke="${border}" stroke-width="1.5"/>
-    ${isMolar ? `<line x1="8" y1="4" x2="8" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>
-    <line x1="${w-8}" y1="4" x2="${w-8}" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>` : ''}
-    ${status === 'filled' ? `<rect x="5" y="4" width="${w-10}" height="${crownH-7}" rx="2" fill="#16a34a" opacity="0.35"/>` : ''}
-    ${status === 'endo' ? `<line x1="${w/2}" y1="3" x2="${w/2}" y2="${crownH-2}" stroke="#ec4899" stroke-width="1.5"/>` : ''}
-    ${status === 'crown' ? `<rect x="2" y="2" width="${w-4}" height="${crownH-3}" rx="${r-1}" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 2"/>` : ''}
-    ${status === 'implant' ? `<line x1="${w/2}" y1="${crownH+2}" x2="${w/2}" y2="${h-3}" stroke="#7c3aed" stroke-width="2"/>
-    <circle cx="${w/2}" cy="${h-3}" r="2" fill="#7c3aed"/>` : ''}
-    ${missing ? `<line x1="4" y1="4" x2="${w-4}" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>
-    <line x1="${w-4}" y1="4" x2="4" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>` : ''}
-  </svg>`;
-}
-
-function buildOdontogram() {
-  const wrap = document.getElementById('odontogram');
-  if (!wrap) return;
-
-  const makeRow = (teeth, flip) => {
-    let html = '<div class="odo-row">';
-    teeth.forEach((num, i) => {
-      if (i === 4) html += '<div class="odo-divider"></div>';
-      const status = toothRecords[num] || 'healthy';
-      html += `<div class="odo-tooth" id="tooth-${num}" onclick="openToothMenu(event,${num})" title="Zub ${num}">
-        <div class="odo-tooth-num" style="${flip ? 'order:2' : ''}">${num}</div>
-        <div class="odo-tooth-svg" style="${flip ? 'transform:scaleY(-1)' : ''}">${toothSVG(num, status)}</div>
-      </div>`;
-    });
-    html += '</div>';
-    return html;
-  };
-
-  wrap.innerHTML = `
-    <div class="odo-arch-label">Gornja vilica</div>
-    ${makeRow([...FDI_UPPER_RIGHT, ...FDI_UPPER_LEFT], false)}
-    <div style="height:6px"></div>
-    ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
-    <div class="odo-arch-label" style="margin-top:2px">Donja vilica</div>
-  `;
-
-  // Context menu
-  if (!document.getElementById('odoMenu')) {
-    const menu = document.createElement('div');
-    menu.id = 'odoMenu'; menu.className = 'odo-menu';
-    menu.innerHTML = TOOTH_STATUSES.map(s =>
-      `<div class="odo-menu-item" onclick="setToothStatus('${s.val}')">
-        <span class="odo-menu-dot" style="background:${s.color};border:1.5px solid ${s.border}"></span>${s.label}
-      </div>`
-    ).join('');
-    document.body.appendChild(menu);
-    document.addEventListener('click', e => {
-      if (!e.target.closest('#odoMenu') && !e.target.closest('.odo-tooth')) {
-        document.getElementById('odoMenu').classList.remove('open');
-        document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
-      }
-    });
-  }
-}
-
-let activeToothNum = null;
-function openToothMenu(e, num) {
-  e.stopPropagation();
-  activeToothNum = num;
-  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
-  document.getElementById('tooth-' + num).classList.add('selected');
-  const menu = document.getElementById('odoMenu');
-  menu.classList.add('open');
-  const r = e.currentTarget.getBoundingClientRect();
-  let top = r.bottom + 4, left = r.left;
-  if (left + 170 > window.innerWidth) left = window.innerWidth - 175;
-  if (top + 220 > window.innerHeight) top = r.top - 225;
-  menu.style.top = top + 'px'; menu.style.left = left + 'px';
-}
-
-async function setToothStatus(status) {
-  if (!activeToothNum || !currentPatientId) return;
-  document.getElementById('odoMenu').classList.remove('open');
-  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
-  toothRecords[activeToothNum] = status;
-  // Update SVG in place
-  const toothEl = document.getElementById('tooth-' + activeToothNum);
-  if (toothEl) toothEl.querySelector('.odo-tooth-svg').innerHTML = toothSVG(activeToothNum, status);
-  // Persist to DB
-  await sb.from('tooth_records').upsert({
-    patient_id: currentPatientId,
-    tooth_num: activeToothNum,
-    status: status,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'patient_id,tooth_num' });
-}
-
-async function saveOdoNotes() {
-  clearTimeout(odoNotesTimer);
-  odoNotesTimer = setTimeout(async () => {
-    const notes = document.getElementById('odoNotes')?.value || '';
-    if (currentPatientId) {
-      await sb.from('patients').update({ odo_notes: notes }).eq('id', currentPatientId);
-    }
-  }, 800);
-}
-
-// ── Patient CRUD ──────────────────────────────────────────────
-async function renderPatients() {
-  const tbody = document.getElementById('patientTableBody');
-  const empty = document.getElementById('patientEmpty');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate)">Učitavamo…</td></tr>';
-  const { data } = await sb.from('patients').select('*').order('last_name').order('first_name');
-  allPatients = data || [];
-  renderPatientTable(allPatients);
-}
-
-function renderPatientTable(list) {
-  const tbody = document.getElementById('patientTableBody');
-  const empty = document.getElementById('patientEmpty');
-  if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  tbody.innerHTML = list.map(p => `
-    <tr onclick="openPatientDetail('${p.id}')">
-      <td><div class="appt-name">${p.last_name}, ${p.first_name}</div></td>
-      <td><div class="appt-date">${p.dob ? fmtDate(p.dob) : '—'}</div></td>
-      <td><div class="appt-date">${p.phone || '—'}</div></td>
-      <td><div class="appt-date" id="last-appt-${p.id}">…</div></td>
-      <td style="text-align:right">
-        <button class="btn-edit" style="padding:5px 10px;font-size:0.75rem" onclick="event.stopPropagation();openPatientModal('${p.id}')">✏️</button>
-        <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
-      </td>
-    </tr>`).join('');
-  // Load last appointment dates async
-  list.forEach(async p => {
-    const { data } = await sb.from('appointments').select('date').eq('patient_name', p.first_name + ' ' + p.last_name).order('date', {ascending:false}).limit(1);
-    const el = document.getElementById('last-appt-' + p.id);
-    if (el) el.textContent = data?.[0]?.date ? fmtDate(data[0].date) : '—';
-  });
-}
-
-function filterPatients() {
-  const q = document.getElementById('ptSearch')?.value.toLowerCase() || '';
-  renderPatientTable(allPatients.filter(p =>
-    (p.first_name + ' ' + p.last_name).toLowerCase().includes(q)
-  ));
-}
-
-async function openPatientDetail(id) {
-  currentPatientId = id;
-  const p = allPatients.find(x => x.id === id);
-  if (!p) return;
-
-  document.getElementById('patientListView').style.display = 'none';
-  const dv = document.getElementById('patientDetailView');
-  dv.style.display = 'flex';
-
-  document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
-
-  // Info strip
-  document.getElementById('ptInfoStrip').innerHTML = [
-    p.dob     ? { l: 'Datum rodjenja', v: fmtDate(p.dob) } : null,
-    p.phone   ? { l: 'Telefon',        v: p.phone }         : null,
-    p.email   ? { l: 'Email',          v: p.email }         : null,
-    p.notes   ? { l: 'Napomene',       v: p.notes }         : null,
-  ].filter(Boolean).map(x =>
-    `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
-  ).join('');
-
-  // Load tooth records
-  const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
-  toothRecords = {};
-  (teeth || []).forEach(t => { toothRecords[t.tooth_num] = t.status; });
-  buildOdontogram();
-
-  // Odo notes
-  const notesEl = document.getElementById('odoNotes');
-  if (notesEl) notesEl.value = p.odo_notes || '';
-
-  // Appointment history
-  const { data: appts } = await sb.from('appointments')
-    .select('*').eq('patient_name', p.first_name + ' ' + p.last_name)
-    .order('date', {ascending: false}).limit(30);
-  const histEl = document.getElementById('ptHistory');
-  if (!appts || !appts.length) {
-    histEl.innerHTML = '<div class="pt-empty">Nema evidentiranih termina</div>';
-  } else {
-    histEl.innerHTML = appts.map(a => `
-      <div class="pt-history-item">
-        <div class="pt-history-date">${fmtDate(a.date)}<br><span style="font-weight:400">${a.time_from}</span></div>
-        <div class="pt-history-body">
-          <div class="pt-history-svc">${a.service || 'Pregled'}</div>
-          ${a.note ? `<div class="pt-history-note">${a.note}</div>` : ''}
-        </div>
-        ${badgeHtml(a.status)}
-      </div>`).join('');
-  }
-}
-
-function showPatientList() {
-  currentPatientId = null;
-  document.getElementById('patientDetailView').style.display = 'none';
-  document.getElementById('patientListView').style.display = 'block';
-}
-
-function openPatientModal(id) {
-  editingPatientId = id || null;
-  document.getElementById('patientModalTitle').textContent = id ? 'Izmeni pacijenta' : 'Novi pacijent';
-  document.getElementById('ptSaveBtn').textContent = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
-  clearErr('ptErr');
-  if (id) {
-    const p = allPatients.find(x => x.id === id);
-    if (p) {
-      document.getElementById('ptFirstName').value = p.first_name || '';
-      document.getElementById('ptLastName').value  = p.last_name  || '';
-      document.getElementById('ptDob').value       = p.dob        || '';
-      document.getElementById('ptPhone').value     = p.phone      || '';
-      document.getElementById('ptEmail').value     = p.email      || '';
-      document.getElementById('ptNotes').value     = p.notes      || '';
-    }
-  } else {
-    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-  }
-  openModal('patientModal');
-}
-
-async function savePatient() {
-  const first = document.getElementById('ptFirstName').value.trim();
-  const last  = document.getElementById('ptLastName').value.trim();
-  if (!first || !last) return showErr('ptErr', 'Unesite ime i prezime.');
-  const btn = document.getElementById('ptSaveBtn');
-  btn.disabled = true; btn.textContent = 'Čuvam…';
-  const payload = {
-    first_name: first, last_name: last,
-    dob:   document.getElementById('ptDob').value   || null,
-    phone: document.getElementById('ptPhone').value.trim() || null,
-    email: document.getElementById('ptEmail').value.trim() || null,
-    notes: document.getElementById('ptNotes').value.trim() || null,
-  };
-  let error;
-  if (editingPatientId) {
-    ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
-  } else {
-    ({ error } = await sb.from('patients').insert(payload));
-  }
-  btn.disabled = false; btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
-  if (error) return showErr('ptErr', error.message);
-  closeModal('patientModal');
-  editingPatientId = null;
-  await renderPatients();
-}
-
-async function deletePatient(id) {
-  if (!confirm('Obrisati ovog pacijenta? Svi zubni zapisi će biti obrisani.')) return;
-  await sb.from('patients').delete().eq('id', id);
-  await renderPatients();
-}
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1270,13 +970,15 @@ body {
           <div class="pt-section">
             <div class="pt-section-title">Odontogram</div>
             <div class="odo-legend">
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#e5e7eb;border:2px solid #d1d5db"></span>Zdrav</span>
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#fef08a;border:2px solid #eab308"></span>Karijes</span>
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#86efac;border:2px solid #22c55e"></span>Plomba</span>
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#93c5fd;border:2px solid #3b82f6"></span>Kruna</span>
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#f9a8d4;border:2px solid #ec4899"></span>Endodoncija</span>
-              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#d1d5db;border:2px solid #6b7280;opacity:0.4"></span>Nedostaje</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#f3f4f6;border:2px solid #d1d5db"></span>Zdravo</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#fef08a;border:2px solid #ca8a04"></span>Karijes</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#86efac;border:2px solid #16a34a"></span>Plomba</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#93c5fd;border:2px solid #2563eb"></span>Kruna</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#f9a8d4;border:2px solid #db2777"></span>Endodoncija</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#e5e7eb;border:2px solid #9ca3af"></span>Nedostaje</span>
               <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#c4b5fd;border:2px solid #7c3aed"></span>Implant</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#fed7aa;border:2px solid #ea580c"></span>Most</span>
+              <span class="odo-leg-item"><span class="odo-leg-dot" style="background:#fca5a5;border:2px solid #dc2626"></span>Fraktura</span>
             </div>
             <div class="odo-wrap" id="odontogram"></div>
             <div class="odo-notes-wrap">
@@ -2222,63 +1924,101 @@ async function deleteSvc(id) {
 }
 
 
+
 // ══════════════════════════════════════════════════════════════
-// PATIENTS
+// PATIENTS & ODONTOGRAM
 // ══════════════════════════════════════════════════════════════
-let allPatients     = [];
+let allPatients      = [];
 let currentPatientId = null;
 let editingPatientId = null;
-let toothRecords    = {};   // { toothNum: status }
-let odoNotesTimer   = null;
+let odoNotesTimer    = null;
 
-// ── FDI tooth layout ──────────────────────────────────────────
-// Upper right: 18-11, upper left: 21-28
-// Lower right: 48-41, lower left: 31-38
+// toothData[patientId][toothNum][surface] = status
+// stored flat in DB as: patient_id, tooth_num, surface, status
+let toothData = {};   // { "11": { M:"caries", D:"healthy", ... }, ... }
+
+// ── FDI layout ────────────────────────────────────────────────
 const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
 const FDI_UPPER_LEFT  = [21,22,23,24,25,26,27,28];
-const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
 const FDI_LOWER_LEFT  = [31,32,33,34,35,36,37,38];
+const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
+
+// Surfaces: M=Mesial D=Distal O=Occlusal/Incisal B=Buccal L=Lingual
+const SURFACES = ['M','D','O','B','L'];
+const SURFACE_LABELS = { M:'Mezijalna', D:'Distalna', O:'Okluzalna/Incizalna', B:'Bukalna/Vestibularna', L:'Lingvalna/Palatinalna' };
 
 const TOOTH_STATUSES = [
-  { val: 'healthy',  label: 'Zdrav',       color: '#e5e7eb', border: '#d1d5db' },
-  { val: 'caries',   label: 'Karijes',     color: '#fef08a', border: '#eab308' },
-  { val: 'filled',   label: 'Plomba',      color: '#86efac', border: '#22c55e' },
-  { val: 'crown',    label: 'Kruna',       color: '#93c5fd', border: '#3b82f6' },
-  { val: 'endo',     label: 'Endodoncija', color: '#f9a8d4', border: '#ec4899' },
-  { val: 'missing',  label: 'Nedostaje',   color: '#d1d5db', border: '#6b7280' },
-  { val: 'implant',  label: 'Implant',     color: '#c4b5fd', border: '#7c3aed' },
+  { val:'healthy',  label:'Zdravo',       color:'#f3f4f6', border:'#d1d5db' },
+  { val:'caries',   label:'Karijes',      color:'#fef08a', border:'#ca8a04' },
+  { val:'filled',   label:'Plomba',       color:'#86efac', border:'#16a34a' },
+  { val:'crown',    label:'Kruna',        color:'#93c5fd', border:'#2563eb' },
+  { val:'endo',     label:'Endodoncija',  color:'#f9a8d4', border:'#db2777' },
+  { val:'missing',  label:'Nedostaje',    color:'#e5e7eb', border:'#9ca3af' },
+  { val:'implant',  label:'Implant',      color:'#c4b5fd', border:'#7c3aed' },
+  { val:'bridge',   label:'Most',         color:'#fed7aa', border:'#ea580c' },
+  { val:'fracture', label:'Fraktura',     color:'#fca5a5', border:'#dc2626' },
 ];
 
-function toothColor(status) {
-  const s = TOOTH_STATUSES.find(x => x.val === status);
-  return s || TOOTH_STATUSES[0];
+function statusStyle(val) {
+  const s = TOOTH_STATUSES.find(x => x.val === val) || TOOTH_STATUSES[0];
+  return { fill: s.color, stroke: s.border };
 }
 
-// ── SVG tooth shape ───────────────────────────────────────────
-function toothSVG(num, status) {
-  const { color, border } = toothColor(status || 'healthy');
-  const isMolar = [6,7,8,16,17,18,36,37,38,46,47,48].includes(num);
-  const isIncisor = [1,2,11,12,21,22,31,32,41,42].includes(num);
-  // Simple shape: rounded rect with root suggestion
-  const w = 22, h = 28, r = isMolar ? 5 : 4;
-  const crownH = isIncisor ? 14 : 16;
-  const missing = status === 'missing';
-  const opacity = missing ? 0.35 : 1;
-  return `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:${opacity}">
-    <!-- root -->
-    <path d="M7 ${crownH} Q7 ${h} ${w/2} ${h} Q${w-7} ${h} ${w-7} ${crownH}" fill="${border}" opacity="0.35"/>
-    <!-- crown -->
-    <rect x="1" y="1" width="${w-2}" height="${crownH-1}" rx="${r}" fill="${color}" stroke="${border}" stroke-width="1.5"/>
-    ${isMolar ? `<line x1="8" y1="4" x2="8" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>
-    <line x1="${w-8}" y1="4" x2="${w-8}" y2="${crownH-2}" stroke="${border}" stroke-width="0.8" opacity="0.5"/>` : ''}
-    ${status === 'filled' ? `<rect x="5" y="4" width="${w-10}" height="${crownH-7}" rx="2" fill="#16a34a" opacity="0.35"/>` : ''}
-    ${status === 'endo' ? `<line x1="${w/2}" y1="3" x2="${w/2}" y2="${crownH-2}" stroke="#ec4899" stroke-width="1.5"/>` : ''}
-    ${status === 'crown' ? `<rect x="2" y="2" width="${w-4}" height="${crownH-3}" rx="${r-1}" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="3 2"/>` : ''}
-    ${status === 'implant' ? `<line x1="${w/2}" y1="${crownH+2}" x2="${w/2}" y2="${h-3}" stroke="#7c3aed" stroke-width="2"/>
-    <circle cx="${w/2}" cy="${h-3}" r="2" fill="#7c3aed"/>` : ''}
-    ${missing ? `<line x1="4" y1="4" x2="${w-4}" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>
-    <line x1="${w-4}" y1="4" x2="4" y2="${crownH-2}" stroke="#6b7280" stroke-width="1.5"/>` : ''}
-  </svg>`;
+// Is this tooth a molar/premolar (has occlusal) vs incisor/canine (has incisal edge)?
+function isMolar(num) {
+  const n = num % 10; // tooth position in quadrant
+  return n >= 4; // 4=premolar, 5=premolar, 6-8=molar
+}
+function isIncisor(num) { return (num % 10) <= 2; }
+
+// ── Build SVG for one tooth with 5 clickable surfaces ────────
+// Standard periogram / Black's classification diagram:
+// Square divided into 5 zones: center=Occlusal, top=Buccal, bottom=Lingual, left=Mesial, right=Distal
+// For upper teeth (11-28) and lower (31-48) Buccal/Lingual may swap visually
+// Convention here: top=B, bottom=L, left=M, right=D, center=O
+function toothDiagramSVG(num, surfaces) {
+  const s = surfaces || {};
+  const sz = 34; const c = sz/2; const m = 6; // margin for B/L/M/D triangles
+
+  // 5 regions as SVG paths:
+  // Center square (Occlusal/Incisal)
+  const ci = m, cw = sz - 2*m;
+
+  function fill(surface) {
+    const st = statusStyle(s[surface] || 'healthy');
+    return `fill="${st.fill}" stroke="${st.stroke}"`;
+  }
+
+  const missing = Object.values(s).some(v => v === 'missing');
+  const missingX = missing ? `
+    <line x1="2" y1="2" x2="${sz-2}" y2="${sz-2}" stroke="#9ca3af" stroke-width="1.5" pointer-events="none"/>
+    <line x1="${sz-2}" y1="2" x2="2" y2="${sz-2}" stroke="#9ca3af" stroke-width="1.5" pointer-events="none"/>` : '';
+
+  return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Buccal (top triangle) -->
+  <polygon points="0,0 ${sz},0 ${sz-m},${m} ${m},${m}"
+    ${fill('B')} stroke-width="0.8" class="odo-surface" data-surface="B"
+    onclick="surfaceClick(event,${num},'B')"/>
+  <!-- Lingual (bottom triangle) -->
+  <polygon points="${m},${sz-m} ${sz-m},${sz-m} ${sz},${sz} 0,${sz}"
+    ${fill('L')} stroke-width="0.8" class="odo-surface" data-surface="L"
+    onclick="surfaceClick(event,${num},'L')"/>
+  <!-- Mesial (left triangle) -->
+  <polygon points="0,0 ${m},${m} ${m},${sz-m} 0,${sz}"
+    ${fill('M')} stroke-width="0.8" class="odo-surface" data-surface="M"
+    onclick="surfaceClick(event,${num},'M')"/>
+  <!-- Distal (right triangle) -->
+  <polygon points="${sz},0 ${sz},${sz} ${sz-m},${sz-m} ${sz-m},${m}"
+    ${fill('D')} stroke-width="0.8" class="odo-surface" data-surface="D"
+    onclick="surfaceClick(event,${num},'D')"/>
+  <!-- Occlusal/Incisal (center square) -->
+  <rect x="${ci}" y="${ci}" width="${cw}" height="${cw}"
+    ${fill('O')} stroke-width="0.8" class="odo-surface" data-surface="O"
+    onclick="surfaceClick(event,${num},'O')"/>
+  <!-- Outer border -->
+  <rect x="0.5" y="0.5" width="${sz-1}" height="${sz-1}" fill="none" stroke="#9ca3af" stroke-width="0.8" pointer-events="none"/>
+  ${missingX}
+</svg>`;
 }
 
 function buildOdontogram() {
@@ -2288,83 +2028,113 @@ function buildOdontogram() {
   const makeRow = (teeth, flip) => {
     let html = '<div class="odo-row">';
     teeth.forEach((num, i) => {
-      if (i === 4) html += '<div class="odo-divider"></div>';
-      const status = toothRecords[num] || 'healthy';
-      html += `<div class="odo-tooth" id="tooth-${num}" onclick="openToothMenu(event,${num})" title="Zub ${num}">
-        <div class="odo-tooth-num" style="${flip ? 'order:2' : ''}">${num}</div>
-        <div class="odo-tooth-svg" style="${flip ? 'transform:scaleY(-1)' : ''}">${toothSVG(num, status)}</div>
+      if (i === 4) html += '<div class="odo-quadrant-sep"></div>';
+      const surfaces = toothData[num] || {};
+      const label = flip
+        ? `<div class="odo-tooth-label" style="order:2">${num}</div>`
+        : `<div class="odo-tooth-label">${num}</div>`;
+      const svgWrap = flip
+        ? `<div class="odo-tooth-diagram" style="transform:scaleY(-1)">${toothDiagramSVG(num, surfaces)}</div>`
+        : `<div class="odo-tooth-diagram">${toothDiagramSVG(num, surfaces)}</div>`;
+      html += `<div class="odo-tooth-wrap" title="Zub ${num}" id="toothwrap-${num}">
+        ${label}${svgWrap}
       </div>`;
     });
     html += '</div>';
     return html;
   };
 
+  // Surface orientation labels
+  const upperLabels = `<div style="display:flex;align-items:center;gap:2px;margin-bottom:0px">
+    <div style="width:36px;text-align:center;font-size:0.5rem;color:var(--slate);font-weight:700">B</div>
+  </div>`;
+
   wrap.innerHTML = `
-    <div class="odo-arch-label">Gornja vilica</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div style="font-size:0.58rem;color:var(--slate);font-weight:700;white-space:nowrap">B=Bukalna · L=Lingvalna · M=Mezijalna · D=Distalna · O=Okluzalna</div>
+    </div>
+    <div class="odo-arch-label">Gornja vilica ↑ Bukalna</div>
     ${makeRow([...FDI_UPPER_RIGHT, ...FDI_UPPER_LEFT], false)}
-    <div style="height:6px"></div>
+    <div style="height:8px;border-left:none"></div>
     ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
-    <div class="odo-arch-label" style="margin-top:2px">Donja vilica</div>
+    <div class="odo-arch-label">Bukalna ↓ Donja vilica</div>
   `;
 
-  // Context menu
-  if (!document.getElementById('odoMenu')) {
-    const menu = document.createElement('div');
-    menu.id = 'odoMenu'; menu.className = 'odo-menu';
-    menu.innerHTML = TOOTH_STATUSES.map(s =>
-      `<div class="odo-menu-item" onclick="setToothStatus('${s.val}')">
-        <span class="odo-menu-dot" style="background:${s.color};border:1.5px solid ${s.border}"></span>${s.label}
-      </div>`
-    ).join('');
+  buildOdoMenu();
+}
+
+function buildOdoMenu() {
+  let menu = document.getElementById('odoMenu');
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'odoMenu';
+    menu.className = 'odo-menu';
     document.body.appendChild(menu);
     document.addEventListener('click', e => {
-      if (!e.target.closest('#odoMenu') && !e.target.closest('.odo-tooth')) {
-        document.getElementById('odoMenu').classList.remove('open');
-        document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
+      if (!e.target.closest('#odoMenu') && !e.target.closest('.odo-surface')) {
+        menu.classList.remove('open');
+        activeSurface = null; activeToothNum = null;
       }
     });
   }
+  menu.innerHTML = `<div class="odo-menu-head" id="odoMenuHead">Površina</div>` +
+    TOOTH_STATUSES.map(s =>
+      `<div class="odo-menu-item" onclick="setSurfaceStatus('${s.val}')">
+        <span class="odo-menu-dot" style="background:${s.color};border-color:${s.border}"></span>${s.label}
+      </div>`
+    ).join('');
 }
 
 let activeToothNum = null;
-function openToothMenu(e, num) {
+let activeSurface  = null;
+
+function surfaceClick(e, num, surface) {
   e.stopPropagation();
   activeToothNum = num;
-  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
-  document.getElementById('tooth-' + num).classList.add('selected');
+  activeSurface  = surface;
   const menu = document.getElementById('odoMenu');
+  const head = document.getElementById('odoMenuHead');
+  if (head) head.textContent = `Zub ${num} — ${SURFACE_LABELS[surface]}`;
   menu.classList.add('open');
   const r = e.currentTarget.getBoundingClientRect();
-  let top = r.bottom + 4, left = r.left;
-  if (left + 170 > window.innerWidth) left = window.innerWidth - 175;
-  if (top + 220 > window.innerHeight) top = r.top - 225;
+  let top = r.bottom + 6, left = r.left;
+  if (left + 180 > window.innerWidth)  left = window.innerWidth - 185;
+  if (top  + 260 > window.innerHeight) top  = r.top - 265;
   menu.style.top = top + 'px'; menu.style.left = left + 'px';
 }
 
-async function setToothStatus(status) {
-  if (!activeToothNum || !currentPatientId) return;
+async function setSurfaceStatus(status) {
+  if (!activeToothNum || !activeSurface || !currentPatientId) return;
   document.getElementById('odoMenu').classList.remove('open');
-  document.querySelectorAll('.odo-tooth').forEach(t => t.classList.remove('selected'));
-  toothRecords[activeToothNum] = status;
-  // Update SVG in place
-  const toothEl = document.getElementById('tooth-' + activeToothNum);
-  if (toothEl) toothEl.querySelector('.odo-tooth-svg').innerHTML = toothSVG(activeToothNum, status);
-  // Persist to DB
+
+  if (!toothData[activeToothNum]) toothData[activeToothNum] = {};
+  toothData[activeToothNum][activeSurface] = status;
+
+  // Re-render just this tooth's SVG
+  const wrap = document.getElementById('toothwrap-' + activeToothNum);
+  if (wrap) {
+    const diagram = wrap.querySelector('.odo-tooth-diagram');
+    if (diagram) diagram.innerHTML = toothDiagramSVG(activeToothNum, toothData[activeToothNum]);
+  }
+
+  // Persist — one row per (patient, tooth, surface)
   await sb.from('tooth_records').upsert({
     patient_id: currentPatientId,
-    tooth_num: activeToothNum,
-    status: status,
+    tooth_num:  activeToothNum,
+    surface:    activeSurface,
+    status:     status,
     updated_at: new Date().toISOString()
-  }, { onConflict: 'patient_id,tooth_num' });
+  }, { onConflict: 'patient_id,tooth_num,surface' });
+
+  activeToothNum = null; activeSurface = null;
 }
 
 async function saveOdoNotes() {
   clearTimeout(odoNotesTimer);
   odoNotesTimer = setTimeout(async () => {
     const notes = document.getElementById('odoNotes')?.value || '';
-    if (currentPatientId) {
+    if (currentPatientId)
       await sb.from('patients').update({ odo_notes: notes }).eq('id', currentPatientId);
-    }
   }, 800);
 }
 
@@ -2394,9 +2164,10 @@ function renderPatientTable(list) {
         <button class="btn-delete" style="padding:5px 10px;font-size:0.75rem;margin-left:4px" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
       </td>
     </tr>`).join('');
-  // Load last appointment dates async
   list.forEach(async p => {
-    const { data } = await sb.from('appointments').select('date').eq('patient_name', p.first_name + ' ' + p.last_name).order('date', {ascending:false}).limit(1);
+    const { data } = await sb.from('appointments').select('date')
+      .eq('patient_name', p.first_name + ' ' + p.last_name)
+      .order('date', {ascending:false}).limit(1);
     const el = document.getElementById('last-appt-' + p.id);
     if (el) el.textContent = data?.[0]?.date ? fmtDate(data[0].date) : '—';
   });
@@ -2413,39 +2184,37 @@ async function openPatientDetail(id) {
   currentPatientId = id;
   const p = allPatients.find(x => x.id === id);
   if (!p) return;
-
   document.getElementById('patientListView').style.display = 'none';
   const dv = document.getElementById('patientDetailView');
   dv.style.display = 'flex';
-
   document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
-
-  // Info strip
   document.getElementById('ptInfoStrip').innerHTML = [
-    p.dob     ? { l: 'Datum rodjenja', v: fmtDate(p.dob) } : null,
-    p.phone   ? { l: 'Telefon',        v: p.phone }         : null,
-    p.email   ? { l: 'Email',          v: p.email }         : null,
-    p.notes   ? { l: 'Napomene',       v: p.notes }         : null,
+    p.dob   ? { l:'Datum rodjenja', v:fmtDate(p.dob) } : null,
+    p.phone ? { l:'Telefon',        v:p.phone }         : null,
+    p.email ? { l:'Email',          v:p.email }         : null,
+    p.notes ? { l:'Napomene',       v:p.notes }         : null,
   ].filter(Boolean).map(x =>
     `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
   ).join('');
 
-  // Load tooth records
+  // Load tooth records — now per surface
   const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
-  toothRecords = {};
-  (teeth || []).forEach(t => { toothRecords[t.tooth_num] = t.status; });
+  toothData = {};
+  (teeth || []).forEach(t => {
+    if (!toothData[t.tooth_num]) toothData[t.tooth_num] = {};
+    toothData[t.tooth_num][t.surface] = t.status;
+  });
   buildOdontogram();
 
-  // Odo notes
   const notesEl = document.getElementById('odoNotes');
   if (notesEl) notesEl.value = p.odo_notes || '';
 
   // Appointment history
   const { data: appts } = await sb.from('appointments')
     .select('*').eq('patient_name', p.first_name + ' ' + p.last_name)
-    .order('date', {ascending: false}).limit(30);
+    .order('date', {ascending:false}).limit(30);
   const histEl = document.getElementById('ptHistory');
-  if (!appts || !appts.length) {
+  if (!appts?.length) {
     histEl.innerHTML = '<div class="pt-empty">Nema evidentiranih termina</div>';
   } else {
     histEl.innerHTML = appts.map(a => `
@@ -2482,9 +2251,8 @@ function openPatientModal(id) {
       document.getElementById('ptNotes').value     = p.notes      || '';
     }
   } else {
-    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
+    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes']
+      .forEach(fid => { document.getElementById(fid).value = ''; });
   }
   openModal('patientModal');
 }
@@ -2508,7 +2276,8 @@ async function savePatient() {
   } else {
     ({ error } = await sb.from('patients').insert(payload));
   }
-  btn.disabled = false; btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
+  btn.disabled = false;
+  btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
   if (error) return showErr('ptErr', error.message);
   closeModal('patientModal');
   editingPatientId = null;
