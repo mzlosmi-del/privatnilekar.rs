@@ -979,12 +979,24 @@ async function doLogin() {
 }
 
 async function initApp(user) {
-  // Find or create doctor row
-  let { data: doc } = await sb.from('doctors').select('*').eq('email', user.email).maybeSingle();
+  // Find or create doctor row — use auth user id as primary key so it never changes
+  let { data: doc } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
   if (!doc) {
     const name = user.user_metadata?.full_name || user.email.split('@')[0];
-    const { data: created } = await sb.from('doctors').insert({ email: user.email, full_name: name }).select().single();
-    doc = created;
+    const { data: created, error: insertErr } = await sb.from('doctors')
+      .insert({ id: user.id, email: user.email, full_name: name })
+      .select().single();
+    if (insertErr) {
+      // Row may have been created by another session — try fetching again
+      const { data: retry } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
+      doc = retry;
+    } else {
+      doc = created;
+    }
+  }
+  if (!doc) {
+    showErr('lgErr', 'Greška: nije moguće učitati profil lekara.');
+    return;
   }
   doctor = doc;
 
@@ -1113,8 +1125,11 @@ async function renderCalendar() {
     return d;
   });
 
-  const from = localDate(days[0]);
-  const to   = localDate(days[days.length - 1]);
+  // Widen by 1 day each side to guard against any timezone edge cases
+  const fromDate = new Date(days[0]); fromDate.setDate(fromDate.getDate() - 1);
+  const toDate   = new Date(days[days.length-1]); toDate.setDate(toDate.getDate() + 1);
+  const from = localDate(fromDate);
+  const to   = localDate(toDate);
   const todayStr = todayLocal();
 
   // Week label
