@@ -2329,41 +2329,32 @@ async function surfaceClick(e, num, surface) {
     if (diagram) diagram.innerHTML = toothDiagramSVG(num, toothData[num]);
   }
 
-  // Persist all affected surfaces
-  const upserts = surfacesToSet.map(sf => ({
-    patient_id: currentPatientId,
-    tooth_num:  parseInt(num),
-    surface:    sf,
-    status:     activeStatus,
-    updated_at: new Date().toISOString()
-  }));
-  const { error: upsertErr } = await sb.from('tooth_records')
-    .upsert(upserts, { onConflict: 'patient_id,tooth_num,surface' });
-  if (upsertErr) {
-    console.error('tooth_records upsert error:', upsertErr);
-    // Fallback: try one by one with explicit insert-or-update
-    let anyFailed = false;
-    for (const row of upserts) {
-      const { data: existing } = await sb.from('tooth_records')
-        .select('id').eq('patient_id', row.patient_id)
-        .eq('tooth_num', row.tooth_num).eq('surface', row.surface).maybeSingle();
-      if (existing) {
-        const { error: updErr } = await sb.from('tooth_records')
-          .update({ status: row.status, updated_at: row.updated_at })
-          .eq('id', existing.id);
-        if (updErr) { console.error('update error:', updErr); anyFailed = true; }
-      } else {
-        const { error: insErr } = await sb.from('tooth_records').insert(row);
-        if (insErr) { console.error('insert error:', insErr); anyFailed = true; }
-      }
+  // Persist all affected surfaces — delete+insert is most reliable across schema versions
+  let anyFailed = false;
+  for (const sf of surfacesToSet) {
+    // Try delete first (ignore error if row doesn't exist), then insert fresh
+    await sb.from('tooth_records')
+      .delete()
+      .eq('patient_id', currentPatientId)
+      .eq('tooth_num', parseInt(num))
+      .eq('surface', sf);
+
+    const { error: insErr } = await sb.from('tooth_records').insert({
+      patient_id: currentPatientId,
+      tooth_num:  parseInt(num),
+      surface:    sf,
+      status:     activeStatus,
+    });
+    if (insErr) {
+      console.error('tooth_records insert error:', JSON.stringify(insErr));
+      showOdoSaveStatus('error', insErr.message || insErr.code || JSON.stringify(insErr));
+      anyFailed = true;
     }
-    showOdoSaveStatus(anyFailed ? 'error' : 'ok');
-  } else {
-    showOdoSaveStatus('ok');
   }
+  if (!anyFailed) showOdoSaveStatus('ok');
 }
 
-function showOdoSaveStatus(state) {
+function showOdoSaveStatus(state, msg) {
   let indicator = document.getElementById('odoSaveStatus');
   if (!indicator) {
     indicator = document.createElement('div');
@@ -2375,12 +2366,12 @@ function showOdoSaveStatus(state) {
     indicator.textContent = '✓ Sačuvano';
     indicator.style.background = '#dcfce7'; indicator.style.color = '#15803d';
   } else {
-    indicator.textContent = '✗ Greška pri čuvanju — proverite konzolu';
+    indicator.textContent = '✗ ' + (msg || 'Greška pri čuvanju');
     indicator.style.background = '#fee2e2'; indicator.style.color = '#dc2626';
   }
   indicator.style.opacity = '1';
   clearTimeout(indicator._t);
-  indicator._t = setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+  indicator._t = setTimeout(() => { indicator.style.opacity = '0'; }, state === 'ok' ? 2000 : 8000);
 }
 
 async function saveOdoNotes() {
