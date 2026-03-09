@@ -732,6 +732,32 @@ body {
 }
 
 
+
+/* ── ODONTOGRAM LAYER TOGGLE ────────────────────── */
+.odo-layer-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.odo-layer-btn {
+  padding: 6px 16px; border-radius: 20px;
+  border: 2px solid var(--line);
+  font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; background: var(--off); color: var(--slate);
+  transition: all 0.12s;
+}
+.odo-layer-btn:hover { border-color: var(--slate); color: var(--ink); }
+.odo-layer-btn.active.diag {
+  background: #eff6ff; border-color: #2563eb; color: #1d4ed8;
+}
+.odo-layer-btn.active.ther {
+  background: #f0fdf4; border-color: #16a34a; color: #15803d;
+}
+.odo-layer-desc {
+  flex: 1; font-size: 0.72rem; font-weight: 600; color: var(--slate);
+  padding-left: 6px;
+}
+
 /* ── ODONTOGRAM PALETTE TOOLBAR ─────────────────── */
 .odo-palette {
   display: flex; flex-wrap: wrap; gap: 6px;
@@ -1108,6 +1134,16 @@ body {
           <!-- Odontogram -->
           <div class="pt-section">
             <div class="pt-section-title">Odontogram</div>
+            <!-- Layer toggle -->
+            <div class="odo-layer-toggle">
+              <button class="odo-layer-btn active" id="layerBtnDiag" onclick="setOdoLayer('diagnosis')">
+                🔍 Dijagnoza
+              </button>
+              <button class="odo-layer-btn" id="layerBtnTher" onclick="setOdoLayer('therapy')">
+                🔧 Terapija
+              </button>
+              <span class="odo-layer-desc" id="odoLayerDesc">Postojeće stanje zuba</span>
+            </div>
             <!-- Step 1: pick a status -->
             <div class="odo-palette" id="odoPalette"></div>
             <!-- Step 2 hint -->
@@ -2124,9 +2160,13 @@ let currentPatientId = null;
 let editingPatientId = null;
 let odoNotesTimer    = null;
 
-// toothData[patientId][toothNum][surface] = status
-// stored flat in DB as: patient_id, tooth_num, surface, status
-let toothData = {};   // { "11": { M:"caries", D:"healthy", ... }, ... }
+// Two layers per tooth surface:
+//   diagData[toothNum][surface] = status  (original diagnosis)
+//   therData[toothNum][surface] = status  (therapy performed)
+// DB: tooth_records now has a `layer` column: 'diagnosis' | 'therapy'
+let diagData = {};
+let therData = {};
+let activeLayer = 'diagnosis'; // which layer we're currently painting
 
 // ── FDI layout ────────────────────────────────────────────────
 const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
@@ -2160,73 +2200,142 @@ function statusStyle(val) {
   return { fill: s.color, stroke: s.border };
 }
 
-// ── Build SVG for one tooth with 5 clickable surfaces ────────
-function toothDiagramSVG(num, surfaces) {
-  const s = surfaces || {};
+// ── Build SVG for one tooth — shows diagnosis as base fill, therapy as overlay
+function toothDiagramSVG(num, diag, ther) {
+  const d = diag || {};
+  const t = ther || {};
   const sz = 50; const m = 9;
   const ci = m, cw = sz - 2*m;
 
-  function fill(surface) {
-    const st = statusStyle(s[surface] || 'healthy');
+  // Base fill comes from diagnosis layer
+  function diagFill(sf) {
+    const st = statusStyle(d[sf] || 'healthy');
     return `fill="${st.fill}" stroke="${st.stroke}"`;
   }
 
-  // Special whole-tooth overlays
-  const allSame = SURFACES.every(sf => (s[sf] || 'healthy') === (s['M'] || 'healthy'));
-  const dominantStatus = s['O'] || s['M'] || 'healthy';
-  const isMissingTooth = SURFACES.some(sf => s[sf] === 'missing');
-  const isWholeTooth   = WHOLE_TOOTH_STATUSES.has(dominantStatus) && SURFACES.every(sf => !s[sf] || s[sf] === dominantStatus || s[sf] === 'healthy');
+  // Therapy overlay: small colored triangle/mark inside each surface
+  function therOverlay(sf, points, cx, cy) {
+    const tv = t[sf];
+    if (!tv || tv === 'healthy') return '';
+    const ts = statusStyle(tv);
+    // Small inner indicator: a filled circle or dot at center of surface
+    return `<circle cx="${cx}" cy="${cy}" r="4" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.5" pointer-events="none"/>`;
+  }
 
-  const missingX = isMissingTooth ? `
+  // Whole-tooth therapy overlays (crown, implant, endo, bridge, missing)
+  const therDominant = t['O'] || t['M'] || null;
+  const diagDominant = d['O'] || d['M'] || 'healthy';
+
+  const isMissing = SURFACES.some(sf => d[sf] === 'missing' || t[sf] === 'missing');
+
+  const missingX = isMissing ? `
     <line x1="4" y1="4" x2="${sz-4}" y2="${sz-4}" stroke="#9ca3af" stroke-width="2" pointer-events="none"/>
     <line x1="${sz-4}" y1="4" x2="4" y2="${sz-4}" stroke="#9ca3af" stroke-width="2" pointer-events="none"/>` : '';
 
-  // Crown overlay ring
-  const crownRing = dominantStatus === 'crown' ? `
-    <rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="4" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="5 3" pointer-events="none"/>` : '';
+  // Diagnosis whole-tooth marks (dashed, subtle)
+  const diagWholeMark = (() => {
+    if (diagDominant === 'crown')
+      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5" pointer-events="none"/>`;
+    if (diagDominant === 'implant')
+      return `<line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>`;
+    if (diagDominant === 'endo')
+      return `<line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>
+              <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>`;
+    if (diagDominant === 'bridge')
+      return `<rect x="0" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>
+              <rect x="${sz-m}" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>`;
+    return '';
+  })();
 
-  // Implant screw
-  const implantMark = dominantStatus === 'implant' ? `
-    <line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
-    <line x1="${sz/2-6}" y1="14" x2="${sz/2+6}" y2="14" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
-    <line x1="${sz/2-5}" y1="20" x2="${sz/2+5}" y2="20" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
-    <line x1="${sz/2-4}" y1="26" x2="${sz/2+4}" y2="26" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>` : '';
+  // Therapy whole-tooth marks (bold, solid — these are done procedures)
+  const therWholeMark = (() => {
+    if (!therDominant || therDominant === 'healthy') return '';
+    if (therDominant === 'crown')
+      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="2.5" pointer-events="none"/>`;
+    if (therDominant === 'implant')
+      return `<line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
+              <line x1="${sz/2-6}" y1="14" x2="${sz/2+6}" y2="14" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
+              <line x1="${sz/2-5}" y1="20" x2="${sz/2+5}" y2="20" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
+              <line x1="${sz/2-4}" y1="26" x2="${sz/2+4}" y2="26" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>`;
+    if (therDominant === 'endo')
+      return `<line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+              <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'bridge')
+      return `<rect x="0" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>
+              <rect x="${sz-m}" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>`;
+    return '';
+  })();
 
-  // Endo mark (root canal lines)
-  const endoMark = dominantStatus === 'endo' ? `
-    <line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="2" stroke-linecap="round" pointer-events="none"/>
-    <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="2" stroke-linecap="round" pointer-events="none"/>` : '';
+  // Surface center coords for therapy dots
+  const centers = {
+    B: [sz/2, m/2],
+    L: [sz/2, sz - m/2],
+    M: [m/2, sz/2],
+    D: [sz - m/2, sz/2],
+    O: [sz/2, sz/2],
+  };
 
-  // Bridge connectors (horizontal lines on sides)
-  const bridgeMark = dominantStatus === 'bridge' ? `
-    <rect x="0" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>
-    <rect x="${sz-m}" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>` : '';
+  // Therapy surface overlays (only for non-whole-tooth statuses)
+  const therSurfaceOverlays = SURFACES.map(sf => {
+    const tv = t[sf];
+    if (!tv || tv === 'healthy' || WHOLE_TOOTH_STATUSES.has(tv)) return '';
+    const ts = statusStyle(tv);
+    const [cx, cy] = centers[sf];
+    return `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>`;
+  }).join('');
 
   return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
   <polygon points="0,0 ${sz},0 ${sz-m},${m} ${m},${m}"
-    ${fill('B')} stroke-width="0.7" class="odo-surface" data-surface="B" data-tooth="${num}"
+    ${diagFill('B')} stroke-width="0.7" class="odo-surface" data-surface="B" data-tooth="${num}"
     onclick="surfaceClick(event,${num},'B')"/>
   <polygon points="${m},${sz-m} ${sz-m},${sz-m} ${sz},${sz} 0,${sz}"
-    ${fill('L')} stroke-width="0.7" class="odo-surface" data-surface="L" data-tooth="${num}"
+    ${diagFill('L')} stroke-width="0.7" class="odo-surface" data-surface="L" data-tooth="${num}"
     onclick="surfaceClick(event,${num},'L')"/>
   <polygon points="0,0 ${m},${m} ${m},${sz-m} 0,${sz}"
-    ${fill('M')} stroke-width="0.7" class="odo-surface" data-surface="M" data-tooth="${num}"
+    ${diagFill('M')} stroke-width="0.7" class="odo-surface" data-surface="M" data-tooth="${num}"
     onclick="surfaceClick(event,${num},'M')"/>
   <polygon points="${sz},0 ${sz},${sz} ${sz-m},${sz-m} ${sz-m},${m}"
-    ${fill('D')} stroke-width="0.7" class="odo-surface" data-surface="D" data-tooth="${num}"
+    ${diagFill('D')} stroke-width="0.7" class="odo-surface" data-surface="D" data-tooth="${num}"
     onclick="surfaceClick(event,${num},'D')"/>
   <rect x="${ci}" y="${ci}" width="${cw}" height="${cw}"
-    ${fill('O')} stroke-width="0.7" class="odo-surface" data-surface="O" data-tooth="${num}"
+    ${diagFill('O')} stroke-width="0.7" class="odo-surface" data-surface="O" data-tooth="${num}"
     onclick="surfaceClick(event,${num},'O')"/>
   <rect x="0.5" y="0.5" width="${sz-1}" height="${sz-1}" fill="none" stroke="#9ca3af" stroke-width="0.8" pointer-events="none"/>
-  ${missingX}${crownRing}${implantMark}${endoMark}${bridgeMark}
+  ${missingX}${diagWholeMark}${therSurfaceOverlays}${therWholeMark}
 </svg>`;
+}
+
+// ── Layer switcher ────────────────────────────────────────────
+function setOdoLayer(layer) {
+  activeLayer = layer;
+  activeStatus = null; // reset brush when switching layers
+  document.querySelectorAll('.odo-pal-btn').forEach(b => b.classList.remove('active'));
+  const diagBtn = document.getElementById('layerBtnDiag');
+  const therBtn = document.getElementById('layerBtnTher');
+  const desc    = document.getElementById('odoLayerDesc');
+  const hint    = document.getElementById('odoHint');
+  const hintText = document.getElementById('odoHintText');
+  diagBtn.classList.toggle('active', layer === 'diagnosis');
+  diagBtn.classList.toggle('diag',   layer === 'diagnosis');
+  therBtn.classList.toggle('active', layer === 'therapy');
+  therBtn.classList.toggle('ther',   layer === 'therapy');
+  if (desc) desc.textContent = layer === 'diagnosis'
+    ? 'Postojeće stanje zuba — dijagnoza'
+    : 'Urađene procedure — terapija';
+  if (hint) hint.classList.remove('has-status');
+  if (hintText) hintText.textContent = '← Odaberite stanje, zatim kliknite na zub ili površinu';
 }
 
 // ── Build palette toolbar ─────────────────────────────────────
 function buildOdoPalette() {
   const palette = document.getElementById('odoPalette');
   if (!palette) return;
+  // Init layer button styles
+  const diagBtn = document.getElementById('layerBtnDiag');
+  const therBtn = document.getElementById('layerBtnTher');
+  if (diagBtn) { diagBtn.classList.toggle('active', activeLayer==='diagnosis'); diagBtn.classList.toggle('diag', activeLayer==='diagnosis'); }
+  if (therBtn) { therBtn.classList.toggle('active', activeLayer==='therapy');  therBtn.classList.toggle('ther', activeLayer==='therapy'); }
+
   palette.innerHTML = TOOTH_STATUSES.map(s => {
     const wholeLabel = WHOLE_TOOTH_STATUSES.has(s.val) ? ' 🦷' : '';
     return `<button class="odo-pal-btn" id="palBtn-${s.val}"
@@ -2239,27 +2348,30 @@ function buildOdoPalette() {
   }).join('');
 }
 
-let activeStatus = null; // currently selected palette status
+let activeStatus = null;
 
 function selectPaletteStatus(val) {
   activeStatus = val;
-  // Highlight selected button
   document.querySelectorAll('.odo-pal-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('palBtn-' + val);
   if (btn) btn.classList.add('active');
-
-  // Update hint
-  const hint = document.getElementById('odoHint');
+  const hint     = document.getElementById('odoHint');
   const hintText = document.getElementById('odoHintText');
-  const st = TOOTH_STATUSES.find(x => x.val === val);
-  const isWhole = WHOLE_TOOTH_STATUSES.has(val);
+  const st       = TOOTH_STATUSES.find(x => x.val === val);
+  const isWhole  = WHOLE_TOOTH_STATUSES.has(val);
+  const layerLabel = activeLayer === 'diagnosis' ? 'Dijagnoza' : 'Terapija';
   if (hint) hint.classList.add('has-status');
   if (hintText) hintText.textContent = isWhole
-    ? `🦷 Kliknite na zub da označite ceo zub kao: ${st.label}`
-    : `✏️ Kliknite na površinu zuba da označite: ${st.label}`;
-
-  // Toggle paintable class on teeth
+    ? `🦷 [${layerLabel}] Kliknite na zub — ceo zub: ${st.label}`
+    : `✏️ [${layerLabel}] Kliknite na površinu zuba: ${st.label}`;
   document.querySelectorAll('.odo-tooth-wrap').forEach(t => t.classList.add('paintable'));
+}
+
+function refreshToothSVG(num) {
+  const wrap = document.getElementById('toothwrap-' + num);
+  if (!wrap) return;
+  const diagram = wrap.querySelector('.odo-tooth-diagram');
+  if (diagram) diagram.innerHTML = toothDiagramSVG(num, diagData[num], therData[num]);
 }
 
 function buildOdontogram() {
@@ -2270,13 +2382,12 @@ function buildOdontogram() {
     let html = '<div class="odo-row">';
     teeth.forEach((num, i) => {
       if (i === 4) html += '<div class="odo-quadrant-sep"></div>';
-      const surfaces = toothData[num] || {};
       const label = flip
         ? `<div class="odo-tooth-label" style="order:2">${num}</div>`
         : `<div class="odo-tooth-label">${num}</div>`;
       const svgWrap = flip
-        ? `<div class="odo-tooth-diagram" style="transform:scaleY(-1)">${toothDiagramSVG(num, surfaces)}</div>`
-        : `<div class="odo-tooth-diagram">${toothDiagramSVG(num, surfaces)}</div>`;
+        ? `<div class="odo-tooth-diagram" style="transform:scaleY(-1)">${toothDiagramSVG(num, diagData[num], therData[num])}</div>`
+        : `<div class="odo-tooth-diagram">${toothDiagramSVG(num, diagData[num], therData[num])}</div>`;
       html += `<div class="odo-tooth-wrap" title="Zub ${num}" id="toothwrap-${num}">
         ${label}${svgWrap}
       </div>`;
@@ -2295,22 +2406,14 @@ function buildOdontogram() {
     ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
     <div class="odo-arch-label">Bukalna dole — Donja vilica</div>
   `;
-
   buildOdoPalette();
-
-  // Deselect status when clicking outside teeth
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#odontogram') && !e.target.closest('#odoPalette')) {
-      // don't deselect — keep brush active
-    }
-  }, { once: false });
+  setOdoLayer('diagnosis'); // always start on diagnosis tab
 }
 
 async function surfaceClick(e, num, surface) {
   e.stopPropagation();
   if (!currentPatientId) return;
   if (!activeStatus) {
-    // Flash the palette to hint user to pick a status first
     const palette = document.getElementById('odoPalette');
     if (palette) { palette.style.outline = '2px solid var(--blue)'; setTimeout(() => palette.style.outline = '', 700); }
     return;
@@ -2318,31 +2421,30 @@ async function surfaceClick(e, num, surface) {
 
   const isWhole = WHOLE_TOOTH_STATUSES.has(activeStatus);
   const surfacesToSet = isWhole ? SURFACES : [surface];
+  const layer = activeLayer; // 'diagnosis' or 'therapy'
+  const dataStore = layer === 'diagnosis' ? diagData : therData;
 
-  if (!toothData[num]) toothData[num] = {};
-  surfacesToSet.forEach(sf => { toothData[num][sf] = activeStatus; });
+  if (!dataStore[num]) dataStore[num] = {};
+  surfacesToSet.forEach(sf => { dataStore[num][sf] = activeStatus; });
 
-  // Re-render tooth SVG
-  const wrap = document.getElementById('toothwrap-' + num);
-  if (wrap) {
-    const diagram = wrap.querySelector('.odo-tooth-diagram');
-    if (diagram) diagram.innerHTML = toothDiagramSVG(num, toothData[num]);
-  }
+  // Re-render tooth with both layers
+  refreshToothSVG(num);
 
-  // Persist all affected surfaces — delete+insert is most reliable across schema versions
+  // Persist — delete+insert per surface+layer
   let anyFailed = false;
   for (const sf of surfacesToSet) {
-    // Try delete first (ignore error if row doesn't exist), then insert fresh
     await sb.from('tooth_records')
       .delete()
       .eq('patient_id', currentPatientId)
       .eq('tooth_num', parseInt(num))
-      .eq('surface', sf);
+      .eq('surface', sf)
+      .eq('layer', layer);
 
     const { error: insErr } = await sb.from('tooth_records').insert({
       patient_id: currentPatientId,
       tooth_num:  parseInt(num),
       surface:    sf,
+      layer:      layer,
       status:     activeStatus,
     });
     if (insErr) {
@@ -2442,13 +2544,15 @@ async function openPatientDetail(id) {
     `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
   ).join('');
 
-  // Load tooth records — now per surface
+  // Load tooth records — split into diagnosis and therapy layers
   const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
-  toothData = {};
+  diagData = {}; therData = {};
   (teeth || []).forEach(t => {
     const k = parseInt(t.tooth_num);
-    if (!toothData[k]) toothData[k] = {};
-    toothData[k][t.surface] = t.status;
+    const isTherapy = t.layer === 'therapy';
+    const store = isTherapy ? therData : diagData;
+    if (!store[k]) store[k] = {};
+    store[k][t.surface] = t.status;
   });
   buildOdontogram();
 
