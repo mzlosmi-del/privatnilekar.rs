@@ -232,15 +232,43 @@ body {
 .cal-add-btn:hover { background: var(--blue-mid); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
 /* ── CALENDAR GRID ─────────────────────────────── */
+
+/* Header row: spacer + day heads (no time col — it's in .cal-time-col) */
 .cal-header-row {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 52px repeat(7, 1fr); /* synced with calGrid by JS */
+  display: flex;
   background: var(--off);
   border-bottom: 2px solid var(--line);
   box-shadow: 0 2px 8px rgba(37,99,235,0.07);
-  overflow: hidden; /* clips when horizontal scroll on mobile */
 }
+.cal-header-spacer {          /* matches time col width */
+  flex-shrink: 0;
+  background: var(--off);
+  border-right: 1px solid var(--line);
+}
+.cal-header-days {            /* scrolls in sync with day columns */
+  flex: 1; overflow: hidden; display: flex;
+}
+.cal-header-days-inner {      /* actual grid of day heads */
+  display: grid; flex-shrink: 0;
+  /* grid-template-columns set by JS */
+}
+
+/* Body: fixed time col + scrollable day area */
+.cal-body { flex: 1; display: flex; overflow: hidden; }
+
+.cal-time-col {
+  flex-shrink: 0;
+  overflow: hidden;            /* hides vertical overflow, synced via translateY */
+  background: #ffffff;
+  border-right: 1px solid var(--line);
+  z-index: 2;
+  box-shadow: 2px 0 8px rgba(37,99,235,0.06);
+}
+.cal-time-col-inner {
+  /* height/width set by JS to match grid */
+}
+
 .cal-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
 .cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .cal-scroll::-webkit-scrollbar-track { background: var(--off); }
@@ -248,15 +276,16 @@ body {
 
 .cal-grid {
   display: grid;
-  grid-template-columns: 52px repeat(7, 1fr); /* overridden by JS */
+  /* first column (time) REMOVED — now in .cal-time-col */
+  /* grid-template-columns set by JS to repeat(numDays, 1fr) */
 }
 
-.cal-head-spacer { background: var(--off); }
 .cal-day-head {
   background: var(--off);
   border-left: 1px solid var(--line);
   padding: 10px 8px;
   text-align: center;
+  flex-shrink: 0;
 }
 .cal-day-head .dow {
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
@@ -271,15 +300,15 @@ body {
 }
 .cal-day-head.today .dow { color: var(--blue); }
 
-/* Time rows */
+/* Time cells in frozen left column */
 .cal-time-cell {
   padding: 0 8px 0 0;
   text-align: right;
   font-size: 0.62rem; font-weight: 600; color: var(--ink-muted);
-  border-right: 1px solid var(--line);
   position: relative;
   height: 36px;
   letter-spacing: 0.02em;
+  background: #ffffff;
 }
 .cal-time-cell span { position: absolute; top: -8px; right: 8px; white-space: nowrap; }
 
@@ -561,14 +590,7 @@ body {
     display: flex; flex-direction: column; justify-content: center;
   }
 
-  /* Topbar: tighter, hide logo text */
-  .topbar { padding: 0 12px; gap: 8px; }
-  .topbar-logo-text { display: none; }
-  .topbar-divider { display: none; }
-  .tab-nav { gap: 2px; }
-  .tab-btn { padding: 6px 10px; font-size: 0.76rem; }
-  .doctor-chip span { display: none; }
-  .btn-logout { padding: 5px 8px; font-size: 0.72rem; }
+  /* Topbar overrides now in bottom-nav CSS block above */
 
   /* Cal toolbar on mobile */
   .cal-toolbar-row1 { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
@@ -646,6 +668,44 @@ body {
   background: #ffffff; color: var(--blue);
   box-shadow: 0 1px 4px rgba(37,99,235,0.15);
 }
+
+/* ── BOTTOM NAV (mobile only) ──────────────────── */
+.bottom-nav { display: none; } /* hidden on desktop */
+@media (max-width: 600px) {
+  .bottom-nav {
+    display: flex;
+    flex-shrink: 0;
+    background: #ffffff;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 12px rgba(37,99,235,0.07);
+    z-index: 10;
+    order: 99; /* push to bottom */
+  }
+  .bottom-nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 8px 4px 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--slate); font-family: 'Syne', sans-serif;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: -0.01em;
+    transition: color 0.12s;
+  }
+  .bottom-nav-btn svg { width: 22px; height: 22px; }
+  .bottom-nav-btn.active { color: var(--blue); }
+  .bottom-nav-btn.active svg { stroke: var(--blue); }
+  /* hide topbar tabs on mobile — navigation is in bottom bar */
+  .topbar .tab-nav { display: none; }
+  .topbar-divider { display: none; }
+  /* topbar: just logo + right side */
+  .topbar { padding: 0 16px; gap: 12px; height: 52px; }
+  .topbar-logo { margin-right: 0; }
+  .topbar-logo-text { display: block !important; font-size: 0.88rem; }
+  .topbar-right { gap: 10px; }
+  .doctor-chip { padding: 4px 10px 4px 5px; }
+  .doctor-chip span { display: block !important; font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-logout { padding: 5px 10px; font-size: 0.75rem; }
+  /* give panels bottom padding so content isn't hidden behind bottom nav */
+  .panels { padding-bottom: 0; }
+}
 </style>
 </head>
 <body>
@@ -686,9 +746,9 @@ body {
     </div>
     <div class="topbar-divider"></div>
     <div class="tab-nav">
-      <button class="tab-btn active" onclick="switchTab('calendar',this)">Kalendar</button>
-      <button class="tab-btn" onclick="switchTab('list',this)">Termini</button>
-      <button class="tab-btn" onclick="switchTab('services',this)">Usluge</button>
+      <button class="tab-btn active" data-tab="calendar" onclick="switchTab('calendar',this)">Kalendar</button>
+      <button class="tab-btn" data-tab="list" onclick="switchTab('list',this)">Termini</button>
+      <button class="tab-btn" data-tab="services" onclick="switchTab('services',this)">Usluge</button>
     </div>
     <div class="topbar-right">
       <div class="doctor-chip">
@@ -698,6 +758,22 @@ body {
       <button class="btn-logout" onclick="doLogout()">Odjava</button>
     </div>
   </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bottom-nav-btn active" onclick="switchTab('calendar',this)" data-tab="calendar">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4"/></svg>
+      <span>Kalendar</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="switchTab('list',this)" data-tab="list">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 6h10M5 10h10M5 14h6"/></svg>
+      <span>Termini</span>
+    </button>
+    <button class="bottom-nav-btn" onclick="switchTab('services',this)" data-tab="services">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3v14M3 10h14" stroke-linecap="round"/><circle cx="10" cy="10" r="7"/></svg>
+      <span>Usluge</span>
+    </button>
+  </nav>
 
   <!-- Panels -->
   <div class="panels">
@@ -729,8 +805,11 @@ body {
         </div>
       </div>
       <div class="cal-header-row" id="calHeaderRow"></div>
-      <div class="cal-scroll">
-        <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-body">
+        <div class="cal-time-col" id="calTimeCol"></div>
+        <div class="cal-scroll">
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
       </div>
     </div>
 
@@ -1024,8 +1103,14 @@ async function doLogout() {
 
 // ── TABS ──────────────────────────────────────────────
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  // Sync both topbar tabs and bottom nav buttons
+  document.querySelectorAll('.tab-btn, .bottom-nav-btn').forEach(b => b.classList.remove('active'));
+  // Activate the clicked button plus its counterpart
+  document.querySelectorAll(`.tab-btn, .bottom-nav-btn`).forEach(b => {
+    if (b.dataset.tab === tab || b.getAttribute('onclick')?.includes(`'${tab}'`)) {
+      b.classList.add('active');
+    }
+  });
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   if (tab === 'calendar') {
     document.getElementById('panelCalendar').classList.add('active');
@@ -1157,18 +1242,20 @@ async function renderCalendar() {
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  // ── Sticky header row (outside scroll) ────────────────────────────────────
-  let headerHtml = '<div class="cal-head-spacer"></div>';
+  // ── Sticky header (time-col spacer + scrolling day heads) ────────────────
+  let dayHeadsHtml = '';
   days.forEach((d) => {
     const ds = localDate(d);
     const isToday = ds === todayStr;
     const dow = (d.getDay() + 6) % 7; // Mon=0
-    headerHtml += `<div class="cal-day-head ${isToday ? 'today' : ''}">
+    dayHeadsHtml += `<div class="cal-day-head ${isToday ? 'today' : ''}">
       <div class="dow">${DAYS[dow]}</div>
       <div class="dom">${d.getDate()}</div>
     </div>`;
   });
-  document.getElementById('calHeaderRow').innerHTML = headerHtml;
+  const hdrEl = document.getElementById('calHeaderRow');
+  hdrEl.innerHTML = `<div class="cal-header-spacer" id="calHeaderSpacer"></div>
+    <div class="cal-header-days"><div class="cal-header-days-inner" id="calHeaderDays">${dayHeadsHtml}</div></div>`;
 
   let html = '';
 
@@ -1263,25 +1350,36 @@ async function renderCalendar() {
     dayLayouts[ds] = layout;
   });
 
-  // ── Set grid columns dynamically (header + body in sync) ────────────────
+  // ── Set grid columns dynamically ─────────────────────────────────────────
   const SLOT_H_USED = SLOT_H;
   const timeColW = numDays === 1 ? 60 : 52;
-  const minW = numDays >= 7 ? '700px' : numDays >= 5 ? '480px' : 'unset';
+  const minDayW = 80; // min px per day column
+  const minW = `${numDays * minDayW}px`;
   const grid = document.getElementById('calGrid');
-  const colTemplate = `${timeColW}px repeat(${numDays}, 1fr)`;
-  grid.style.gridTemplateColumns = colTemplate;
+  // Grid no longer has time column — only day columns
+  const dayColTemplate = `repeat(${numDays}, 1fr)`;
+  grid.style.gridTemplateColumns = dayColTemplate;
   grid.style.minWidth = minW;
-  const hdr = document.getElementById('calHeaderRow');
-  hdr.style.gridTemplateColumns = colTemplate;
-  hdr.style.minWidth = minW;
+  // Header day cells same width
+  const hdrDays = document.getElementById('calHeaderDays');
+  if (hdrDays) { hdrDays.style.minWidth = minW; }
+  const hdrDaysInner = document.getElementById('calHeaderDays');
+  // Spacer matches time col width
+  const hdrSpacer = document.getElementById('calHeaderSpacer');
+  if (hdrSpacer) hdrSpacer.style.width = timeColW + 'px';
+  // Time col width
+  const timeColEl = document.getElementById('calTimeCol');
+  if (timeColEl) timeColEl.style.width = timeColW + 'px';
 
+  // ── Render time column (frozen left) + day grid separately ──────────────
+  let timeHtml = '';
   // ── Render grid ───────────────────────────────────────────────────────────
   for (let s = 0; s < slots; s++) {
     const slotMins = (CAL_START * 60) + s * 30;
     const timeStr  = minsToTime(slotMins);
     const isHour   = s % 2 === 0;
 
-    html += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
+    timeHtml += `<div class="cal-time-cell">${isHour ? `<span>${timeStr}</span>` : ''}</div>`;
 
     days.forEach((d, di) => {
       const ds     = localDate(d);
@@ -1315,18 +1413,26 @@ async function renderCalendar() {
 
   grid.innerHTML = html;
 
-  // Scroll to 08:00 + sync horizontal scroll of sticky header
+  // Inject time col HTML
+  const timeColEl2 = document.getElementById('calTimeCol');
+  if (timeColEl2) timeColEl2.innerHTML = `<div class="cal-time-col-inner">${timeHtml}</div>`;
+
+  // Scroll sync: vertical scroll moves time col; horizontal scroll moves header days
   requestAnimationFrame(() => {
     const scroller = document.querySelector('.cal-scroll');
+    const tcol     = document.getElementById('calTimeCol');
+    const hdDays   = document.getElementById('calHeaderDays');
     if (scroller) {
       scroller.scrollTop = 2 * SLOT_H_USED;
-      // Attach horizontal scroll sync (remove old listener first)
-      scroller._syncHeader = () => {
-        hdr.style.transform = `translateX(-${scroller.scrollLeft}px)`;
+      // Remove old listeners
+      if (scroller._scrollSyncFn) scroller.removeEventListener('scroll', scroller._scrollSyncFn);
+      scroller._scrollSyncFn = () => {
+        // Sync time col vertically
+        if (tcol) tcol.querySelector('.cal-time-col-inner').style.transform = `translateY(-${scroller.scrollTop}px)`;
+        // Sync header days horizontally
+        if (hdDays) hdDays.style.transform = `translateX(-${scroller.scrollLeft}px)`;
       };
-      scroller.removeEventListener('scroll', scroller._prevSyncHeader);
-      scroller.addEventListener('scroll', scroller._syncHeader);
-      scroller._prevSyncHeader = scroller._syncHeader;
+      scroller.addEventListener('scroll', scroller._scrollSyncFn);
     }
   });
 }
@@ -1380,9 +1486,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   clearErr('editErr');
 }
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('overlay')) closeModal(e.target.id);
-});
+// Modals close only via the ✕ button, not by clicking the backdrop
 
 // ── NEW / EDIT MODAL ───────────────────────────────────
 function setType(t) {
