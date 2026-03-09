@@ -1112,7 +1112,6 @@ async function renderCalendar() {
   viewAsAppts  = viewAsId ? (results[2].data || []) : [];
   viewAsBlocks = viewAsId ? (results[3].data || []) : [];
 
-  const grid = document.getElementById('calGrid');
   const slots = (CAL_END - CAL_START) * 2; // 30-min slots
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
