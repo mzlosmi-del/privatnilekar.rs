@@ -696,28 +696,33 @@ body {
 .pt-search:focus { border-color: var(--blue); }
 
 /* Detail view */
+/* ══ PATIENT DETAIL — DESKTOP FIRST ════════════════════════════ */
 .pt-detail-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 24px; background: #fff;
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 28px; background: #fff;
   border-bottom: 1px solid var(--line); flex-shrink: 0;
 }
 .pt-back-btn {
-  padding: 6px 14px; border-radius: 8px;
+  padding: 7px 16px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--off);
-  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
-  color: var(--slate); cursor: pointer; transition: all 0.12s;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  color: var(--slate); cursor: pointer; transition: all 0.12s; white-space: nowrap;
 }
 .pt-back-btn:hover { border-color: var(--blue); color: var(--blue); }
 .pt-detail-name {
-  flex: 1; font-size: 1.1rem; font-weight: 800;
+  flex: 1; font-size: 1.15rem; font-weight: 800;
   color: var(--ink); letter-spacing: -0.02em;
 }
-.pt-detail-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+.pt-detail-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 24px 28px;
+  display: flex; flex-direction: column; gap: 24px;
+}
 
 .pt-info-strip {
-  display: flex; flex-wrap: wrap; gap: 16px;
+  display: flex; flex-wrap: wrap; gap: 20px;
   background: var(--off); border-radius: var(--r);
-  padding: 14px 18px; border: 1px solid var(--line);
+  padding: 14px 20px; border: 1px solid var(--line);
 }
 .pt-info-item { display: flex; flex-direction: column; gap: 2px; }
 .pt-info-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate); }
@@ -727,48 +732,39 @@ body {
 .pt-section-title {
   font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--slate);
-  padding: 12px 18px; border-bottom: 1px solid var(--line);
+  padding: 13px 20px; border-bottom: 1px solid var(--line);
   background: var(--off);
 }
 
-
-
-/* ── ODONTOGRAM LAYER TOGGLE ────────────────────── */
+/* ── ODONTOGRAM LAYER TOGGLE ─────────────────────────────────── */
 .odo-layer-toggle {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 18px; border-bottom: 1px solid var(--line);
-  background: #fff;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px; border-bottom: 1px solid var(--line);
+  background: #fff; flex-wrap: wrap;
 }
 .odo-layer-btn {
-  padding: 6px 16px; border-radius: 20px;
+  padding: 7px 20px; border-radius: 20px;
   border: 2px solid var(--line);
-  font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700;
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
   cursor: pointer; background: var(--off); color: var(--slate);
   transition: all 0.12s;
 }
 .odo-layer-btn:hover { border-color: var(--slate); color: var(--ink); }
-.odo-layer-btn.active.diag {
-  background: #eff6ff; border-color: #2563eb; color: #1d4ed8;
-}
-.odo-layer-btn.active.ther {
-  background: #f0fdf4; border-color: #16a34a; color: #15803d;
-}
-.odo-layer-desc {
-  flex: 1; font-size: 0.72rem; font-weight: 600; color: var(--slate);
-  padding-left: 6px;
-}
+.odo-layer-btn.active.diag { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+.odo-layer-btn.active.ther { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+.odo-layer-desc { font-size: 0.75rem; font-weight: 600; color: var(--slate); padding-left: 4px; }
 
-/* ── ODONTOGRAM PALETTE TOOLBAR ─────────────────── */
+/* ── ODONTOGRAM PALETTE TOOLBAR ──────────────────────────────── */
 .odo-palette {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 14px 18px; border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 7px;
+  padding: 14px 20px; border-bottom: 1px solid var(--line);
   background: var(--off);
 }
 .odo-pal-btn {
   display: flex; align-items: center; gap: 7px;
-  padding: 6px 12px; border-radius: 20px;
+  padding: 7px 14px; border-radius: 20px;
   border: 2px solid transparent;
-  font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700;
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
   cursor: pointer; transition: all 0.12s; white-space: nowrap;
   background: #fff;
 }
@@ -778,100 +774,85 @@ body {
   box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
   transform: translateY(-1px);
 }
-.odo-pal-dot { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+.odo-pal-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 
 .odo-hint {
-  padding: 8px 18px;
-  font-size: 0.78rem; font-weight: 600; color: var(--slate);
+  padding: 9px 20px;
+  font-size: 0.8rem; font-weight: 600; color: var(--slate);
   border-bottom: 1px solid var(--line);
-  min-height: 34px; display: flex; align-items: center; gap: 8px;
+  min-height: 36px; display: flex; align-items: center; gap: 8px;
   transition: background 0.15s;
 }
-.odo-hint.has-status {
-  background: var(--blue-dim); color: var(--blue);
-}
+.odo-hint.has-status { background: var(--blue-dim); color: var(--blue); }
 
-/* Tooth wrap — highlight when a status is active */
-.odo-tooth-wrap.paintable { cursor: crosshair; }
-.odo-tooth-wrap.paintable .odo-tooth-diagram svg {
-  filter: drop-shadow(0 0 4px rgba(37,99,235,0.20));
-}
-.odo-tooth-wrap.paintable:hover .odo-tooth-diagram svg {
-  filter: drop-shadow(0 2px 8px rgba(37,99,235,0.40));
-}
-/* Surface highlight when whole-tooth mode vs surface mode */
-.odo-surface.paintable-whole { cursor: crosshair; }
-.odo-surface.paintable-surface { cursor: crosshair; }
-
-@media (max-width: 600px) {
-  .odo-palette { padding: 10px 12px; gap: 5px; }
-  .odo-pal-btn { padding: 5px 9px; font-size: 0.72rem; }
-}
-
-/* ── ODONTOGRAM ─────────────────────────────────── */
-.odo-legend {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  padding: 12px 18px; border-bottom: 1px solid var(--line);
-}
-.odo-leg-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--slate); font-weight: 600; }
-.odo-leg-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
-
+/* ── ODONTOGRAM TOOTH GRID ───────────────────────────────────── */
 .odo-wrap {
-  padding: 20px 18px;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  overflow-x: auto;
+  padding: 24px 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .odo-arch-label {
-  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--slate); text-align: center;
-  margin: 2px 0;
+  font-size: 0.67rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate); text-align: center; margin: 3px 0;
 }
 .odo-row {
-  display: flex; gap: 4px; justify-content: center; align-items: flex-start;
+  display: flex; gap: 5px; justify-content: center; align-items: flex-start;
+  flex-wrap: nowrap;
 }
 .odo-quadrant-sep {
-  width: 2px; background: var(--line); margin: 0 6px;
-  align-self: stretch; border-radius: 1px; min-height: 60px;
+  width: 2px; background: var(--line); margin: 0 8px;
+  align-self: stretch; border-radius: 1px; min-height: 64px;
 }
-/* Each tooth wrapper */
 .odo-tooth-wrap {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   cursor: default; user-select: none;
 }
 .odo-tooth-label {
-  font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1;
-  text-align: center;
+  font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1; text-align: center;
 }
-/* The diagram box — size controlled here */
-.odo-tooth-diagram {
-  width: 52px; height: 52px; position: relative; flex-shrink: 0;
-}
+/* Desktop tooth size — generous */
+.odo-tooth-diagram { width: 56px; height: 56px; position: relative; flex-shrink: 0; }
 .odo-tooth-diagram svg {
-  width: 52px; height: 52px; display: block;
+  width: 56px; height: 56px; display: block;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
   transition: filter 0.12s;
 }
 .odo-tooth-wrap:hover .odo-tooth-diagram svg {
   filter: drop-shadow(0 2px 6px rgba(37,99,235,0.25));
 }
-/* Surface paths */
-.odo-surface {
-  cursor: pointer;
-  stroke-width: 0.6;
-  transition: opacity 0.1s, stroke-width 0.1s;
-}
-.odo-surface:hover {
-  opacity: 0.78;
-  stroke-width: 1.4 !important;
-}
+.odo-tooth-wrap.paintable { cursor: crosshair; }
+.odo-tooth-wrap.paintable .odo-tooth-diagram svg { filter: drop-shadow(0 0 4px rgba(37,99,235,0.20)); }
+.odo-tooth-wrap.paintable:hover .odo-tooth-diagram svg { filter: drop-shadow(0 2px 8px rgba(37,99,235,0.40)); }
 
-/* Status context menu */
+.odo-surface { cursor: pointer; stroke-width: 0.6; transition: opacity 0.1s, stroke-width 0.1s; }
+.odo-surface:hover { opacity: 0.78; stroke-width: 1.4 !important; }
+
+.odo-notes-wrap { padding: 14px 20px; border-top: 1px solid var(--line); }
+.odo-notes {
+  width: 100%; min-height: 68px; padding: 8px 12px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; color: var(--ink);
+  resize: vertical; outline: none; transition: border-color 0.15s;
+}
+.odo-notes:focus { border-color: var(--blue); }
+
+/* ── HISTORY ─────────────────────────────────────────────────── */
+.pt-history-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 13px 20px; border-bottom: 1px solid var(--line);
+}
+.pt-history-item:last-child { border-bottom: none; }
+.pt-history-date { font-size: 0.78rem; font-weight: 700; color: var(--slate); white-space: nowrap; min-width: 96px; }
+.pt-history-body { flex: 1; }
+.pt-history-svc { font-size: 0.87rem; font-weight: 700; color: var(--ink); }
+.pt-history-note { font-size: 0.75rem; color: var(--slate); margin-top: 2px; }
+.pt-empty { padding: 32px 18px; text-align: center; color: var(--slate); font-size: 0.85rem; }
+
+/* ── CONTEXT MENU ────────────────────────────────────────────── */
 .odo-menu {
-  position: fixed; z-index: 9999;
-  background: #fff; border: 1px solid var(--line);
+  position: fixed; z-index: 9999; background: #fff; border: 1px solid var(--line);
   border-radius: var(--r); box-shadow: 0 8px 28px rgba(0,0,0,0.14);
-  padding: 4px; min-width: 180px;
-  display: none;
+  padding: 4px; min-width: 180px; display: none;
 }
 .odo-menu.open { display: block; }
 .odo-menu-head {
@@ -880,84 +861,53 @@ body {
   padding: 7px 12px 5px; border-bottom: 1px solid var(--line); margin-bottom: 3px;
 }
 .odo-menu-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 7px 12px; border-radius: 6px;
+  display: flex; align-items: center; gap: 9px; padding: 7px 12px; border-radius: 6px;
   font-size: 0.82rem; font-weight: 600; color: var(--ink);
   cursor: pointer; transition: background 0.08s;
 }
 .odo-menu-item:hover { background: var(--blue-dim); color: var(--blue); }
 .odo-menu-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.12); }
+.odo-legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.odo-leg-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--slate); font-weight: 600; }
+.odo-leg-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 
-.odo-notes-wrap { padding: 14px 18px; border-top: 1px solid var(--line); }
-.odo-notes {
-  width: 100%; min-height: 68px; padding: 8px 12px;
-  border: 1px solid var(--line); border-radius: var(--r);
-  font-family: 'Syne', sans-serif; font-size: 0.82rem; color: var(--ink);
-  resize: vertical; outline: none; transition: border-color 0.15s;
-}
-.odo-notes:focus { border-color: var(--blue); }
-
-/* History items */
-.pt-history-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 18px; border-bottom: 1px solid var(--line);
-}
-.pt-history-item:last-child { border-bottom: none; }
-.pt-history-date { font-size: 0.75rem; font-weight: 700; color: var(--slate); white-space: nowrap; min-width: 90px; }
-.pt-history-body { flex: 1; }
-.pt-history-svc { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
-.pt-history-note { font-size: 0.75rem; color: var(--slate); margin-top: 2px; }
-.pt-empty { padding: 32px 18px; text-align: center; color: var(--slate); font-size: 0.85rem; }
-
-@media (max-width: 600px) {
-  /* Patient detail header */
-  .pt-detail-header { padding: 8px 10px; gap: 8px; }
-  .pt-detail-name { font-size: 0.92rem; }
-  .pt-back-btn { padding: 5px 10px; font-size: 0.75rem; }
-  .pt-detail-body { padding: 8px; gap: 12px; }
-
-  /* Info strip */
-  .pt-info-strip { padding: 10px 12px; gap: 10px; }
-
-  /* Section titles */
-  .pt-section-title { padding: 10px 12px; font-size: 0.68rem; }
-
-  /* Layer toggle */
-  .odo-layer-toggle { padding: 8px 10px; flex-wrap: wrap; gap: 5px; }
-  .odo-layer-btn { padding: 5px 12px; font-size: 0.72rem; }
-  .odo-layer-desc { font-size: 0.67rem; width: 100%; padding-left: 0; }
-
-  /* Palette — horizontal scroll so buttons don't wrap awkwardly */
+/* ── MOBILE ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pt-detail-header { padding: 10px 14px; gap: 10px; }
+  .pt-detail-name { font-size: 1rem; }
+  .pt-back-btn { padding: 6px 12px; font-size: 0.78rem; }
+  .pt-detail-body { padding: 14px; gap: 16px; }
+  .pt-info-strip { padding: 12px 14px; gap: 14px; }
+  .pt-section-title { padding: 11px 14px; }
+  .odo-layer-toggle { padding: 10px 14px; }
   .odo-palette {
-    padding: 8px 10px; gap: 5px;
+    padding: 10px 14px; gap: 6px;
     flex-wrap: nowrap; overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
   .odo-palette::-webkit-scrollbar { display: none; }
-  .odo-pal-btn { padding: 5px 9px; font-size: 0.7rem; flex-shrink: 0; }
-
-  /* Hint bar */
-  .odo-hint { padding: 6px 10px; font-size: 0.72rem; min-height: 28px; }
-
-  /* Odontogram — smaller teeth, horizontal scroll */
-  .odo-wrap { padding: 10px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .odo-tooth-diagram { width: 34px; height: 34px; }
-  .odo-tooth-diagram svg { width: 34px; height: 34px; }
-  .odo-tooth-label { font-size: 0.52rem; }
-  .odo-row { gap: 2px; flex-wrap: nowrap; }
+  .odo-pal-btn { flex-shrink: 0; padding: 6px 11px; font-size: 0.75rem; }
+  .odo-hint { padding: 7px 14px; font-size: 0.75rem; }
+  .odo-wrap { padding: 16px 10px; }
+  .odo-tooth-diagram { width: 46px; height: 46px; }
+  .odo-tooth-diagram svg { width: 46px; height: 46px; }
+  .odo-tooth-label { font-size: 0.62rem; }
+  .odo-row { gap: 3px; }
+  .odo-notes-wrap { padding: 12px 14px; }
+  .pt-history-item { padding: 11px 14px; gap: 10px; }
+  .pt-history-date { min-width: 78px; font-size: 0.72rem; }
+  .xray-grid { grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 8px; }
+}
+@media (max-width: 480px) {
+  .pt-detail-header { padding: 8px 10px; }
+  .pt-detail-body { padding: 10px; gap: 12px; }
+  .odo-tooth-diagram { width: 36px; height: 36px; }
+  .odo-tooth-diagram svg { width: 36px; height: 36px; }
+  .odo-tooth-label { font-size: 0.54rem; }
+  .odo-row { gap: 2px; }
   .odo-quadrant-sep { margin: 0 3px; }
-  .odo-notes-wrap { padding: 10px 12px; }
-
-  /* X-ray grid */
-  .xray-grid { grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap: 6px; }
-  .xray-dropzone { padding: 18px 12px; }
-  .xray-drop-icon { font-size: 1.5rem; }
-  .xray-drop-text { font-size: 0.78rem; }
-
-  /* History items */
-  .pt-history-item { padding: 10px 12px; gap: 8px; }
-  .pt-history-date { min-width: 70px; font-size: 0.7rem; }
+  .xray-grid { grid-template-columns: repeat(auto-fill, minmax(85px,1fr)); gap: 6px; }
+  .xray-dropzone { padding: 16px 10px; }
   .pt-history-svc { font-size: 0.8rem; }
 }
 
