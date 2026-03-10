@@ -1241,6 +1241,100 @@ body {
 .med-condition-item.critical input { accent-color: #dc2626; }
 .med-condition-item.critical { font-weight: 700; color: #991b1b; }
 
+
+/* ── PALETTE GROUP LABELS ───────────────────────────────────────── */
+.odo-pal-group-label {
+  font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate);
+  padding: 2px 4px 1px; margin-right: 2px;
+  border-right: 2px solid var(--line);
+  align-self: center; white-space: nowrap;
+}
+
+/* ── TOOTH DETAIL POPUP ─────────────────────────────────────────── */
+.tooth-detail-popup {
+  position: fixed; z-index: 10001;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  padding: 0; min-width: 300px; max-width: 360px;
+  display: none;
+  flex-direction: column;
+}
+.tooth-detail-popup.open { display: flex; }
+.tdp-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--off); border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.tdp-tooth-badge {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--blue); color: #fff;
+  font-size: 0.78rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.tdp-title { flex: 1; font-size: 0.88rem; font-weight: 800; color: var(--ink); }
+.tdp-subtitle { font-size: 0.72rem; color: var(--slate); font-weight: 600; }
+.tdp-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; color: var(--slate); padding: 4px 6px;
+  border-radius: 6px;
+}
+.tdp-close:hover { background: var(--line); }
+.tdp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.tdp-field { display: flex; flex-direction: column; gap: 3px; }
+.tdp-label {
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate);
+}
+.tdp-input {
+  padding: 7px 10px; border: 1px solid var(--line);
+  border-radius: var(--r); font-family: 'Syne', sans-serif;
+  font-size: 0.82rem; color: var(--ink); outline: none;
+  transition: border-color 0.15s; width: 100%; box-sizing: border-box;
+}
+.tdp-input:focus { border-color: var(--blue); }
+.tdp-row { display: flex; gap: 8px; }
+.tdp-row .tdp-field { flex: 1; }
+.tdp-footer {
+  padding: 10px 16px 14px; display: flex; gap: 8px; align-items: center;
+  border-top: 1px solid var(--line);
+}
+.tdp-save-btn {
+  flex: 1; padding: 8px; border-radius: var(--r);
+  background: var(--blue); color: #fff; border: none;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer; transition: background 0.12s;
+}
+.tdp-save-btn:hover { background: var(--blue-mid); }
+.tdp-delete-btn {
+  padding: 8px 12px; border-radius: var(--r);
+  background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;
+  font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer;
+}
+.tdp-delete-btn:hover { background: #fecaca; }
+.tdp-status-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 700;
+}
+
+/* Conditional fields */
+.tdp-conditional { display: none; }
+.tdp-conditional.visible { display: flex; }
+
+
+/* Detail indicator dot on teeth */
+.odo-detail-dot {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue); border: 2px solid #fff;
+  pointer-events: none;
+}
+.odo-tooth-wrap { position: relative; }
+
 </style>
 </head>
 <body>
@@ -2721,21 +2815,38 @@ const SURFACES = ['M','D','O','B','L'];
 const SURFACE_LABELS = { M:'Mezijalna', D:'Distalna', O:'Okluzalna/Incizalna', B:'Bukalna/Vestibularna', L:'Lingvalna/Palatinalna' };
 
 const TOOTH_STATUSES = [
-  { val:'healthy',  label:'Zdravo',       color:'#f3f4f6', border:'#d1d5db' },
-  { val:'caries',   label:'Karijes',      color:'#fef08a', border:'#ca8a04' },
-  { val:'filled',   label:'Plomba',       color:'#86efac', border:'#16a34a' },
-  { val:'crown',    label:'Kruna',        color:'#93c5fd', border:'#2563eb' },
-  { val:'endo',     label:'Endodoncija',  color:'#f9a8d4', border:'#db2777' },
-  { val:'missing',  label:'Nedostaje',    color:'#e5e7eb', border:'#9ca3af' },
-  { val:'implant',  label:'Implant',      color:'#c4b5fd', border:'#7c3aed' },
-  { val:'bridge',   label:'Most',         color:'#fed7aa', border:'#ea580c' },
-  { val:'fracture', label:'Fraktura',     color:'#fca5a5', border:'#dc2626' },
+  // ── Core ──────────────────────────────────────────────────────
+  { val:'healthy',    label:'Zdravo',           color:'#f3f4f6', border:'#d1d5db', group:'osnovno' },
+  { val:'caries',     label:'Karijes',           color:'#fef08a', border:'#ca8a04', group:'osnovno' },
+  { val:'filled',     label:'Plomba',            color:'#86efac', border:'#16a34a', group:'osnovno' },
+  { val:'temporary',  label:'Privremena plomba', color:'#d1fae5', border:'#6ee7b7', group:'osnovno' },
+  { val:'fracture',   label:'Fraktura',          color:'#fca5a5', border:'#dc2626', group:'osnovno' },
+  // ── Protetika ─────────────────────────────────────────────────
+  { val:'crown',      label:'Kruna',             color:'#93c5fd', border:'#2563eb', group:'protetika' },
+  { val:'bridge',     label:'Most',              color:'#fed7aa', border:'#ea580c', group:'protetika' },
+  { val:'veneer',     label:'Faseta',            color:'#e0f2fe', border:'#0284c7', group:'protetika' },
+  { val:'post_core',  label:'Kolčić+nadogradnja',color:'#ddd6fe', border:'#7c3aed', group:'protetika' },
+  { val:'implant',    label:'Implant',           color:'#c4b5fd', border:'#7c3aed', group:'protetika' },
+  // ── Endodoncija ───────────────────────────────────────────────
+  { val:'endo',       label:'Endodoncija',       color:'#f9a8d4', border:'#db2777', group:'endo' },
+  // ── Parodontologija ───────────────────────────────────────────
+  { val:'recession',  label:'Recesija',          color:'#fde68a', border:'#d97706', group:'paro' },
+  { val:'mobility',   label:'Mobilnost',         color:'#fcd34d', border:'#b45309', group:'paro' },
+  { val:'abscess',    label:'Apsces',            color:'#fecaca', border:'#b91c1c', group:'paro' },
+  // ── Patologija ────────────────────────────────────────────────
+  { val:'attrition',  label:'Atricija',          color:'#e5e7eb', border:'#6b7280', group:'patologija' },
+  { val:'erosion',    label:'Erozija',           color:'#f1f5f9', border:'#64748b', group:'patologija' },
+  { val:'impacted',   label:'Impaktiran',        color:'#fef3c7', border:'#92400e', group:'patologija' },
+  // ── Ostalo ────────────────────────────────────────────────────
+  { val:'missing',    label:'Nedostaje',         color:'#e5e7eb', border:'#9ca3af', group:'ostalo' },
 ];
 
-// Statuses that apply to ALL surfaces (whole tooth)
-const WHOLE_TOOTH_STATUSES = new Set(['healthy','crown','endo','missing','implant','bridge']);
-// Statuses that apply per-surface (karijes, filled, fracture)
-// i.e. anything NOT in WHOLE_TOOTH_STATUSES
+// Statuses that apply to ALL 5 surfaces (whole tooth)
+const WHOLE_TOOTH_STATUSES = new Set([
+  'healthy','crown','endo','missing','implant','bridge',
+  'veneer','post_core','recession','mobility','abscess',
+  'attrition','erosion','impacted','temporary'
+]);
 
 function statusStyle(val) {
   const s = TOOTH_STATUSES.find(x => x.val === val) || TOOTH_STATUSES[0];
@@ -2878,16 +2989,26 @@ function buildOdoPalette() {
   if (diagBtn) { diagBtn.classList.toggle('active', activeLayer==='diagnosis'); diagBtn.classList.toggle('diag', activeLayer==='diagnosis'); }
   if (therBtn) { therBtn.classList.toggle('active', activeLayer==='therapy');  therBtn.classList.toggle('ther', activeLayer==='therapy'); }
 
-  palette.innerHTML = TOOTH_STATUSES.map(s => {
-    const wholeLabel = WHOLE_TOOTH_STATUSES.has(s.val) ? ' 🦷' : '';
-    return `<button class="odo-pal-btn" id="palBtn-${s.val}"
-      onclick="selectPaletteStatus('${s.val}')"
-      style="border-color:${s.border}20;color:#374151;"
-      title="${WHOLE_TOOTH_STATUSES.has(s.val) ? 'Označava ceo zub' : 'Označava površinu zuba'}">
-      <span class="odo-pal-dot" style="background:${s.color};border:2px solid ${s.border}"></span>
-      ${s.label}${wholeLabel}
-    </button>`;
-  }).join('');
+  const groups = ['osnovno','protetika','endo','paro','patologija','ostalo'];
+  const groupLabels = { osnovno:'Osnovno', protetika:'Protetika', endo:'Endodoncija', paro:'Parodont', patologija:'Patologija', ostalo:'Ostalo' };
+  let html = '';
+  groups.forEach(g => {
+    const items = TOOTH_STATUSES.filter(s => s.group === g);
+    if (!items.length) return;
+    html += `<span class="odo-pal-group-label">${groupLabels[g]}</span>`;
+    html += items.map(s => {
+      const wholeLabel = WHOLE_TOOTH_STATUSES.has(s.val) ? ' 🦷' : '';
+      return `<button class="odo-pal-btn" id="palBtn-${s.val}"
+        onclick="selectPaletteStatus('${s.val}')"
+        style="border-color:${s.border}20;color:#374151;"
+        title="${WHOLE_TOOTH_STATUSES.has(s.val) ? 'Označava ceo zub' : 'Označava površinu zuba'}">
+        <span class="odo-pal-dot" style="background:${s.color};border:2px solid ${s.border}"></span>
+        ${s.label}${wholeLabel}
+      </button>`;
+    }).join('');
+    html += '<br style="width:100%;display:block;margin:0;border:none;height:4px">';
+  });
+  palette.innerHTML = html;
 }
 
 let activeStatus = null;
@@ -2914,6 +3035,22 @@ function refreshToothSVG(num) {
   if (!wrap) return;
   const diagram = wrap.querySelector('.odo-tooth-diagram');
   if (diagram) diagram.innerHTML = toothDiagramSVG(num, diagData[num], therData[num]);
+  // Show detail indicator if any detail exists for this tooth
+  let hasDetail = false;
+  ['diagnosis','therapy'].forEach(layer => {
+    SURFACES.forEach(sf => {
+      if (toothDetails[tdpKey(layer, num, sf)]) hasDetail = true;
+    });
+  });
+  let dot = wrap.querySelector('.odo-detail-dot');
+  if (hasDetail && !dot) {
+    dot = document.createElement('div');
+    dot.className = 'odo-detail-dot';
+    dot.title = 'Postoje detalji — kliknite na površinu da vidite';
+    wrap.appendChild(dot);
+  } else if (!hasDetail && dot) {
+    dot.remove();
+  }
 }
 
 function buildOdontogramIn(targetId, upperLeft, upperRight, lowerLeft, lowerRight, midline) {
@@ -2965,8 +3102,15 @@ async function surfaceClick(e, num, surface) {
   e.stopPropagation();
   if (!currentPatientId) return;
   if (!activeStatus) {
-    const palette = document.getElementById('odoPalette');
-    if (palette) { palette.style.outline = '2px solid var(--blue)'; setTimeout(() => palette.style.outline = '', 700); }
+    // No brush active — open detail popup if this surface has a status
+    const status = activeLayer === 'diagnosis' ? diagData[num]?.[surface] : therData[num]?.[surface];
+    if (status && status !== 'healthy') {
+      openToothDetail(e, num, surface, activeLayer);
+    } else {
+      // Flash palette to indicate brush needed
+      const palette = document.getElementById('odoPalette');
+      if (palette) { palette.style.outline = '2px solid var(--blue)'; setTimeout(() => palette.style.outline = '', 700); }
+    }
     return;
   }
 
@@ -3109,6 +3253,7 @@ async function openPatientDetail(id) {
 
   // Load tooth records — split into diagnosis and therapy layers
   const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
+  await loadToothDetails(id);
   diagData = {}; therData = {};
   (teeth || []).forEach(t => {
     const k = parseInt(t.tooth_num);
@@ -3357,6 +3502,155 @@ function buildMedWarningBanner(p) {
   html += `</div></div>`;
   return html;
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// TOOTH DETAIL POPUP
+// ══════════════════════════════════════════════════════════════
+let tdpToothNum  = null;
+let tdpSurface   = null;
+let tdpLayer     = null;
+let tdpRecordId  = null; // existing tooth_details record id, if any
+let toothDetails = {};   // { "layer:num:surface": { ...fields } }
+
+// Statuses that show material/shade fields
+const MATERIAL_STATUSES  = new Set(['filled','temporary','crown','bridge','veneer','post_core','implant','inlay','onlay']);
+const ENDO_STATUSES      = new Set(['endo']);
+const PARO_STATUSES      = new Set(['recession','mobility','abscess','pocket','furcation']);
+const MOBILITY_STATUSES  = new Set(['mobility']);
+
+function tdpKey(layer, num, surface) {
+  return layer + ':' + num + ':' + surface;
+}
+
+function openToothDetail(e, num, surface, layer) {
+  e.stopPropagation();
+  const status = layer === 'diagnosis' ? diagData[num]?.[surface] : therData[num]?.[surface];
+  if (!status || status === 'healthy') return; // nothing to show for healthy
+
+  const st = TOOTH_STATUSES.find(s => s.val === status);
+  const key = tdpKey(layer, num, surface);
+  const existing = toothDetails[key] || {};
+
+  tdpToothNum = num; tdpSurface = surface; tdpLayer = layer;
+  tdpRecordId = existing.id || null;
+
+  // Head
+  document.getElementById('tdpToothBadge').textContent = num;
+  document.getElementById('tdpTitle').textContent = 'Zub ' + num + ' — ' + (st?.label || status);
+  document.getElementById('tdpSubtitle').textContent =
+    (layer === 'diagnosis' ? '🔍 Dijagnoza' : '🔧 Terapija') +
+    ' · ' + (WHOLE_TOOTH_STATUSES.has(status) ? 'Ceo zub' : SURFACE_LABELS[surface]);
+
+  // Populate fields
+  document.getElementById('tdpDate').value         = existing.proc_date   || '';
+  document.getElementById('tdpDoctor').value        = existing.doctor_name || doctor?.full_name || '';
+  document.getElementById('tdpMaterial').value      = existing.material    || '';
+  document.getElementById('tdpShade').value         = existing.shade       || '';
+  document.getElementById('tdpCanals').value        = existing.canals      || '';
+  document.getElementById('tdpCanalLength').value   = existing.canal_length|| '';
+  document.getElementById('tdpPocketDepth').value   = existing.pocket_depth|| '';
+  document.getElementById('tdpMobility').value      = existing.mobility    || '';
+  document.getElementById('tdpNote').value          = existing.note        || '';
+  document.getElementById('tdpPrice').value         = existing.price       || '';
+
+  // Show/hide conditional fields
+  const showMat    = MATERIAL_STATUSES.has(status);
+  const showEndo   = ENDO_STATUSES.has(status);
+  const showParo   = PARO_STATUSES.has(status);
+  const showMobility = MOBILITY_STATUSES.has(status);
+
+  document.getElementById('tdpMaterialWrap').classList.toggle('visible', showMat);
+  document.getElementById('tdpShadeWrap').classList.toggle('visible', showMat);
+  document.getElementById('tdpEndoWrap').classList.toggle('visible', showEndo);
+  document.getElementById('tdpParoWrap').classList.toggle('visible', showParo);
+  document.getElementById('tdpMobilityWrap').classList.toggle('visible', showMobility);
+  document.getElementById('tdpDeleteBtn').style.display = tdpRecordId ? 'block' : 'none';
+
+  // Position popup near click
+  const popup = document.getElementById('toothDetailPopup');
+  popup.classList.add('open');
+  const pw = popup.offsetWidth || 320;
+  const ph = popup.offsetHeight || 300;
+  let x = e.clientX + 12, y = e.clientY + 12;
+  if (x + pw > window.innerWidth - 10)  x = e.clientX - pw - 12;
+  if (y + ph > window.innerHeight - 10) y = e.clientY - ph - 12;
+  popup.style.left = Math.max(8, x) + 'px';
+  popup.style.top  = Math.max(8, y) + 'px';
+}
+
+function closeToothDetail() {
+  document.getElementById('toothDetailPopup').classList.remove('open');
+  tdpToothNum = tdpSurface = tdpLayer = tdpRecordId = null;
+}
+
+async function saveToothDetail() {
+  if (!tdpToothNum || !currentPatientId) return;
+  const btn = document.querySelector('.tdp-save-btn');
+  btn.textContent = 'Čuvam…'; btn.disabled = true;
+
+  const payload = {
+    patient_id:   currentPatientId,
+    tooth_num:    parseInt(tdpToothNum),
+    surface:      tdpSurface,
+    layer:        tdpLayer,
+    proc_date:    document.getElementById('tdpDate').value        || null,
+    doctor_name:  document.getElementById('tdpDoctor').value.trim()|| null,
+    material:     document.getElementById('tdpMaterial').value    || null,
+    shade:        document.getElementById('tdpShade').value.trim()|| null,
+    canals:       document.getElementById('tdpCanals').value      ? parseInt(document.getElementById('tdpCanals').value) : null,
+    canal_length: document.getElementById('tdpCanalLength').value.trim() || null,
+    pocket_depth: document.getElementById('tdpPocketDepth').value.trim() || null,
+    mobility:     document.getElementById('tdpMobility').value    || null,
+    note:         document.getElementById('tdpNote').value.trim() || null,
+    price:        document.getElementById('tdpPrice').value       ? parseFloat(document.getElementById('tdpPrice').value) : null,
+  };
+
+  let error, data;
+  if (tdpRecordId) {
+    ({ error, data } = await sb.from('tooth_details').update(payload).eq('id', tdpRecordId).select().single());
+  } else {
+    ({ error, data } = await sb.from('tooth_details').insert(payload).select().single());
+  }
+
+  btn.textContent = '💾 Sačuvaj detalje'; btn.disabled = false;
+  if (error) { showOdoSaveStatus('error', error.message); return; }
+
+  // Update local cache
+  const key = tdpKey(tdpLayer, tdpToothNum, tdpSurface);
+  toothDetails[key] = data;
+  tdpRecordId = data.id;
+  document.getElementById('tdpDeleteBtn').style.display = 'block';
+  showOdoSaveStatus('ok');
+  closeToothDetail();
+}
+
+async function deleteToothDetail() {
+  if (!tdpRecordId) return;
+  if (!confirm('Obrisati detalje za ovaj zub?')) return;
+  await sb.from('tooth_details').delete().eq('id', tdpRecordId);
+  const key = tdpKey(tdpLayer, tdpToothNum, tdpSurface);
+  delete toothDetails[key];
+  closeToothDetail();
+  showOdoSaveStatus('ok');
+}
+
+async function loadToothDetails(patientId) {
+  const { data } = await sb.from('tooth_details').select('*').eq('patient_id', patientId);
+  toothDetails = {};
+  (data || []).forEach(r => {
+    const key = tdpKey(r.layer, r.tooth_num, r.surface);
+    toothDetails[key] = r;
+  });
+}
+
+// Close popup on outside click
+document.addEventListener('click', (e) => {
+  const popup = document.getElementById('toothDetailPopup');
+  if (popup?.classList.contains('open') && !popup.contains(e.target)) {
+    closeToothDetail();
+  }
+});
 
 // ══════════════════════════════════════════════════════════════
 // PATIENT PICKER COMBOBOX
@@ -3995,6 +4289,92 @@ async function updateXrayDate(id, taken_at) {
       <div class="modal-err" id="ptErr"></div>
       <button class="btn-save" id="ptSaveBtn" onclick="savePatient()">Sačuvaj →</button>
     </div>
+  </div>
+</div>
+
+
+<!-- TOOTH DETAIL POPUP -->
+<div class="tooth-detail-popup" id="toothDetailPopup">
+  <div class="tdp-head">
+    <div class="tdp-tooth-badge" id="tdpToothBadge">11</div>
+    <div>
+      <div class="tdp-title" id="tdpTitle">Detalji zuba</div>
+      <div class="tdp-subtitle" id="tdpSubtitle"></div>
+    </div>
+    <button class="tdp-close" onclick="closeToothDetail()">✕</button>
+  </div>
+  <div class="tdp-body">
+    <div class="tdp-row">
+      <div class="tdp-field">
+        <div class="tdp-label">Datum procedure</div>
+        <input class="tdp-input" type="date" id="tdpDate">
+      </div>
+      <div class="tdp-field">
+        <div class="tdp-label">Lekar</div>
+        <input class="tdp-input" type="text" id="tdpDoctor" placeholder="Dr. Ime">
+      </div>
+    </div>
+    <div class="tdp-row">
+      <div class="tdp-field tdp-conditional" id="tdpMaterialWrap">
+        <div class="tdp-label">Materijal</div>
+        <select class="tdp-input" id="tdpMaterial">
+          <option value="">— izaberi —</option>
+          <option>Kompozit</option>
+          <option>Amalgam</option>
+          <option>GIC (staklojonomer)</option>
+          <option>Keramika</option>
+          <option>Cirkon</option>
+          <option>Akrilat</option>
+          <option>Metal-keramika</option>
+          <option>Titanijum</option>
+        </select>
+      </div>
+      <div class="tdp-field tdp-conditional" id="tdpShadeWrap">
+        <div class="tdp-label">Shade / Boja</div>
+        <input class="tdp-input" type="text" id="tdpShade" placeholder="npr. A2, BL2">
+      </div>
+    </div>
+    <!-- Endo fields -->
+    <div class="tdp-row tdp-conditional" id="tdpEndoWrap">
+      <div class="tdp-field">
+        <div class="tdp-label">Broj kanala</div>
+        <input class="tdp-input" type="number" id="tdpCanals" min="1" max="5" placeholder="1–5">
+      </div>
+      <div class="tdp-field">
+        <div class="tdp-label">Dužina kanala (mm)</div>
+        <input class="tdp-input" type="text" id="tdpCanalLength" placeholder="npr. 21,5">
+      </div>
+    </div>
+    <!-- Paro fields -->
+    <div class="tdp-row tdp-conditional" id="tdpParoWrap">
+      <div class="tdp-field">
+        <div class="tdp-label">Džep / Recesija (mm)</div>
+        <input class="tdp-input" type="text" id="tdpPocketDepth" placeholder="npr. 4">
+      </div>
+      <div class="tdp-field tdp-conditional" id="tdpMobilityWrap">
+        <div class="tdp-label">Mobilnost (stepen)</div>
+        <select class="tdp-input" id="tdpMobility">
+          <option value="">—</option>
+          <option>I</option>
+          <option>II</option>
+          <option>III</option>
+        </select>
+      </div>
+    </div>
+    <div class="tdp-field">
+      <div class="tdp-label">Napomena</div>
+      <textarea class="tdp-input" id="tdpNote" rows="2"
+        placeholder="Detalji, komplikacije, preporuke…"
+        style="resize:vertical;min-height:52px"></textarea>
+    </div>
+    <div class="tdp-field">
+      <div class="tdp-label">Cena (RSD, opciono)</div>
+      <input class="tdp-input" type="number" id="tdpPrice" placeholder="npr. 5000">
+    </div>
+  </div>
+  <div class="tdp-footer">
+    <button class="tdp-save-btn" onclick="saveToothDetail()">💾 Sačuvaj detalje</button>
+    <button class="tdp-delete-btn" id="tdpDeleteBtn" onclick="deleteToothDetail()" style="display:none">🗑 Obriši</button>
   </div>
 </div>
 
