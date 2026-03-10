@@ -2887,6 +2887,10 @@ function toothDiagramSVG(num, diag, ther) {
 
   // Diagnosis whole-tooth marks (dashed, subtle)
   const diagWholeMark = (() => {
+    if (diagDominant === 'healthy' || !diagDominant) return '';
+    const ds = statusStyle(diagDominant);
+    const genericDash = `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
+      fill="${ds.fill}" stroke="${ds.border}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.45" pointer-events="none"/>`;
     if (diagDominant === 'crown')
       return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5" pointer-events="none"/>`;
     if (diagDominant === 'implant')
@@ -2897,26 +2901,52 @@ function toothDiagramSVG(num, diag, ther) {
     if (diagDominant === 'bridge')
       return `<rect x="0" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>
               <rect x="${sz-m}" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>`;
-    return '';
+    // All other whole-tooth diagnoses: dashed colored rect
+    return genericDash;
   })();
 
   // Therapy whole-tooth marks (bold, solid — these are done procedures)
   const therWholeMark = (() => {
     if (!therDominant || therDominant === 'healthy') return '';
+    const ts = statusStyle(therDominant);
+    // Generic whole-tooth fill for any status not specifically handled
+    const genericFill = `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
+      fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" opacity="0.72" pointer-events="none"/>`;
     if (therDominant === 'crown')
-      return `<rect x="1.5" y="1.5" width="${sz-3}" height="${sz-3}" rx="3.5" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1" pointer-events="none"/><rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="2.5" pointer-events="none"/>`;
+      return `<rect x="1.5" y="1.5" width="${sz-3}" height="${sz-3}" rx="3.5" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1" pointer-events="none"/>
+              <rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="${ts.fill}" stroke="${ts.border}" stroke-width="2.5" opacity="0.85" pointer-events="none"/>`;
     if (therDominant === 'implant')
-      return `<line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
+      return `${genericFill}
+              <line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
               <line x1="${sz/2-6}" y1="14" x2="${sz/2+6}" y2="14" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
               <line x1="${sz/2-5}" y1="20" x2="${sz/2+5}" y2="20" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
               <line x1="${sz/2-4}" y1="26" x2="${sz/2+4}" y2="26" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>`;
     if (therDominant === 'endo')
-      return `<line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+      return `${genericFill}
+              <line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
               <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
     if (therDominant === 'bridge')
-      return `<rect x="0" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>
-              <rect x="${sz-m}" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1" pointer-events="none"/>`;
-    return '';
+      return `${genericFill}
+              <rect x="0" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1.5" pointer-events="none"/>
+              <rect x="${sz-m}" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1.5" pointer-events="none"/>`;
+    if (therDominant === 'veneer')
+      return `<rect x="2" y="2" width="${sz-4}" height="${m+2}" rx="2"
+        fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" opacity="0.9" pointer-events="none"/>`;
+    if (therDominant === 'post_core')
+      return `${genericFill}
+              <line x1="${sz/2}" y1="${m}" x2="${sz/2}" y2="${sz-m}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'temporary')
+      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
+        fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" stroke-dasharray="5 3" opacity="0.9" pointer-events="none"/>`;
+    if (therDominant === 'missing')
+      return `<line x1="4" y1="4" x2="${sz-4}" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>
+              <line x1="${sz-4}" y1="4" x2="4" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>`;
+    // recession, mobility, abscess, attrition, erosion, impacted — colored fill + label initial
+    const initials = { recession:'R', mobility:'M', abscess:'A', attrition:'At', erosion:'E', impacted:'I' };
+    const init = initials[therDominant] || '?';
+    return `${genericFill}
+            <text x="${sz/2}" y="${sz/2+5}" text-anchor="middle" font-size="13" font-weight="800"
+              fill="${ts.border}" font-family="sans-serif" pointer-events="none">${init}</text>`;
   })();
 
   // Surface center coords for therapy dots
