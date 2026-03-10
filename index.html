@@ -1139,6 +1139,75 @@ body {
   .xray-lightbox-img { max-width: 98vw; max-height: 70vh; }
 }
 
+
+/* ══ MEDICAL HISTORY ══════════════════════════════════════════ */
+.med-warning-banner {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: #fff7ed; border: 2px solid #f97316;
+  border-radius: var(--r-lg); padding: 14px 18px;
+  margin-bottom: 4px;
+}
+.med-warning-icon { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
+.med-warning-body { flex: 1; }
+.med-warning-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #9a3412; margin-bottom: 6px; }
+.med-warning-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.med-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700;
+}
+.med-tag.allergy  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.med-tag.condition{ background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
+.med-tag.med      { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
+
+/* Modal medical section */
+.med-section-head {
+  font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate);
+  padding: 10px 0 6px; border-top: 1px solid var(--line);
+  margin-top: 10px;
+}
+.med-allergy-input-wrap {
+  display: flex; gap: 6px; align-items: center; margin-bottom: 8px;
+}
+.med-allergy-input {
+  flex: 1; padding: 7px 10px; border: 1px solid var(--line);
+  border-radius: var(--r); font-family: 'Syne', sans-serif;
+  font-size: 0.82rem; outline: none;
+}
+.med-allergy-input:focus { border-color: var(--blue); }
+.med-add-btn {
+  padding: 7px 12px; border-radius: var(--r);
+  background: var(--blue); color: #fff; border: none;
+  font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700;
+  cursor: pointer;
+}
+.med-tags-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; min-height: 24px; }
+.med-tag-removable {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px 3px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700; cursor: default;
+}
+.med-tag-removable button {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.7rem; line-height: 1; padding: 0 1px;
+  color: inherit; opacity: 0.6;
+}
+.med-tag-removable button:hover { opacity: 1; }
+
+.med-conditions-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px 16px; margin-bottom: 4px;
+}
+.med-condition-item {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.8rem; color: var(--ink); padding: 3px 0;
+  cursor: pointer; user-select: none;
+}
+.med-condition-item input[type=checkbox] { accent-color: var(--blue); width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
+.med-condition-item.critical input { accent-color: #dc2626; }
+.med-condition-item.critical { font-weight: 700; color: #991b1b; }
+
 </style>
 </head>
 <body>
@@ -1284,6 +1353,8 @@ body {
           <button class="cal-add-btn" onclick="openPatientModal(currentPatientId)">✏️ Izmeni</button>
         </div>
         <div class="pt-detail-body">
+          <!-- Medical warning banner -->
+          <div id="ptMedBanner"></div>
           <!-- Info strip -->
           <div class="pt-info-strip" id="ptInfoStrip"></div>
 
@@ -2763,6 +2834,7 @@ async function openPatientDetail(id) {
   const dv = document.getElementById('patientDetailView');
   dv.style.display = 'block';
   document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
+  document.getElementById('ptMedBanner').innerHTML = buildMedWarningBanner(p);
   document.getElementById('ptInfoStrip').innerHTML = [
     p.dob   ? { l:'Datum rodjenja', v:fmtDate(p.dob) } : null,
     p.phone ? { l:'Telefon',        v:p.phone }         : null,
@@ -2821,20 +2893,20 @@ function openPatientModal(id) {
   document.getElementById('patientModalTitle').textContent = id ? 'Izmeni pacijenta' : 'Novi pacijent';
   document.getElementById('ptSaveBtn').textContent = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
   clearErr('ptErr');
-  if (id) {
-    const p = allPatients.find(x => x.id === id);
-    if (p) {
-      document.getElementById('ptFirstName').value = p.first_name || '';
-      document.getElementById('ptLastName').value  = p.last_name  || '';
-      document.getElementById('ptDob').value       = p.dob        || '';
-      document.getElementById('ptPhone').value     = p.phone      || '';
-      document.getElementById('ptEmail').value     = p.email      || '';
-      document.getElementById('ptNotes').value     = p.notes      || '';
-    }
-  } else {
-    ['ptFirstName','ptLastName','ptDob','ptPhone','ptEmail','ptNotes']
-      .forEach(fid => { document.getElementById(fid).value = ''; });
-  }
+  const p = id ? allPatients.find(x => x.id === id) : null;
+  document.getElementById('ptFirstName').value = p?.first_name || '';
+  document.getElementById('ptLastName').value  = p?.last_name  || '';
+  document.getElementById('ptDob').value       = p?.dob        || '';
+  document.getElementById('ptPhone').value     = p?.phone      || '';
+  document.getElementById('ptEmail').value     = p?.email      || '';
+  document.getElementById('ptNotes').value     = p?.notes      || '';
+  // Medical history
+  ptAllergies  = JSON.parse(p?.allergies   || '[]');
+  ptMeds       = JSON.parse(p?.medications || '[]');
+  ptConditions = JSON.parse(p?.conditions  || '{}');
+  renderConditionsGrid();
+  renderTagsList('ptAllergyTags', ptAllergies, 'allergy', 'removeAllergyTag');
+  renderTagsList('ptMedTags',     ptMeds,      'med',     'removeMedTag');
   openModal('patientModal');
 }
 
@@ -2845,11 +2917,14 @@ async function savePatient() {
   const btn = document.getElementById('ptSaveBtn');
   btn.disabled = true; btn.textContent = 'Čuvam…';
   const payload = {
-    first_name: first, last_name: last,
-    dob:   document.getElementById('ptDob').value   || null,
-    phone: document.getElementById('ptPhone').value.trim() || null,
-    email: document.getElementById('ptEmail').value.trim() || null,
-    notes: document.getElementById('ptNotes').value.trim() || null,
+    first_name:  first, last_name: last,
+    dob:         document.getElementById('ptDob').value   || null,
+    phone:       document.getElementById('ptPhone').value.trim() || null,
+    email:       document.getElementById('ptEmail').value.trim() || null,
+    notes:       document.getElementById('ptNotes').value.trim() || null,
+    allergies:   JSON.stringify(ptAllergies),
+    medications: JSON.stringify(ptMeds),
+    conditions:  JSON.stringify(readConditions()),
   };
   let error;
   if (editingPatientId) {
@@ -2871,6 +2946,153 @@ async function deletePatient(id) {
   await renderPatients();
 }
 
+
+
+// ══════════════════════════════════════════════════════════════
+// MEDICAL HISTORY
+// ══════════════════════════════════════════════════════════════
+const MED_CONDITIONS = [
+  { id:'hypertension',    label:'Hipertenzija',           critical:true  },
+  { id:'arrhythmia',      label:'Aritmija / pejsmejker',  critical:true  },
+  { id:'endocarditis',    label:'Endokarditis (profilaksa)',critical:true },
+  { id:'anticoagulant',   label:'Antikoagulantna terapija',critical:true },
+  { id:'hemophilia',      label:'Hemofilija',              critical:true  },
+  { id:'bisphosphonate',  label:'Bisfosfonati (MRONJ!)',   critical:true  },
+  { id:'diabetes',        label:'Dijabetes',               critical:false },
+  { id:'liver',           label:'Bolest jetre',            critical:false },
+  { id:'kidney',          label:'Bolest bubrega',          critical:false },
+  { id:'pregnancy',       label:'Trudnoća',                critical:false },
+  { id:'asthma',          label:'Astma',                   critical:false },
+  { id:'epilepsy',        label:'Epilepsija',              critical:false },
+  { id:'thyroid',         label:'Bolest štitne žlezde',    critical:false },
+  { id:'immunosupp',      label:'Imunosupresija',          critical:false },
+  { id:'hepatitis',       label:'Hepatitis B/C',           critical:false },
+  { id:'hiv',             label:'HIV',                     critical:false },
+  { id:'anxiety',         label:'Anksioznost',             critical:false },
+  { id:'osteoporosis',    label:'Osteoporoza',             critical:false },
+];
+
+let ptAllergies  = [];  // string[]
+let ptMeds       = [];  // string[]
+let ptConditions = {};  // { [id]: bool }
+
+function renderConditionsGrid() {
+  const grid = document.getElementById('ptConditionsGrid');
+  if (!grid) return;
+  grid.innerHTML = MED_CONDITIONS.map(c => `
+    <label class="med-condition-item${c.critical ? ' critical' : ''}">
+      <input type="checkbox" id="ptCond_${c.id}" ${ptConditions[c.id] ? 'checked' : ''}>
+      ${c.critical ? '⚠️ ' : ''}${c.label}
+    </label>`).join('');
+}
+
+function readConditions() {
+  const obj = {};
+  MED_CONDITIONS.forEach(c => {
+    const el = document.getElementById('ptCond_' + c.id);
+    if (el) obj[c.id] = el.checked;
+  });
+  return obj;
+}
+
+function renderTagsList(containerId, items, type, removeFunc) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const colors = {
+    allergy:  'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5',
+    med:      'background:#eff6ff;color:#1e40af;border:1px solid #93c5fd',
+  };
+  el.innerHTML = items.map((v,i) => `
+    <span class="med-tag-removable" style="${colors[type] || ''}">
+      ${v}
+      <button onclick="${removeFunc}(${i})" title="Ukloni">✕</button>
+    </span>`).join('');
+}
+
+function addAllergyTag() {
+  const inp = document.getElementById('ptAllergyInput');
+  const val = inp.value.trim();
+  if (val && !ptAllergies.includes(val)) {
+    ptAllergies.push(val);
+    renderTagsList('ptAllergyTags', ptAllergies, 'allergy', 'removeAllergyTag');
+  }
+  inp.value = '';
+}
+function addAllergyTagVal(v) {
+  if (!ptAllergies.includes(v)) {
+    ptAllergies.push(v);
+    renderTagsList('ptAllergyTags', ptAllergies, 'allergy', 'removeAllergyTag');
+  }
+}
+function removeAllergyTag(i) {
+  ptAllergies.splice(i, 1);
+  renderTagsList('ptAllergyTags', ptAllergies, 'allergy', 'removeAllergyTag');
+}
+
+function addMedTag() {
+  const inp = document.getElementById('ptMedInput');
+  const val = inp.value.trim();
+  if (val && !ptMeds.includes(val)) {
+    ptMeds.push(val);
+    renderTagsList('ptMedTags', ptMeds, 'med', 'removeMedTag');
+  }
+  inp.value = '';
+}
+function addMedTagVal(v) {
+  if (!ptMeds.includes(v)) {
+    ptMeds.push(v);
+    renderTagsList('ptMedTags', ptMeds, 'med', 'removeMedTag');
+  }
+}
+function removeMedTag(i) {
+  ptMeds.splice(i, 1);
+  renderTagsList('ptMedTags', ptMeds, 'med', 'removeMedTag');
+}
+
+// Build warning banner HTML for patient detail page
+function buildMedWarningBanner(p) {
+  const allergies   = JSON.parse(p.allergies   || '[]');
+  const meds        = JSON.parse(p.medications || '[]');
+  const conditions  = JSON.parse(p.conditions  || '{}');
+  const activeConditions = MED_CONDITIONS.filter(c => conditions[c.id]);
+
+  if (!allergies.length && !meds.length && !activeConditions.length) return '';
+
+  const criticalConditions = activeConditions.filter(c => c.critical);
+  const normalConditions   = activeConditions.filter(c => !c.critical);
+
+  let html = `<div class="med-warning-banner">
+    <div class="med-warning-icon">⚠️</div>
+    <div class="med-warning-body">`;
+
+  if (allergies.length) {
+    html += `<div class="med-warning-title">Alergije</div>
+      <div class="med-warning-tags" style="margin-bottom:8px">
+        ${allergies.map(a => `<span class="med-tag allergy">⚠ ${a}</span>`).join('')}
+      </div>`;
+  }
+  if (criticalConditions.length) {
+    html += `<div class="med-warning-title">Kritična stanja</div>
+      <div class="med-warning-tags" style="margin-bottom:8px">
+        ${criticalConditions.map(c => `<span class="med-tag condition">⚠ ${c.label}</span>`).join('')}
+      </div>`;
+  }
+  if (normalConditions.length) {
+    html += `<div class="med-warning-title">Medicinska stanja</div>
+      <div class="med-warning-tags" style="margin-bottom:8px">
+        ${normalConditions.map(c => `<span class="med-tag condition">${c.label}</span>`).join('')}
+      </div>`;
+  }
+  if (meds.length) {
+    html += `<div class="med-warning-title">Terapija</div>
+      <div class="med-warning-tags">
+        ${meds.map(m => `<span class="med-tag med">💊 ${m}</span>`).join('')}
+      </div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
+}
 
 // ══════════════════════════════════════════════════════════════
 // PATIENT PICKER COMBOBOX
@@ -3436,40 +3658,65 @@ async function updateXrayDate(id, taken_at) {
 
 <!-- PATIENT MODAL -->
 <div class="overlay" id="patientModal">
-  <div class="modal">
+  <div class="modal" style="max-width:620px;width:96vw">
     <div class="modal-head">
       <h3 id="patientModalTitle">Novi pacijent</h3>
       <button class="modal-close" onclick="closeModal('patientModal')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="max-height:82vh;overflow-y:auto">
+
+      <!-- Basic info -->
       <div class="mrow">
-        <div class="mfield">
-          <label>Ime</label>
-          <input id="ptFirstName" placeholder="Ime">
-        </div>
-        <div class="mfield">
-          <label>Prezime</label>
-          <input id="ptLastName" placeholder="Prezime">
-        </div>
+        <div class="mfield"><label>Ime</label><input id="ptFirstName" placeholder="Ime"></div>
+        <div class="mfield"><label>Prezime</label><input id="ptLastName" placeholder="Prezime"></div>
       </div>
       <div class="mrow">
-        <div class="mfield">
-          <label>Datum rodjenja</label>
-          <input id="ptDob" type="date">
-        </div>
-        <div class="mfield">
-          <label>Telefon</label>
-          <input id="ptPhone" placeholder="+381 60 123 4567">
-        </div>
+        <div class="mfield"><label>Datum rodjenja</label><input id="ptDob" type="date"></div>
+        <div class="mfield"><label>Telefon</label><input id="ptPhone" placeholder="+381 60 123 4567"></div>
       </div>
-      <div class="mfield">
-        <label>Email</label>
-        <input id="ptEmail" type="email" placeholder="pacijent@email.com">
+      <div class="mfield"><label>Email</label><input id="ptEmail" type="email" placeholder="pacijent@email.com"></div>
+
+      <!-- ALLERGIES -->
+      <div class="med-section-head">⚠️ Alergije</div>
+      <div class="med-allergy-input-wrap">
+        <input id="ptAllergyInput" class="med-allergy-input" placeholder="Unesi alergiju (npr. Penicillin) i pritisni Dodaj…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addAllergyTag()}">
+        <button class="med-add-btn" onclick="addAllergyTag()">+ Dodaj</button>
       </div>
-      <div class="mfield">
-        <label>Alergije / napomene</label>
-        <textarea id="ptNotes" placeholder="Alergije, hronične bolesti, lekovi…"></textarea>
+      <!-- Common allergy quick-add -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        <span style="font-size:0.68rem;color:var(--slate);font-weight:700;align-self:center">Brzi unos:</span>
+        ${['Lidokain','Artikain','Penicilin','Amoksicilin','Ibuprofen','Aspirin','Lateks','Nikal','Hlorheksidin','Jod'].map(a =>
+          `<button onclick="addAllergyTagVal('${a}')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">${a}</button>`
+        ).join('')}
       </div>
+      <div class="med-tags-list" id="ptAllergyTags"></div>
+
+      <!-- MEDICAL CONDITIONS -->
+      <div class="med-section-head">🏥 Medicinska stanja</div>
+      <div class="med-conditions-grid" id="ptConditionsGrid"></div>
+
+      <!-- MEDICATIONS -->
+      <div class="med-section-head">💊 Lekovi koje koristi</div>
+      <div class="med-allergy-input-wrap">
+        <input id="ptMedInput" class="med-allergy-input" placeholder="Unesi lek i pritisni Dodaj…"
+          onkeydown="if(event.key='Enter'){event.preventDefault();addMedTag()}">
+        <button class="med-add-btn" onclick="addMedTag()">+ Dodaj</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        <span style="font-size:0.68rem;color:var(--slate);font-weight:700;align-self:center">Brzi unos:</span>
+        ${['Varfarin','Aspirin','Apixaban','Bisfosfonate','Metformin','Kortikosteroidi','SSRI'].map(m =>
+          `<button onclick="addMedTagVal('${m}')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">${m}</button>`
+        ).join('')}
+      </div>
+      <div class="med-tags-list" id="ptMedTags"></div>
+
+      <!-- GENERAL NOTES -->
+      <div class="med-section-head">📝 Napomene</div>
+      <div class="mfield" style="border-top:none;padding-top:0">
+        <textarea id="ptNotes" placeholder="Ostale napomene…" style="min-height:52px"></textarea>
+      </div>
+
       <div class="modal-err" id="ptErr"></div>
       <button class="btn-save" id="ptSaveBtn" onclick="savePatient()">Sačuvaj →</button>
     </div>
