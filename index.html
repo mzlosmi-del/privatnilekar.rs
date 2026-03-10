@@ -983,6 +983,141 @@ body {
   border-radius: var(--r); padding: 12px 14px; margin-top: 4px;
 }
 
+
+/* ══════════════════════════════════════════════
+   X-RAY / SNIMCI
+══════════════════════════════════════════════ */
+.xray-dropzone {
+  border: 2px dashed var(--line); border-radius: var(--r);
+  padding: 28px 20px; text-align: center;
+  cursor: pointer; transition: all 0.15s;
+  background: var(--off); margin-bottom: 14px;
+}
+.xray-dropzone:hover, .xray-dropzone.dragover {
+  border-color: var(--blue); background: var(--blue-dim);
+}
+.xray-drop-icon { font-size: 2rem; margin-bottom: 8px; }
+.xray-drop-text { font-size: 0.85rem; color: var(--ink); font-weight: 600; }
+.xray-drop-link { color: var(--blue); cursor: pointer; text-decoration: underline; }
+.xray-drop-sub  { font-size: 0.72rem; color: var(--slate); margin-top: 4px; }
+
+.xray-progress-bar {
+  height: 6px; background: var(--line); border-radius: 3px;
+  margin-bottom: 6px; overflow: hidden;
+}
+.xray-progress-fill {
+  height: 100%; background: var(--blue);
+  border-radius: 3px; transition: width 0.2s;
+  width: 0%;
+}
+.xray-progress-label {
+  font-size: 0.75rem; color: var(--slate); font-weight: 600; margin-bottom: 12px;
+}
+
+.xray-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.xray-card {
+  border-radius: var(--r); overflow: hidden;
+  border: 1px solid var(--line); background: #000;
+  cursor: pointer; position: relative;
+  transition: box-shadow 0.15s, transform 0.15s;
+  aspect-ratio: 1;
+}
+.xray-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  transform: translateY(-2px);
+}
+.xray-card img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  filter: contrast(1.05) brightness(0.95);
+  transition: filter 0.15s;
+}
+.xray-card:hover img { filter: contrast(1.1) brightness(1.05); }
+.xray-card-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.75));
+  color: #fff; font-size: 0.67rem; font-weight: 700;
+  padding: 16px 8px 6px; line-height: 1.3;
+}
+.xray-card-del {
+  position: absolute; top: 5px; right: 5px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  border: none; border-radius: 50%;
+  width: 22px; height: 22px; font-size: 0.7rem;
+  cursor: pointer; display: none; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.xray-card:hover .xray-card-del { display: flex; }
+.xray-card-del:hover { background: #dc2626; }
+
+.xray-empty {
+  color: var(--slate); font-size: 0.82rem;
+  padding: 12px 0; text-align: center;
+}
+
+/* Lightbox */
+.xray-lightbox {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.92);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.xray-lightbox-img {
+  max-width: 90vw; max-height: 80vh;
+  object-fit: contain; border-radius: 4px;
+  cursor: zoom-in;
+}
+.xray-lightbox-img.zoomed {
+  max-width: none; max-height: none;
+  cursor: zoom-out; width: auto; height: auto;
+}
+.xray-lightbox-bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 20px; width: 100%; max-width: 900px;
+}
+.xray-lightbox-label {
+  color: #fff; font-size: 0.88rem; font-weight: 700; flex: 1;
+}
+.xray-lightbox-date { color: #9ca3af; font-size: 0.75rem; }
+.xray-lb-btn {
+  background: rgba(255,255,255,0.12); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; padding: 6px 14px;
+  font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  transition: background 0.12s;
+}
+.xray-lb-btn:hover { background: rgba(255,255,255,0.22); }
+.xray-lb-btn.danger:hover { background: #dc2626; border-color: #dc2626; }
+.xray-lb-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.1); color: #fff;
+  border: none; border-radius: 50%; width: 44px; height: 44px;
+  font-size: 1.2rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: background 0.12s;
+}
+.xray-lb-nav:hover { background: rgba(255,255,255,0.25); }
+.xray-lb-prev { left: 16px; }
+.xray-lb-next { right: 16px; }
+
+/* Label edit input in lightbox */
+.xray-label-input {
+  background: rgba(255,255,255,0.1); color: #fff;
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 6px;
+  padding: 4px 10px; font-size: 0.82rem; font-family: 'Syne', sans-serif;
+  width: 200px;
+}
+.xray-label-input:focus { outline: none; border-color: var(--blue); }
+
+@media (max-width:600px) {
+  .xray-grid { grid-template-columns: repeat(auto-fill, minmax(100px,1fr)); gap:8px; }
+  .xray-lightbox-img { max-width: 98vw; max-height: 70vh; }
+}
+
 </style>
 </head>
 <body>
@@ -1155,6 +1290,35 @@ body {
             <div class="odo-notes-wrap">
               <textarea id="odoNotes" class="odo-notes" placeholder="Napomena za odontogram…" oninput="saveOdoNotes()"></textarea>
             </div>
+          </div>
+
+          <!-- X-rays -->
+          <div class="pt-section">
+            <div class="pt-section-title" style="display:flex;align-items:center;gap:12px">
+              Snimci
+              <button class="cal-add-btn" style="margin-left:auto;font-size:0.75rem;padding:5px 12px"
+                onclick="document.getElementById('xrayFileInput').click()">
+                + Dodaj snimak
+              </button>
+            </div>
+            <input type="file" id="xrayFileInput" accept="image/*,.dcm" multiple
+              style="display:none" onchange="handleXrayUpload(event)">
+            <!-- Drop zone -->
+            <div class="xray-dropzone" id="xrayDropzone"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="handleXrayDrop(event)">
+              <div class="xray-drop-icon">🦷</div>
+              <div class="xray-drop-text">Prevucite snimke ovde ili <span class="xray-drop-link" onclick="document.getElementById('xrayFileInput').click()">kliknite da izaberete</span></div>
+              <div class="xray-drop-sub">JPG, PNG, WEBP — do 20MB po snimku</div>
+            </div>
+            <!-- Upload progress -->
+            <div id="xrayUploadProgress" style="display:none">
+              <div class="xray-progress-bar"><div class="xray-progress-fill" id="xrayProgressFill"></div></div>
+              <div class="xray-progress-label" id="xrayProgressLabel">Učitavanje…</div>
+            </div>
+            <!-- Grid of thumbnails -->
+            <div class="xray-grid" id="xrayGrid"></div>
           </div>
 
           <!-- Appointment history -->
@@ -2555,6 +2719,7 @@ async function openPatientDetail(id) {
     store[k][t.surface] = t.status;
   });
   buildOdontogram();
+  await loadXrays(id);
 
   const notesEl = document.getElementById('odoNotes');
   if (notesEl) notesEl.value = p.odo_notes || '';
@@ -2810,6 +2975,226 @@ function selectNewPatient(e, prefill) {
   clear.classList.add('visible');
   dropdown.classList.remove('open');
   if (newInline) { newInline.style.display = 'block'; newPtFirst.focus(); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// X-RAY MODULE
+// ══════════════════════════════════════════════════════════════
+let allXrays = [];        // current patient's xrays
+let lightboxIdx = -1;     // which xray is open in lightbox
+
+// ── Load & render ─────────────────────────────────────────────
+async function loadXrays(patientId) {
+  const { data, error } = await sb.from('xrays')
+    .select('*').eq('patient_id', patientId)
+    .order('created_at', { ascending: false });
+  allXrays = data || [];
+  renderXrayGrid();
+}
+
+function renderXrayGrid() {
+  const grid = document.getElementById('xrayGrid');
+  const dz   = document.getElementById('xrayDropzone');
+  if (!grid) return;
+
+  if (!allXrays.length) {
+    grid.innerHTML = '<div class="xray-empty">Nema snimaka — prevucite ili kliknite gore da dodate</div>';
+    if (dz) dz.style.display = 'block';
+    return;
+  }
+  if (dz) dz.style.display = allXrays.length > 0 ? 'none' : 'block';
+
+  grid.innerHTML = allXrays.map((x, i) => `
+    <div class="xray-card" onclick="openLightbox(${i})">
+      <img src="${x.file_url}" alt="${x.label || 'Snimak'}" loading="lazy"
+        onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23111\\'/><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23555\\' text-anchor=\\'middle\\' dy=\\'.3em\\' font-size=\\'12\\'>?</text></svg>'">
+      <div class="xray-card-label">
+        ${x.label || 'Snimak'}
+        ${x.taken_at ? `<br><span style="font-weight:400;opacity:0.8">${fmtDate(x.taken_at)}</span>` : ''}
+      </div>
+      <button class="xray-card-del" onclick="event.stopPropagation();deleteXray('${x.id}','${x.file_url}')" title="Obriši">✕</button>
+    </div>`).join('');
+
+  // Show drop zone as small link after grid
+  grid.innerHTML += `<div class="xray-card" style="border-style:dashed;background:var(--off);display:flex;align-items:center;justify-content:center;cursor:pointer"
+    onclick="document.getElementById('xrayFileInput').click()">
+    <div style="text-align:center;color:var(--slate)">
+      <div style="font-size:1.5rem">+</div>
+      <div style="font-size:0.7rem;font-weight:700">Dodaj</div>
+    </div>
+  </div>`;
+}
+
+// ── Upload ────────────────────────────────────────────────────
+function handleXrayDrop(e) {
+  e.preventDefault();
+  document.getElementById('xrayDropzone')?.classList.remove('dragover');
+  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/') || f.name.endsWith('.dcm'));
+  if (files.length) uploadXrayFiles(files);
+}
+
+function handleXrayUpload(e) {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (files.length) uploadXrayFiles(files);
+}
+
+async function uploadXrayFiles(files) {
+  if (!currentPatientId) return;
+  const prog     = document.getElementById('xrayUploadProgress');
+  const fill     = document.getElementById('xrayProgressFill');
+  const label    = document.getElementById('xrayProgressLabel');
+  const dz       = document.getElementById('xrayDropzone');
+  if (prog) prog.style.display = 'block';
+  if (dz)   dz.style.display   = 'none';
+
+  let done = 0;
+  for (const file of files) {
+    if (fill)  fill.style.width = Math.round((done / files.length) * 100) + '%';
+    if (label) label.textContent = `Učitavanje ${done + 1} od ${files.length}: ${file.name}`;
+
+    // Sanitise filename: timestamp + original name
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const safe = `${currentPatientId}/${Date.now()}_${Math.random().toString(36).slice(2,7)}.${ext}`;
+
+    const { data: upData, error: upErr } = await sb.storage
+      .from('xrays')
+      .upload(safe, file, { cacheControl: '3600', upsert: false });
+
+    if (upErr) {
+      console.error('Upload error:', upErr);
+      showOdoSaveStatus('error', upErr.message || 'Greška pri otpremanju');
+      done++; continue;
+    }
+
+    // Get public URL
+    const { data: urlData } = sb.storage.from('xrays').getPublicUrl(safe);
+    const fileUrl = urlData?.publicUrl;
+
+    // Default label: guess from filename
+    const guessLabel = guessXrayLabel(file.name);
+
+    const { error: dbErr } = await sb.from('xrays').insert({
+      patient_id: currentPatientId,
+      file_url:   fileUrl,
+      label:      guessLabel,
+      taken_at:   new Date().toISOString().split('T')[0],
+    });
+    if (dbErr) console.error('DB insert error:', dbErr);
+
+    done++;
+  }
+
+  if (fill)  fill.style.width = '100%';
+  if (label) label.textContent = `✓ ${done} snimak(a) učitano`;
+  setTimeout(() => { if (prog) prog.style.display = 'none'; }, 1500);
+
+  await loadXrays(currentPatientId);
+}
+
+function guessXrayLabel(filename) {
+  const f = filename.toLowerCase();
+  if (f.includes('pano') || f.includes('panoram'))   return 'Panoramski';
+  if (f.includes('bitewing') || f.includes('bw'))    return 'Bitewing';
+  if (f.includes('periap'))                           return 'Periapikalni';
+  if (f.includes('ceph') || f.includes('latero'))    return 'Latero-cef.';
+  return 'Snimak';
+}
+
+// ── Delete ────────────────────────────────────────────────────
+async function deleteXray(id, fileUrl) {
+  if (!confirm('Obrisati ovaj snimak?')) return;
+  // Extract storage path from URL
+  const urlParts  = fileUrl.split('/xrays/');
+  const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
+
+  await sb.from('xrays').delete().eq('id', id);
+  if (storagePath) {
+    await sb.storage.from('xrays').remove([storagePath]);
+  }
+  if (lightboxIdx >= 0) closeLightbox();
+  await loadXrays(currentPatientId);
+}
+
+// ── Lightbox ──────────────────────────────────────────────────
+function openLightbox(idx) {
+  lightboxIdx = idx;
+  const x = allXrays[idx];
+  if (!x) return;
+
+  // Build lightbox DOM
+  let lb = document.getElementById('xrayLightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'xrayLightbox';
+    lb.className = 'xray-lightbox';
+    document.body.appendChild(lb);
+  }
+
+  lb.innerHTML = `
+    <div class="xray-lightbox-bar">
+      <div style="flex:1">
+        <input class="xray-label-input" id="lbLabelInput" value="${x.label || ''}"
+          placeholder="Naziv snimka…"
+          onchange="updateXrayLabel('${x.id}', this.value)">
+        <span class="xray-lightbox-date" style="margin-left:10px">${x.taken_at ? fmtDate(x.taken_at) : ''}</span>
+        <input type="date" id="lbDateInput" value="${x.taken_at || ''}"
+          style="margin-left:8px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:3px 8px;font-size:0.75rem;font-family:Syne,sans-serif"
+          onchange="updateXrayDate('${x.id}', this.value)">
+      </div>
+      <span style="color:#9ca3af;font-size:0.75rem">${idx+1} / ${allXrays.length}</span>
+      <button class="xray-lb-btn" onclick="toggleZoom()">🔍 Zoom</button>
+      <button class="xray-lb-btn danger" onclick="deleteXray('${x.id}','${x.file_url}')">🗑 Obriši</button>
+      <button class="xray-lb-btn" onclick="closeLightbox()">✕ Zatvori</button>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;flex:1;width:100%;overflow:auto">
+      ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-prev" onclick="lbNav(-1)">‹</button>` : ''}
+      <img id="lbImg" class="xray-lightbox-img" src="${x.file_url}" alt="${x.label || 'Snimak'}"
+        onclick="toggleZoom()">
+      ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-next" onclick="lbNav(1)">›</button>` : ''}
+    </div>`;
+
+  lb.style.display = 'flex';
+  document.addEventListener('keydown', lbKeyHandler);
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('xrayLightbox');
+  if (lb) lb.style.display = 'none';
+  lightboxIdx = -1;
+  document.removeEventListener('keydown', lbKeyHandler);
+}
+
+function lbNav(dir) {
+  const next = (lightboxIdx + dir + allXrays.length) % allXrays.length;
+  openLightbox(next);
+}
+
+function toggleZoom() {
+  const img = document.getElementById('lbImg');
+  if (img) img.classList.toggle('zoomed');
+}
+
+function lbKeyHandler(e) {
+  if (e.key === 'Escape')       closeLightbox();
+  if (e.key === 'ArrowLeft')    lbNav(-1);
+  if (e.key === 'ArrowRight')   lbNav(1);
+}
+
+async function updateXrayLabel(id, label) {
+  await sb.from('xrays').update({ label }).eq('id', id);
+  const x = allXrays.find(r => r.id === id);
+  if (x) { x.label = label; renderXrayGrid(); }
+}
+
+async function updateXrayDate(id, taken_at) {
+  await sb.from('xrays').update({ taken_at }).eq('id', id);
+  const x = allXrays.find(r => r.id === id);
+  if (x) { x.taken_at = taken_at; }
+  // Refresh date display
+  const dateSpan = document.querySelector('.xray-lightbox-date');
+  if (dateSpan) dateSpan.textContent = taken_at ? fmtDate(taken_at) : '';
 }
 
 </script>
