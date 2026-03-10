@@ -114,6 +114,39 @@ body {
 .btn-login:hover { background: var(--blue-mid); transform: translateY(-1px); }
 .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+.login-card { width: 400px; max-width: 96vw; }
+.auth-switch {
+  text-align: center; margin-top: 20px;
+  font-size: 0.82rem; color: var(--slate);
+}
+.auth-switch a {
+  color: var(--blue); font-weight: 700; cursor: pointer;
+  text-decoration: none;
+}
+.auth-switch a:hover { text-decoration: underline; }
+.auth-screen { display: none; }
+.auth-screen.active { display: block; }
+.auth-divider {
+  border: none; border-top: 1px solid var(--line);
+  margin: 20px 0;
+}
+.auth-success {
+  font-size: 0.85rem; color: #15803d;
+  background: #f0fdf4; border: 1px solid #86efac;
+  border-radius: 8px; padding: 10px 14px;
+  margin-bottom: 14px; display: none;
+}
+.btn-login-secondary {
+  width: 100%; padding: 11px;
+  background: transparent; color: var(--blue);
+  border: 2px solid var(--blue); border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; margin-top: 8px;
+}
+.btn-login-secondary:hover { background: var(--blue-dim); }
+.login-err.success {
+  color: #15803d; background: #f0fdf4; border: 1px solid #86efac;
+}
 /* ── APP SHELL ─────────────────────────────────── */
 #app {
   display: none; flex-direction: column; height: 100vh; overflow: hidden;
@@ -1212,27 +1245,112 @@ body {
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- AUTH SCREENS -->
 <div id="loginScreen">
   <div class="login-card">
+
+    <!-- Logo (shared) -->
     <div class="login-logo">
       <div class="login-logo-mark">
         <svg viewBox="0 0 18 18" fill="none"><rect x="8" y="2" width="2" height="14" rx="1" fill="#ffffff"/><rect x="2" y="8" width="14" height="2" rx="1" fill="#ffffff"/></svg>
       </div>
       <div class="login-logo-text">Privatni<span>Lekar</span></div>
     </div>
-    <div class="login-title">Dobrodošli</div>
-    <div class="login-sub">Prijavite se da pristupite kalendaru</div>
-    <div class="field">
-      <label>Email</label>
-      <input id="lgEmail" type="email" placeholder="vas@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- ── SCREEN: LOGIN ── -->
+    <div class="auth-screen active" id="authLogin">
+      <div class="login-title">Dobrodošli</div>
+      <div class="login-sub">Prijavite se da pristupite kalendaru</div>
+      <div class="field">
+        <label>Email</label>
+        <input id="lgEmail" type="email" placeholder="vas@email.com"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="field">
+        <label>Lozinka</label>
+        <input id="lgPass" type="password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="login-err" id="lgErr"></div>
+      <button class="btn-login" id="lgBtn" onclick="doLogin()">Prijavite se →</button>
+      <div class="auth-switch">
+        Nemate nalog? <a onclick="showAuthScreen('authRegister')">Registrujte se</a>
+      </div>
+      <div class="auth-switch" style="margin-top:10px">
+        <a onclick="showAuthScreen('authReset')">Zaboravili ste lozinku?</a>
+      </div>
     </div>
-    <div class="field">
-      <label>Lozinka</label>
-      <input id="lgPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- ── SCREEN: REGISTER ── -->
+    <div class="auth-screen" id="authRegister">
+      <div class="login-title">Registracija</div>
+      <div class="login-sub">Kreirajte nalog za pristup platformi</div>
+      <div class="field">
+        <label>Ime i prezime</label>
+        <input id="rgName" type="text" placeholder="Dr. Marko Marković"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="rgEmail" type="email" placeholder="vas@email.com"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="field">
+        <label>Specijalnost (opciono)</label>
+        <input id="rgSpecialty" type="text" placeholder="Stomatolog, Ortodont…"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="field">
+        <label>Lozinka</label>
+        <input id="rgPass" type="password" placeholder="Minimum 8 karaktera"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="field">
+        <label>Potvrda lozinke</label>
+        <input id="rgPass2" type="password" placeholder="Ponovite lozinku"
+          onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div class="login-err" id="rgErr"></div>
+      <button class="btn-login" id="rgBtn" onclick="doRegister()">Registrujte se →</button>
+      <div class="auth-switch">
+        Već imate nalog? <a onclick="showAuthScreen('authLogin')">Prijavite se</a>
+      </div>
     </div>
-    <div class="login-err" id="lgErr"></div>
-    <button class="btn-login" id="lgBtn" onclick="doLogin()">Prijavite se →</button>
+
+    <!-- ── SCREEN: RESET PASSWORD ── -->
+    <div class="auth-screen" id="authReset">
+      <div class="login-title">Reset lozinke</div>
+      <div class="login-sub">Unesite email i poslaćemo vam link za reset</div>
+      <div class="field">
+        <label>Email</label>
+        <input id="rstEmail" type="email" placeholder="vas@email.com"
+          onkeydown="if(event.key==='Enter')doResetPassword()">
+      </div>
+      <div class="login-err" id="rstErr"></div>
+      <button class="btn-login" id="rstBtn" onclick="doResetPassword()">Pošalji link →</button>
+      <div class="auth-switch">
+        <a onclick="showAuthScreen('authLogin')">← Nazad na prijavu</a>
+      </div>
+    </div>
+
+    <!-- ── SCREEN: SET NEW PASSWORD (after clicking reset link) ── -->
+    <div class="auth-screen" id="authNewPass">
+      <div class="login-title">Nova lozinka</div>
+      <div class="login-sub">Unesite novu lozinku za vaš nalog</div>
+      <div class="field">
+        <label>Nova lozinka</label>
+        <input id="newPass" type="password" placeholder="Minimum 8 karaktera"
+          onkeydown="if(event.key==='Enter')doSetNewPassword()">
+      </div>
+      <div class="field">
+        <label>Potvrda lozinke</label>
+        <input id="newPass2" type="password" placeholder="Ponovite lozinku"
+          onkeydown="if(event.key==='Enter')doSetNewPassword()">
+      </div>
+      <div class="login-err" id="newPassErr"></div>
+      <button class="btn-login" id="newPassBtn" onclick="doSetNewPassword()">Sačuvaj lozinku →</button>
+    </div>
+
   </div>
 </div>
 
@@ -1705,9 +1823,39 @@ function clearErr(id) {
 }
 
 // ── AUTH ──────────────────────────────────────────────
+function showAuthScreen(id) {
+  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // clear errors
+  ['lgErr','rgErr','rstErr','newPassErr'].forEach(e => {
+    const el = document.getElementById(e); if (el) { el.style.display='none'; el.textContent=''; }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await sb.auth.getSession();
+
+  // Check if this is a password-reset redirect (Supabase puts #access_token in URL)
+  const hash = location.hash;
+  if (hash.includes('type=recovery')) {
+    // Supabase has already set the session from the URL token
+    showAuthScreen('authNewPass');
+    return;
+  }
+
   if (session?.user) await initApp(session.user);
+
+  // Listen for auth events (e.g. email confirmation, password recovery)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      document.getElementById('app').classList.remove('visible');
+      document.getElementById('loginScreen').style.display = 'flex';
+      showAuthScreen('authNewPass');
+    } else if (event === 'SIGNED_IN' && session?.user) {
+      // Only auto-navigate if not already in app
+      if (!doctor) await initApp(session.user);
+    }
+  });
 });
 
 async function doLogin() {
@@ -1723,13 +1871,109 @@ async function doLogin() {
   await initApp(data.user);
 }
 
+async function doRegister() {
+  const name     = document.getElementById('rgName').value.trim();
+  const email    = document.getElementById('rgEmail').value.trim();
+  const specialty= document.getElementById('rgSpecialty').value.trim();
+  const pass     = document.getElementById('rgPass').value;
+  const pass2    = document.getElementById('rgPass2').value;
+
+  if (!name)            return showErr('rgErr', 'Unesite ime i prezime.');
+  if (!email)           return showErr('rgErr', 'Unesite email adresu.');
+  if (pass.length < 8)  return showErr('rgErr', 'Lozinka mora imati minimum 8 karaktera.');
+  if (pass !== pass2)   return showErr('rgErr', 'Lozinke se ne poklapaju.');
+
+  const btn = document.getElementById('rgBtn');
+  btn.disabled = true; btn.textContent = 'Registrujem…';
+
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, specialty } }
+  });
+
+  btn.disabled = false; btn.textContent = 'Registrujte se →';
+
+  if (error) return showErr('rgErr', error.message);
+
+  // If email confirmation is disabled in Supabase, user is immediately active
+  if (data.user && data.session) {
+    await initApp(data.user);
+  } else {
+    // Email confirmation required — show message
+    const err = document.getElementById('rgErr');
+    err.textContent = '✓ Registracija uspešna! Proverite email i potvrdite nalog pre prijave.';
+    err.style.background = '#f0fdf4';
+    err.style.color = '#15803d';
+    err.style.border = '1px solid #86efac';
+    err.style.display = 'block';
+    btn.textContent = 'Registrujte se →';
+  }
+}
+
+async function doResetPassword() {
+  const email = document.getElementById('rstEmail').value.trim();
+  if (!email) return showErr('rstErr', 'Unesite email adresu.');
+
+  const btn = document.getElementById('rstBtn');
+  btn.disabled = true; btn.textContent = 'Šaljem…';
+
+  // redirectTo must match your deployed URL exactly
+  const redirectUrl = window.location.origin + window.location.pathname;
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
+  });
+
+  btn.disabled = false; btn.textContent = 'Pošalji link →';
+
+  if (error) return showErr('rstErr', error.message);
+
+  const err = document.getElementById('rstErr');
+  err.textContent = '✓ Link za reset je poslat! Proverite email (i spam folder).';
+  err.style.background = '#f0fdf4';
+  err.style.color = '#15803d';
+  err.style.border = '1px solid #86efac';
+  err.style.display = 'block';
+}
+
+async function doSetNewPassword() {
+  const pass  = document.getElementById('newPass').value;
+  const pass2 = document.getElementById('newPass2').value;
+
+  if (pass.length < 8) return showErr('newPassErr', 'Lozinka mora imati minimum 8 karaktera.');
+  if (pass !== pass2)  return showErr('newPassErr', 'Lozinke se ne poklapaju.');
+
+  const btn = document.getElementById('newPassBtn');
+  btn.disabled = true; btn.textContent = 'Čuvam…';
+
+  const { data, error } = await sb.auth.updateUser({ password: pass });
+
+  btn.disabled = false; btn.textContent = 'Sačuvaj lozinku →';
+
+  if (error) return showErr('newPassErr', error.message);
+
+  // Password updated — log in to app
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    await initApp(session.user);
+  } else {
+    // Show success and redirect to login
+    const err = document.getElementById('newPassErr');
+    err.textContent = '✓ Lozinka je uspešno promenjena! Prijavite se.';
+    err.style.background = '#f0fdf4'; err.style.color = '#15803d';
+    err.style.border = '1px solid #86efac'; err.style.display = 'block';
+    setTimeout(() => showAuthScreen('authLogin'), 2000);
+  }
+}
+
 async function initApp(user) {
   // Find or create doctor row — use auth user id as primary key so it never changes
   let { data: doc } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
   if (!doc) {
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    const name     = user.user_metadata?.full_name || user.email.split('@')[0];
+    const specialty = user.user_metadata?.specialty || null;
     const { data: created, error: insertErr } = await sb.from('doctors')
-      .insert({ id: user.id, email: user.email, full_name: name })
+      .insert({ id: user.id, email: user.email, full_name: name, specialty })
       .select().single();
     if (insertErr) {
       // Row may have been created by another session — try fetching again
@@ -1777,8 +2021,10 @@ async function initApp(user) {
 async function doLogout() {
   await sb.auth.signOut();
   doctor = null;
+  location.hash = '';
   document.getElementById('app').classList.remove('visible');
   document.getElementById('loginScreen').style.display = 'flex';
+  showAuthScreen('authLogin');
   document.getElementById('lgEmail').value = '';
   document.getElementById('lgPass').value  = '';
 }
