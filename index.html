@@ -3686,9 +3686,16 @@ async function updateXrayDate(id, taken_at) {
       <!-- Common allergy quick-add -->
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
         <span style="font-size:0.68rem;color:var(--slate);font-weight:700;align-self:center">Brzi unos:</span>
-        ${['Lidokain','Artikain','Penicilin','Amoksicilin','Ibuprofen','Aspirin','Lateks','Nikal','Hlorheksidin','Jod'].map(a =>
-          `<button onclick="addAllergyTagVal('${a}')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">${a}</button>`
-        ).join('')}
+        <button onclick="addAllergyTagVal('Lidokain')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Lidokain</button>
+        <button onclick="addAllergyTagVal('Artikain')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Artikain</button>
+        <button onclick="addAllergyTagVal('Penicilin')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Penicilin</button>
+        <button onclick="addAllergyTagVal('Amoksicilin')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Amoksicilin</button>
+        <button onclick="addAllergyTagVal('Ibuprofen')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Ibuprofen</button>
+        <button onclick="addAllergyTagVal('Aspirin')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Aspirin</button>
+        <button onclick="addAllergyTagVal('Lateks')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Lateks</button>
+        <button onclick="addAllergyTagVal('Nikal')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Nikal</button>
+        <button onclick="addAllergyTagVal('Hlorheksidin')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Hlorheksidin</button>
+        <button onclick="addAllergyTagVal('Jod')" style="padding:2px 9px;border-radius:12px;border:1px solid #fca5a5;background:#fee2e2;color:#991b1b;font-size:0.72rem;font-weight:700;cursor:pointer">Jod</button>
       </div>
       <div class="med-tags-list" id="ptAllergyTags"></div>
 
@@ -3700,14 +3707,18 @@ async function updateXrayDate(id, taken_at) {
       <div class="med-section-head">💊 Lekovi koje koristi</div>
       <div class="med-allergy-input-wrap">
         <input id="ptMedInput" class="med-allergy-input" placeholder="Unesi lek i pritisni Dodaj…"
-          onkeydown="if(event.key='Enter'){event.preventDefault();addMedTag()}">
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addMedTag()}">
         <button class="med-add-btn" onclick="addMedTag()">+ Dodaj</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
         <span style="font-size:0.68rem;color:var(--slate);font-weight:700;align-self:center">Brzi unos:</span>
-        ${['Varfarin','Aspirin','Apixaban','Bisfosfonate','Metformin','Kortikosteroidi','SSRI'].map(m =>
-          `<button onclick="addMedTagVal('${m}')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">${m}</button>`
-        ).join('')}
+        <button onclick="addMedTagVal('Varfarin')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Varfarin</button>
+        <button onclick="addMedTagVal('Aspirin')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Aspirin</button>
+        <button onclick="addMedTagVal('Apixaban')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Apixaban</button>
+        <button onclick="addMedTagVal('Bisfosfonate')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Bisfosfonate</button>
+        <button onclick="addMedTagVal('Metformin')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Metformin</button>
+        <button onclick="addMedTagVal('Kortikosteroidi')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">Kortikosteroidi</button>
+        <button onclick="addMedTagVal('SSRI')" style="padding:2px 9px;border-radius:12px;border:1px solid #93c5fd;background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;cursor:pointer">SSRI</button>
       </div>
       <div class="med-tags-list" id="ptMedTags"></div>
 
