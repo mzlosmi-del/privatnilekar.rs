@@ -2251,7 +2251,7 @@ function toothDiagramSVG(num, diag, ther) {
   const therWholeMark = (() => {
     if (!therDominant || therDominant === 'healthy') return '';
     if (therDominant === 'crown')
-      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="2.5" pointer-events="none"/>`;
+      return `<rect x="1.5" y="1.5" width="${sz-3}" height="${sz-3}" rx="3.5" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1" pointer-events="none"/><rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="2.5" pointer-events="none"/>`;
     if (therDominant === 'implant')
       return `<line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
               <line x1="${sz/2-6}" y1="14" x2="${sz/2+6}" y2="14" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
@@ -2281,7 +2281,7 @@ function toothDiagramSVG(num, diag, ther) {
     if (!tv || tv === 'healthy' || WHOLE_TOOTH_STATUSES.has(tv)) return '';
     const ts = statusStyle(tv);
     const [cx, cy] = centers[sf];
-    return `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="5.5" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.2" pointer-events="none"/><circle cx="${cx}" cy="${cy}" r="4.5" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
