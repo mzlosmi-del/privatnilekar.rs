@@ -712,7 +712,7 @@ body {
   flex: 1; font-size: 1.1rem; font-weight: 800;
   color: var(--ink); letter-spacing: -0.02em;
 }
-.pt-detail-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+.pt-detail-body { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
 
 .pt-info-strip {
   display: flex; flex-wrap: wrap; gap: 16px;
@@ -910,13 +910,64 @@ body {
 .pt-empty { padding: 32px 18px; text-align: center; color: var(--slate); font-size: 0.85rem; }
 
 @media (max-width: 600px) {
-  .pt-detail-header { padding: 10px 12px; }
-  .pt-detail-body { padding: 12px; }
-  .odo-tooth-diagram { width: 40px; height: 40px; }
-  .odo-tooth-diagram svg { width: 40px; height: 40px; }
-  .odo-tooth-label { font-size: 0.58rem; }
-  .odo-row { gap: 3px; }
-  .odo-wrap { padding: 12px 8px; }
+  /* Patient detail header */
+  .pt-detail-header { padding: 8px 10px; gap: 8px; }
+  .pt-detail-name { font-size: 0.92rem; }
+  .pt-back-btn { padding: 5px 10px; font-size: 0.75rem; }
+  .pt-detail-body { padding: 8px; gap: 12px; }
+
+  /* Info strip */
+  .pt-info-strip { padding: 10px 12px; gap: 10px; }
+
+  /* Section titles */
+  .pt-section-title { padding: 10px 12px; font-size: 0.68rem; }
+
+  /* Layer toggle */
+  .odo-layer-toggle { padding: 8px 10px; flex-wrap: wrap; gap: 5px; }
+  .odo-layer-btn { padding: 5px 12px; font-size: 0.72rem; }
+  .odo-layer-desc { font-size: 0.67rem; width: 100%; padding-left: 0; }
+
+  /* Palette — horizontal scroll so buttons don't wrap awkwardly */
+  .odo-palette {
+    padding: 8px 10px; gap: 5px;
+    flex-wrap: nowrap; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .odo-palette::-webkit-scrollbar { display: none; }
+  .odo-pal-btn { padding: 5px 9px; font-size: 0.7rem; flex-shrink: 0; }
+
+  /* Hint bar */
+  .odo-hint { padding: 6px 10px; font-size: 0.72rem; min-height: 28px; }
+
+  /* Odontogram — smaller teeth, horizontal scroll */
+  .odo-wrap { padding: 10px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .odo-tooth-diagram { width: 34px; height: 34px; }
+  .odo-tooth-diagram svg { width: 34px; height: 34px; }
+  .odo-tooth-label { font-size: 0.52rem; }
+  .odo-row { gap: 2px; flex-wrap: nowrap; }
+  .odo-quadrant-sep { margin: 0 3px; }
+  .odo-notes-wrap { padding: 10px 12px; }
+
+  /* X-ray grid */
+  .xray-grid { grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap: 6px; }
+  .xray-dropzone { padding: 18px 12px; }
+  .xray-drop-icon { font-size: 1.5rem; }
+  .xray-drop-text { font-size: 0.78rem; }
+
+  /* History items */
+  .pt-history-item { padding: 10px 12px; gap: 8px; }
+  .pt-history-date { min-width: 70px; font-size: 0.7rem; }
+  .pt-history-svc { font-size: 0.8rem; }
+}
+
+/* Intermediate breakpoint for tablets */
+@media (max-width: 900px) and (min-width: 601px) {
+  .odo-tooth-diagram { width: 44px; height: 44px; }
+  .odo-tooth-diagram svg { width: 44px; height: 44px; }
+  .odo-palette { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .odo-palette::-webkit-scrollbar { display: none; }
+  .odo-pal-btn { flex-shrink: 0; }
 }
 
 
@@ -1231,7 +1282,7 @@ body {
     <!-- PATIENTS -->
     <div class="panel" id="panelPatients">
       <!-- Patient List View -->
-      <div id="patientListView" class="list-panel-inner">
+      <div id="patientListView" class="list-panel-inner" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;">
         <div class="list-header">
           <div class="list-title">Pacijenti</div>
           <button class="cal-add-btn" onclick="openPatientModal()">+ Novi pacijent</button>
@@ -1256,7 +1307,7 @@ body {
       </div>
 
       <!-- Patient Detail View (odontogram + history) -->
-      <div id="patientDetailView" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+      <div id="patientDetailView" style="display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;">
         <div class="pt-detail-header">
           <button class="pt-back-btn" onclick="showPatientList()">← Nazad</button>
           <div class="pt-detail-name" id="ptDetailName"></div>
@@ -1285,10 +1336,27 @@ body {
             <div class="odo-hint" id="odoHint">
               <span id="odoHintText">← Odaberite stanje, zatim kliknite na zub ili površinu</span>
             </div>
-            <!-- Tooth chart -->
+            <!-- Tooth chart — permanent -->
             <div class="odo-wrap" id="odontogram"></div>
             <div class="odo-notes-wrap">
               <textarea id="odoNotes" class="odo-notes" placeholder="Napomena za odontogram…" oninput="saveOdoNotes()"></textarea>
+            </div>
+          </div>
+
+          <!-- Milk teeth odontogram -->
+          <div class="pt-section">
+            <div class="pt-section-title" style="display:flex;align-items:center;gap:10px">
+              Mlečni zubi
+              <span style="font-size:0.68rem;font-weight:600;color:var(--slate);text-transform:none;letter-spacing:0">(FDI 51–85)</span>
+            </div>
+            <!-- Shared layer toggle — same palette/layer as permanent -->
+            <div class="odo-hint" id="odoHintMilk" style="font-size:0.75rem;color:var(--slate);padding:7px 18px;border-bottom:1px solid var(--line);background:var(--off)">
+              Koristite istu paletu gore za bojenje mlečnih zuba
+            </div>
+            <!-- Tooth chart — milk -->
+            <div class="odo-wrap" id="odontogramMilk"></div>
+            <div class="odo-notes-wrap">
+              <textarea id="odoNotesMilk" class="odo-notes" placeholder="Napomena za mlečne zube…" oninput="saveOdoNotesMilk()"></textarea>
             </div>
           </div>
 
@@ -2333,10 +2401,17 @@ let therData = {};
 let activeLayer = 'diagnosis'; // which layer we're currently painting
 
 // ── FDI layout ────────────────────────────────────────────────
+// Permanent teeth (FDI)
 const FDI_UPPER_RIGHT = [18,17,16,15,14,13,12,11];
 const FDI_UPPER_LEFT  = [21,22,23,24,25,26,27,28];
 const FDI_LOWER_LEFT  = [31,32,33,34,35,36,37,38];
 const FDI_LOWER_RIGHT = [48,47,46,45,44,43,42,41];
+
+// Primary / milk teeth (FDI)
+const FDI_MILK_UPPER_RIGHT = [55,54,53,52,51];
+const FDI_MILK_UPPER_LEFT  = [61,62,63,64,65];
+const FDI_MILK_LOWER_LEFT  = [71,72,73,74,75];
+const FDI_MILK_LOWER_RIGHT = [85,84,83,82,81];
 
 // Surfaces: M=Mesial D=Distal O=Occlusal/Incisal B=Buccal L=Lingual
 const SURFACES = ['M','D','O','B','L'];
@@ -2538,14 +2613,14 @@ function refreshToothSVG(num) {
   if (diagram) diagram.innerHTML = toothDiagramSVG(num, diagData[num], therData[num]);
 }
 
-function buildOdontogram() {
-  const wrap = document.getElementById('odontogram');
+function buildOdontogramIn(targetId, upperLeft, upperRight, lowerLeft, lowerRight, midline) {
+  const wrap = document.getElementById(targetId);
   if (!wrap) return;
 
   const makeRow = (teeth, flip) => {
     let html = '<div class="odo-row">';
     teeth.forEach((num, i) => {
-      if (i === 8) html += '<div class="odo-quadrant-sep"></div>';
+      if (i === midline) html += '<div class="odo-quadrant-sep"></div>';
       const label = flip
         ? `<div class="odo-tooth-label" style="order:2">${num}</div>`
         : `<div class="odo-tooth-label">${num}</div>`;
@@ -2565,13 +2640,22 @@ function buildOdontogram() {
       B=Bukalna · L=Lingvalna · M=Mezijalna · D=Distalna · O=Okluzalna
     </div>
     <div class="odo-arch-label">Gornja vilica — Bukalna gore</div>
-    ${makeRow([...FDI_UPPER_RIGHT, ...FDI_UPPER_LEFT], false)}
+    ${makeRow([...upperRight, ...upperLeft], false)}
     <div style="height:10px"></div>
-    ${makeRow([...FDI_LOWER_RIGHT, ...FDI_LOWER_LEFT], true)}
+    ${makeRow([...lowerRight, ...lowerLeft], true)}
     <div class="odo-arch-label">Bukalna dole — Donja vilica</div>
   `;
+}
+
+function buildOdontogram() {
+  buildOdontogramIn('odontogram',
+    FDI_UPPER_LEFT, FDI_UPPER_RIGHT,
+    FDI_LOWER_LEFT, FDI_LOWER_RIGHT, 8);
+  buildOdontogramIn('odontogramMilk',
+    FDI_MILK_UPPER_LEFT, FDI_MILK_UPPER_RIGHT,
+    FDI_MILK_LOWER_LEFT, FDI_MILK_LOWER_RIGHT, 5);
   buildOdoPalette();
-  setOdoLayer('diagnosis'); // always start on diagnosis tab
+  setOdoLayer('diagnosis');
 }
 
 async function surfaceClick(e, num, surface) {
@@ -2649,6 +2733,16 @@ async function saveOdoNotes() {
   }, 800);
 }
 
+let odoNotesMilkTimer = null;
+async function saveOdoNotesMilk() {
+  clearTimeout(odoNotesMilkTimer);
+  odoNotesMilkTimer = setTimeout(async () => {
+    const notes = document.getElementById('odoNotesMilk')?.value || '';
+    if (currentPatientId)
+      await sb.from('patients').update({ odo_notes_milk: notes }).eq('id', currentPatientId);
+  }, 800);
+}
+
 // ── Patient CRUD ──────────────────────────────────────────────
 async function renderPatients() {
   const tbody = document.getElementById('patientTableBody');
@@ -2697,7 +2791,7 @@ async function openPatientDetail(id) {
   if (!p) return;
   document.getElementById('patientListView').style.display = 'none';
   const dv = document.getElementById('patientDetailView');
-  dv.style.display = 'flex';
+  dv.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;';
   document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
   document.getElementById('ptInfoStrip').innerHTML = [
     p.dob   ? { l:'Datum rodjenja', v:fmtDate(p.dob) } : null,
@@ -2723,6 +2817,8 @@ async function openPatientDetail(id) {
 
   const notesEl = document.getElementById('odoNotes');
   if (notesEl) notesEl.value = p.odo_notes || '';
+  const notesMilkEl = document.getElementById('odoNotesMilk');
+  if (notesMilkEl) notesMilkEl.value = p.odo_notes_milk || '';
 
   // Appointment history
   const { data: appts } = await sb.from('appointments')
@@ -2747,7 +2843,7 @@ async function openPatientDetail(id) {
 function showPatientList() {
   currentPatientId = null;
   document.getElementById('patientDetailView').style.display = 'none';
-  document.getElementById('patientListView').style.display = 'block';
+  document.getElementById('patientListView').style.display = 'flex';
 }
 
 function openPatientModal(id) {
