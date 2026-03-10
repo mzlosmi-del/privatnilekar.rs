@@ -3036,7 +3036,17 @@ async function loadXrays(patientId) {
   const { data, error } = await sb.from('xrays')
     .select('*').eq('patient_id', patientId)
     .order('created_at', { ascending: false });
-  allXrays = data || [];
+  if (!data?.length) { allXrays = []; renderXrayGrid(); return; }
+
+  // Generate signed URLs (1 hour expiry) for each xray
+  const paths = data.map(x => x.file_url); // file_url stores the storage path
+  const { data: signed, error: signErr } = await sb.storage
+    .from('xrays').createSignedUrls(paths, 3600);
+
+  allXrays = data.map((x, i) => ({
+    ...x,
+    signedUrl: signed?.[i]?.signedUrl || null,
+  }));
   renderXrayGrid();
 }
 
@@ -3054,7 +3064,7 @@ function renderXrayGrid() {
 
   grid.innerHTML = allXrays.map((x, i) => `
     <div class="xray-card" onclick="openLightbox(${i})">
-      <img src="${x.file_url}" alt="${x.label || 'Snimak'}" loading="lazy"
+      <img src="${x.signedUrl || ''}" alt="${x.label || 'Snimak'}" loading="lazy"
         onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\'><rect width=\\'100%\\' height=\\'100%\\' fill=\\'%23111\\'/><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23555\\' text-anchor=\\'middle\\' dy=\\'.3em\\' font-size=\\'12\\'>?</text></svg>'">
       <div class="xray-card-label">
         ${x.label || 'Snimak'}
@@ -3115,9 +3125,8 @@ async function uploadXrayFiles(files) {
       done++; continue;
     }
 
-    // Get public URL
-    const { data: urlData } = sb.storage.from('xrays').getPublicUrl(safe);
-    const fileUrl = urlData?.publicUrl;
+    // Store the storage path (not a public URL) — signed URLs generated at display time
+    const fileUrl = safe; // e.g. "patient-uuid/timestamp_abc.jpg" 
 
     // Default label: guess from filename
     const guessLabel = guessXrayLabel(file.name);
@@ -3152,13 +3161,10 @@ function guessXrayLabel(filename) {
 // ── Delete ────────────────────────────────────────────────────
 async function deleteXray(id, fileUrl) {
   if (!confirm('Obrisati ovaj snimak?')) return;
-  // Extract storage path from URL
-  const urlParts  = fileUrl.split('/xrays/');
-  const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
-
+  // file_url is the storage path directly
   await sb.from('xrays').delete().eq('id', id);
-  if (storagePath) {
-    await sb.storage.from('xrays').remove([storagePath]);
+  if (fileUrl) {
+    await sb.storage.from('xrays').remove([fileUrl]);
   }
   if (lightboxIdx >= 0) closeLightbox();
   await loadXrays(currentPatientId);
@@ -3197,7 +3203,7 @@ function openLightbox(idx) {
     </div>
     <div style="position:relative;display:flex;align-items:center;justify-content:center;flex:1;width:100%;overflow:auto">
       ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-prev" onclick="lbNav(-1)">‹</button>` : ''}
-      <img id="lbImg" class="xray-lightbox-img" src="${x.file_url}" alt="${x.label || 'Snimak'}"
+      <img id="lbImg" class="xray-lightbox-img" src="${x.signedUrl || ''}" alt="${x.label || 'Snimak'}"
         onclick="toggleZoom()">
       ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-next" onclick="lbNav(1)">›</button>` : ''}
     </div>`;
