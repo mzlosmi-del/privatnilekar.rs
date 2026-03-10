@@ -1393,6 +1393,188 @@ body {
   opacity: 1; transform: scale(1);
 }
 
+
+.btn-settings {
+  background: none; border: 1px solid var(--line);
+  border-radius: var(--r); padding: 6px 9px;
+  font-size: 0.95rem; cursor: pointer; color: var(--slate);
+  transition: all 0.15s; line-height: 1;
+}
+.btn-settings:hover { background: var(--off); border-color: var(--blue); }
+
+
+/* ══ CLINIC SETUP WIZARD ═══════════════════════════════════════════ */
+#clinicWizard {
+  display: none; position: fixed; inset: 0; z-index: 20000;
+  background: rgba(15,23,42,0.55); align-items: center; justify-content: center;
+  padding: 16px;
+}
+#clinicWizard.open { display: flex; }
+.cwiz-card {
+  background: #fff; border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+  width: 100%; max-width: 580px; max-height: 92vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Progress bar */
+.cwiz-progress {
+  height: 4px; background: var(--line); flex-shrink: 0;
+}
+.cwiz-progress-fill {
+  height: 100%; background: var(--blue);
+  transition: width 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+/* Header */
+.cwiz-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 24px 0; flex-shrink: 0;
+}
+.cwiz-step-badge {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 0.85rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.cwiz-step-text { flex: 1; }
+.cwiz-step-title { font-family: 'Spectral', serif; font-size: 1.2rem; font-weight: 600; color: var(--ink); }
+.cwiz-step-sub { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
+.cwiz-skip-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.75rem; color: var(--slate); padding: 4px 8px;
+  border-radius: 6px; font-family: 'Syne', sans-serif;
+}
+.cwiz-skip-btn:hover { background: var(--off); color: var(--ink); }
+
+/* Scrollable body */
+.cwiz-body {
+  flex: 1; overflow-y: auto; padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+/* Fields */
+.cwiz-field { display: flex; flex-direction: column; gap: 5px; }
+.cwiz-label {
+  font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--slate);
+}
+.cwiz-input {
+  padding: 10px 14px; border: 1px solid var(--line);
+  border-radius: var(--r); font-family: 'Syne', sans-serif;
+  font-size: 0.88rem; color: var(--ink); outline: none;
+  transition: border-color 0.15s; width: 100%; box-sizing: border-box;
+  background: var(--navy-lite);
+}
+.cwiz-input:focus { border-color: var(--blue); background: #fff; }
+.cwiz-row { display: flex; gap: 10px; }
+.cwiz-row .cwiz-field { flex: 1; }
+.cwiz-hint { font-size: 0.74rem; color: var(--slate); margin-top: -6px; }
+
+/* Working hours grid */
+.cwiz-hours-grid {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cwiz-hours-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border: 1px solid var(--line);
+  border-radius: var(--r); background: var(--navy-lite);
+}
+.cwiz-hours-row.closed { opacity: 0.5; }
+.cwiz-day-toggle {
+  display: flex; align-items: center; gap: 8px; min-width: 110px; cursor: pointer;
+}
+.cwiz-day-toggle input[type=checkbox] { accent-color: var(--blue); width: 15px; height: 15px; cursor: pointer; }
+.cwiz-day-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
+.cwiz-time-pair { display: flex; align-items: center; gap: 6px; flex: 1; }
+.cwiz-time-input {
+  padding: 5px 8px; border: 1px solid var(--line);
+  border-radius: 6px; font-family: 'Syne', sans-serif;
+  font-size: 0.82rem; color: var(--ink); outline: none;
+  width: 80px; background: #fff;
+}
+.cwiz-time-input:focus { border-color: var(--blue); }
+.cwiz-time-sep { font-size: 0.8rem; color: var(--slate); }
+
+/* Services quick-add */
+.cwiz-services-list { display: flex; flex-direction: column; gap: 6px; }
+.cwiz-service-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--line);
+  border-radius: var(--r); background: var(--navy-lite);
+}
+.cwiz-service-name { flex: 2; }
+.cwiz-service-duration { width: 70px; }
+.cwiz-service-price { width: 90px; }
+.cwiz-service-del {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.9rem; color: var(--slate); padding: 4px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.cwiz-service-del:hover { color: var(--red); background: var(--red-dim); }
+.cwiz-add-row-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border: 1px dashed var(--blue);
+  border-radius: var(--r); background: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem;
+  color: var(--blue); font-weight: 700; transition: background 0.12s;
+}
+.cwiz-add-row-btn:hover { background: #eff6ff; }
+
+/* Invite */
+.cwiz-invite-list { display: flex; flex-direction: column; gap: 6px; }
+.cwiz-invite-row { display: flex; gap: 8px; }
+.cwiz-invite-row .cwiz-input { flex: 1; }
+.cwiz-invite-del {
+  background: none; border: 1px solid var(--line); cursor: pointer;
+  font-size: 0.85rem; color: var(--slate); padding: 6px 10px;
+  border-radius: var(--r); flex-shrink: 0;
+}
+.cwiz-invite-del:hover { color: var(--red); border-color: var(--red); }
+
+/* Footer */
+.cwiz-footer {
+  display: flex; gap: 10px; align-items: center;
+  padding: 16px 24px; border-top: 1px solid var(--line); flex-shrink: 0;
+}
+.cwiz-back-btn {
+  padding: 10px 18px; border-radius: var(--r);
+  background: none; color: var(--slate); border: 1px solid var(--line);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s;
+}
+.cwiz-back-btn:hover { border-color: var(--ink); color: var(--ink); }
+.cwiz-next-btn {
+  flex: 1; padding: 11px; border-radius: var(--r);
+  background: var(--blue); color: #fff; border: none;
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: background 0.12s; letter-spacing: -0.01em;
+}
+.cwiz-next-btn:hover { background: var(--blue-mid); }
+.cwiz-next-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cwiz-err {
+  font-size: 0.8rem; color: var(--red); background: var(--red-dim);
+  border-radius: 8px; padding: 8px 12px; display: none;
+}
+
+/* Step icons in progress */
+.cwiz-steps-row {
+  display: flex; justify-content: center; gap: 6px;
+  padding: 10px 24px 0; flex-shrink: 0;
+}
+.cwiz-step-pip {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line); transition: background 0.2s, width 0.2s;
+}
+.cwiz-step-pip.done { background: var(--blue); }
+.cwiz-step-pip.active { background: var(--blue); width: 20px; border-radius: 4px; }
+
+@media (max-width: 480px) {
+  .cwiz-card { max-height: 100vh; border-radius: 0; }
+  .cwiz-hours-row { flex-wrap: wrap; }
+  .cwiz-service-price { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -1528,6 +1710,7 @@ body {
         <div class="doctor-avatar" id="doctorAvatar"></div>
         <span id="doctorName"></span>
       </div>
+      <button class="btn-settings" onclick="openClinicWizard(false)" title="Podešavanja klinike">⚙️</button>
       <button class="btn-logout" onclick="doLogout()">Odjava</button>
     </div>
   </div>
@@ -2151,6 +2334,12 @@ async function initApp(user) {
   await loadDoctors();
   await loadServices();
   syncViewSelUI();
+
+  // First-run wizard: show if doctor has no clinic yet
+  if (!doctor.clinic_id) {
+    await openClinicWizard(true);
+    return;
+  }
 
   // Restore last page from URL hash
   const hash = location.hash.replace('#','');
@@ -3825,6 +4014,398 @@ async function loadToothDetails(patientId) {
 
 // Modal closes via backdrop onclick attr
 
+
+// ══════════════════════════════════════════════════════════════
+// CLINIC SETUP WIZARD
+// ══════════════════════════════════════════════════════════════
+const CWIZ_DAYS = ['Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota','Nedelja'];
+const CWIZ_DAY_IDS = ['mon','tue','wed','thu','fri','sat','sun'];
+
+// ── Steps: clinic → logo → hours → invite → summary ─────────────
+const CWIZ_STEPS = [
+  { id:'clinic',  title:'Klinika',        sub:'Naziv i adresa',               skippable: false },
+  { id:'logo',    title:'Logo',           sub:'Izgled i identitet',           skippable: true  },
+  { id:'hours',   title:'Radno vreme',    sub:'Kada ste otvoreni',            skippable: true  },
+  { id:'invite',  title:'Tim',            sub:'Pozovite kolege',              skippable: true  },
+  { id:'summary', title:'Pregled',        sub:'Sve izgleda dobro?',           skippable: false },
+];
+
+let cwizStep     = 0;
+let cwizClinic   = null;
+let cwizFirstRun = false;
+let cwizLogoFile = null;   // File object for logo upload
+let cwizLogoUrl  = null;   // existing logo URL from DB
+
+// ── Open / Close ──────────────────────────────────────────────
+async function openClinicWizard(firstRun = false) {
+  cwizFirstRun = firstRun;
+  cwizStep = 0;
+  cwizLogoFile = null;
+  if (doctor?.clinic_id) {
+    const { data: cl } = await sb.from('clinics').select('*').eq('id', doctor.clinic_id).maybeSingle();
+    if (cl) { cwizClinic = cl; cwizLogoUrl = cl.logo_url || null; }
+  }
+  document.getElementById('clinicWizard').classList.add('open');
+  cwizRender();
+}
+
+function closeClinicWizard() {
+  document.getElementById('clinicWizard').classList.remove('open');
+  if (cwizFirstRun) renderCalendar();
+}
+
+// ── Navigation ────────────────────────────────────────────────
+async function cwizNext() {
+  document.getElementById('cwizErr').style.display = 'none';
+  const ok = await cwizSaveStep(CWIZ_STEPS[cwizStep].id);
+  if (!ok) return;
+  if (cwizStep < CWIZ_STEPS.length - 1) { cwizStep++; cwizRender(); }
+  else closeClinicWizard();
+}
+
+function cwizBack() {
+  if (cwizStep > 0) { cwizStep--; cwizRender(); }
+}
+
+function cwizSkip() {
+  if (cwizStep < CWIZ_STEPS.length - 1) { cwizStep++; cwizRender(); }
+  else closeClinicWizard();
+}
+
+// ── Render ────────────────────────────────────────────────────
+function cwizRender() {
+  const step  = CWIZ_STEPS[cwizStep];
+  const total = CWIZ_STEPS.length;
+
+  document.getElementById('cwizProgress').style.width = ((cwizStep + 1) / total * 100) + '%';
+  document.getElementById('cwizBadge').textContent    = cwizStep + 1;
+  document.getElementById('cwizTitle').textContent    = step.title;
+  document.getElementById('cwizSub').textContent      = step.sub;
+
+  document.getElementById('cwizPips').innerHTML = CWIZ_STEPS.map((s, i) =>
+    `<div class="cwiz-step-pip ${i < cwizStep ? 'done' : i === cwizStep ? 'active' : ''}"></div>`
+  ).join('');
+
+  const isSummary = step.id === 'summary';
+  document.getElementById('cwizBackBtn').style.display  = cwizStep > 0 && !isSummary ? 'block' : 'none';
+  document.getElementById('cwizSkipBtn').style.display  = step.skippable ? 'block' : 'none';
+  const nextBtn = document.getElementById('cwizNextBtn');
+  nextBtn.disabled = false;
+  nextBtn.textContent = isSummary ? '🚀 Pokreni kalendar' : 'Dalje →';
+
+  const body = document.getElementById('cwizBody');
+  body.innerHTML = '';
+  switch (step.id) {
+    case 'clinic':  body.innerHTML = cwizBodyClinic();  break;
+    case 'logo':    body.innerHTML = cwizBodyLogo();    break;
+    case 'hours':   body.innerHTML = cwizBodyHours();   break;
+    case 'invite':  body.innerHTML = cwizBodyInvite();  break;
+    case 'summary': body.innerHTML = cwizBodySummary(); break;
+  }
+  document.getElementById('cwizErr').style.display = 'none';
+}
+
+// ── Step: Clinic ───────────────────────────────────────────────
+function cwizBodyClinic() {
+  const cl = cwizClinic || {};
+  return `
+  <div class="cwiz-field">
+    <div class="cwiz-label">Naziv klinike *</div>
+    <input class="cwiz-input" id="cwizName" placeholder="npr. Stomatološka ordinacija Dr. Marković"
+      value="${cl.name || ''}" onkeydown="if(event.key==='Enter')cwizNext()">
+  </div>
+  <div class="cwiz-row">
+    <div class="cwiz-field">
+      <div class="cwiz-label">Grad</div>
+      <input class="cwiz-input" id="cwizCity" placeholder="Beograd" value="${cl.city || ''}">
+    </div>
+    <div class="cwiz-field">
+      <div class="cwiz-label">PIB / Matični br.</div>
+      <input class="cwiz-input" id="cwizPib" placeholder="123456789" value="${cl.pib || ''}">
+    </div>
+  </div>
+  <div class="cwiz-field">
+    <div class="cwiz-label">Adresa</div>
+    <input class="cwiz-input" id="cwizAddress" placeholder="Ulica i broj" value="${cl.address || ''}">
+  </div>
+  <div class="cwiz-row">
+    <div class="cwiz-field">
+      <div class="cwiz-label">Telefon</div>
+      <input class="cwiz-input" id="cwizPhone" placeholder="+381 11 123 4567" value="${cl.phone || ''}">
+    </div>
+    <div class="cwiz-field">
+      <div class="cwiz-label">Email klinike</div>
+      <input class="cwiz-input" type="email" id="cwizEmail" placeholder="ordinacija@email.com" value="${cl.email || ''}">
+    </div>
+  </div>`;
+}
+
+// ── Step: Logo ─────────────────────────────────────────────────
+function cwizBodyLogo() {
+  const preview = cwizLogoUrl
+    ? `<img src="${cwizLogoUrl}" style="max-height:80px;max-width:180px;object-fit:contain;border-radius:8px;border:1px solid var(--line)">`
+    : `<div style="width:80px;height:80px;border-radius:12px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff">🏥</div>`;
+  return `
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:12px 0">
+    <div id="cwizLogoPreview">${preview}</div>
+    <div style="text-align:center">
+      <div style="font-size:0.82rem;color:var(--slate);margin-bottom:12px">
+        Logo će biti prikazan u aplikaciji i dokumentima.<br>Preporučena veličina: 400×400px, PNG ili SVG.
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;
+        border-radius:var(--r);border:1px solid var(--blue);color:var(--blue);
+        font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;
+        background:var(--off);transition:background 0.12s">
+        📁 Izaberi sliku
+        <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp"
+          style="display:none" onchange="cwizLogoSelected(this)">
+      </label>
+      ${cwizLogoUrl ? `<button onclick="cwizLogoRemove()" style="margin-left:8px;padding:9px 14px;
+        border-radius:var(--r);border:1px solid var(--line);background:none;color:var(--red);
+        font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer">
+        🗑 Ukloni
+      </button>` : ''}
+    </div>
+    <div id="cwizLogoStatus" style="font-size:0.78rem;color:var(--slate)"></div>
+  </div>`;
+}
+
+function cwizLogoSelected(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    document.getElementById('cwizLogoStatus').textContent = '⚠ Fajl je prevelik (max 2MB)';
+    document.getElementById('cwizLogoStatus').style.color = 'var(--red)';
+    return;
+  }
+  cwizLogoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('cwizLogoPreview');
+    if (preview) preview.innerHTML =
+      `<img src="${e.target.result}" style="max-height:80px;max-width:180px;object-fit:contain;border-radius:8px;border:1px solid var(--line)">`;
+    const status = document.getElementById('cwizLogoStatus');
+    if (status) { status.textContent = '✓ ' + file.name; status.style.color = '#15803d'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function cwizLogoRemove() {
+  cwizLogoFile = null; cwizLogoUrl = null;
+  cwizRender();
+}
+
+// ── Step: Hours ────────────────────────────────────────────────
+function cwizBodyHours() {
+  const cl = cwizClinic || {};
+  let hours = {};
+  try { hours = cl.working_hours ? JSON.parse(cl.working_hours) : {}; } catch(e) {}
+  return `
+  <div class="cwiz-hint">Označite radne dane i podesite vreme otvaranja i zatvaranja.</div>
+  <div class="cwiz-hours-grid">
+    ${CWIZ_DAYS.map((day, i) => {
+      const id = CWIZ_DAY_IDS[i];
+      const h = hours[id] || {};
+      const isOpen = h.open !== undefined ? true : i < 5;
+      return `<div class="cwiz-hours-row${isOpen ? '' : ' closed'}" id="cwizHoursRow-${id}">
+        <label class="cwiz-day-toggle">
+          <input type="checkbox" id="cwizDay-${id}" ${isOpen ? 'checked' : ''}
+            onchange="cwizToggleDay('${id}')">
+          <span class="cwiz-day-name">${day}</span>
+        </label>
+        <div class="cwiz-time-pair" id="cwizTimePair-${id}"
+          style="${isOpen ? '' : 'opacity:0.3;pointer-events:none'}">
+          <input class="cwiz-time-input" type="time" id="cwizOpen-${id}"
+            value="${h.open || '08:00'}">
+          <span class="cwiz-time-sep">—</span>
+          <input class="cwiz-time-input" type="time" id="cwizClose-${id}"
+            value="${h.close || '20:00'}">
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function cwizToggleDay(id) {
+  const cb   = document.getElementById('cwizDay-' + id);
+  const row  = document.getElementById('cwizHoursRow-' + id);
+  const pair = document.getElementById('cwizTimePair-' + id);
+  row.classList.toggle('closed', !cb.checked);
+  pair.style.opacity       = cb.checked ? '1' : '0.3';
+  pair.style.pointerEvents = cb.checked ? 'auto' : 'none';
+}
+
+// ── Step: Invite ───────────────────────────────────────────────
+function cwizBodyInvite() {
+  const shareLink = window.location.origin + window.location.pathname +
+    (cwizClinic?.id ? '?clinic=' + cwizClinic.id : '');
+  return `
+  <div class="cwiz-hint">
+    Kolege se registruju sami, a vi ih potom dodate u kliniku u Supabase panelu.<br>
+    Podelite im ovaj link:
+  </div>
+  <div style="padding:14px 16px;background:var(--navy);border-radius:var(--r);border:1px solid var(--line)">
+    <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--slate);margin-bottom:6px">Link za registraciju</div>
+    <div style="font-size:0.8rem;color:var(--ink);word-break:break-all;line-height:1.5" id="cwizShareLink">${shareLink}</div>
+    <button onclick="navigator.clipboard.writeText('${shareLink}').then(()=>{this.textContent='✓ Kopirano!';setTimeout(()=>this.textContent='📋 Kopiraj link',2000)}).catch(()=>{})"
+      style="margin-top:10px;padding:6px 14px;border-radius:6px;border:1px solid var(--line);
+      background:#fff;font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;
+      cursor:pointer;color:var(--blue)">📋 Kopiraj link</button>
+  </div>
+  <div style="padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r)">
+    <div style="font-size:0.75rem;font-weight:700;color:#92400e;margin-bottom:4px">Kako dodati kolegu?</div>
+    <div style="font-size:0.75rem;color:#78350f;line-height:1.6">
+      1. Kolega se registruje koristeći gornji link<br>
+      2. Vi otvorite <strong>Supabase → Table Editor → doctors</strong><br>
+      3. Pronađete red sa email adresom kolege<br>
+      4. Postavite <code>clinic_id</code> na <code>${cwizClinic?.id || 'vaš-clinic-id'}</code>
+    </div>
+  </div>`;
+}
+
+// ── Step: Summary ──────────────────────────────────────────────
+function cwizBodySummary() {
+  const cl = cwizClinic || {};
+  let hours = {};
+  try { hours = cl.working_hours ? JSON.parse(cl.working_hours) : {}; } catch(e) {}
+  const openDays = CWIZ_DAY_IDS
+    .filter(id => hours[id])
+    .map(id => CWIZ_DAYS[CWIZ_DAY_IDS.indexOf(id)]);
+
+  const logoHtml = cwizLogoUrl
+    ? `<img src="${cwizLogoUrl}" style="height:48px;width:48px;object-fit:contain;border-radius:8px;border:1px solid var(--line)">`
+    : `<div style="width:48px;height:48px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;flex-shrink:0">🏥</div>`;
+
+  const row = (icon, label, value) => value ? `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;
+      background:var(--navy);border-radius:var(--r);border:1px solid var(--line)">
+      <span style="font-size:0.95rem;flex-shrink:0">${icon}</span>
+      <div>
+        <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;
+          letter-spacing:0.07em;color:var(--slate);margin-bottom:2px">${label}</div>
+        <div style="font-size:0.82rem;font-weight:600;color:var(--ink)">${value}</div>
+      </div>
+    </div>` : '';
+
+  return `
+  <div style="display:flex;align-items:center;gap:14px;padding:4px 0 16px">
+    ${logoHtml}
+    <div>
+      <div style="font-family:'Spectral',serif;font-size:1.2rem;font-weight:600;color:var(--ink)">
+        ${cl.name || '—'}
+      </div>
+      ${cl.city ? `<div style="font-size:0.8rem;color:var(--slate);margin-top:2px">${cl.address ? cl.address + ', ' : ''}${cl.city}</div>` : ''}
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:7px">
+    ${row('📞', 'Telefon', cl.phone || '')}
+    ${row('✉️', 'Email', cl.email || '')}
+    ${row('🪪', 'PIB', cl.pib || '')}
+    ${openDays.length ? row('🕐', 'Radno vreme',
+        openDays.map(d => {
+          const id = CWIZ_DAY_IDS[CWIZ_DAYS.indexOf(d)];
+          return d.slice(0,3) + ' ' + (hours[id]?.open||'') + '–' + (hours[id]?.close||'');
+        }).join(' · ')
+      ) : ''}
+  </div>
+  <div style="margin-top:14px;padding:12px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r);font-size:0.8rem;color:#15803d;font-weight:600">
+    ✓ Sve je spremno! Kliknite "Pokreni kalendar" da počnete.
+  </div>`;
+}
+
+// ── Save each step ────────────────────────────────────────────
+async function cwizSaveStep(stepId) {
+  const err = document.getElementById('cwizErr');
+  const btn = document.getElementById('cwizNextBtn');
+
+  // ── Clinic info ──────────────────────────────────────────────
+  if (stepId === 'clinic') {
+    const name = document.getElementById('cwizName')?.value.trim();
+    if (!name) {
+      err.textContent = 'Naziv klinike je obavezan.';
+      err.style.display = 'block'; return false;
+    }
+    btn.disabled = true; btn.textContent = 'Čuvam…';
+    const payload = {
+      name,
+      city:    document.getElementById('cwizCity')?.value.trim()    || null,
+      address: document.getElementById('cwizAddress')?.value.trim() || null,
+      phone:   document.getElementById('cwizPhone')?.value.trim()   || null,
+      email:   document.getElementById('cwizEmail')?.value.trim()   || null,
+      pib:     document.getElementById('cwizPib')?.value.trim()     || null,
+    };
+    if (cwizClinic?.id) {
+      const { error } = await sb.from('clinics').update(payload).eq('id', cwizClinic.id);
+      if (error) { err.textContent = error.message; err.style.display='block'; btn.disabled=false; btn.textContent='Dalje →'; return false; }
+      cwizClinic = { ...cwizClinic, ...payload };
+    } else {
+      const { data, error } = await sb.from('clinics').insert(payload).select().single();
+      if (error) { err.textContent = error.message; err.style.display='block'; btn.disabled=false; btn.textContent='Dalje →'; return false; }
+      cwizClinic = data;
+      await sb.from('doctors').update({ clinic_id: data.id }).eq('id', doctor.id);
+      doctor.clinic_id = data.id;
+    }
+    btn.disabled = false; btn.textContent = 'Dalje →';
+    return true;
+  }
+
+  // ── Logo upload ──────────────────────────────────────────────
+  if (stepId === 'logo') {
+    if (cwizLogoFile && cwizClinic?.id) {
+      btn.disabled = true; btn.textContent = 'Učitavam…';
+      const ext  = cwizLogoFile.name.split('.').pop();
+      const path = `logos/${cwizClinic.id}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from('clinic-assets')
+        .upload(path, cwizLogoFile, { upsert: true, contentType: cwizLogoFile.type });
+      if (upErr) {
+        // bucket may not exist yet — silently skip, show warning
+        err.textContent = 'Logo nije sačuvan: ' + upErr.message + ' (Kreirajte bucket "clinic-assets" u Supabase Storage)';
+        err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Dalje →';
+        return true; // non-fatal — continue wizard
+      }
+      const { data: urlData } = sb.storage.from('clinic-assets').getPublicUrl(path);
+      cwizLogoUrl = urlData?.publicUrl || null;
+      if (cwizLogoUrl) {
+        await sb.from('clinics').update({ logo_url: cwizLogoUrl }).eq('id', cwizClinic.id);
+        cwizClinic.logo_url = cwizLogoUrl;
+      }
+      btn.disabled = false; btn.textContent = 'Dalje →';
+    } else if (cwizLogoUrl === null && cwizClinic?.id) {
+      // Logo was removed
+      await sb.from('clinics').update({ logo_url: null }).eq('id', cwizClinic.id);
+    }
+    return true;
+  }
+
+  // ── Working hours ────────────────────────────────────────────
+  if (stepId === 'hours') {
+    const hours = {};
+    CWIZ_DAY_IDS.forEach(id => {
+      const cb = document.getElementById('cwizDay-' + id);
+      if (cb?.checked) hours[id] = {
+        open:  document.getElementById('cwizOpen-' + id)?.value  || '08:00',
+        close: document.getElementById('cwizClose-' + id)?.value || '20:00',
+      };
+    });
+    if (cwizClinic?.id) {
+      await sb.from('clinics').update({ working_hours: JSON.stringify(hours) }).eq('id', cwizClinic.id);
+      cwizClinic.working_hours = JSON.stringify(hours);
+    }
+    return true;
+  }
+
+  // ── Invite (no DB action needed) ─────────────────────────────
+  if (stepId === 'invite') return true;
+
+  // ── Summary → close ──────────────────────────────────────────
+  if (stepId === 'summary') return true;
+
+  return true;
+}
+
+
 // ══════════════════════════════════════════════════════════════
 // PATIENT PICKER COMBOBOX
 // ══════════════════════════════════════════════════════════════
@@ -4556,6 +5137,29 @@ async function updateXrayDate(id, taken_at) {
     <div class="tdm-footer">
       <button class="tdp-save-btn" onclick="saveToothDetail()">💾 Sačuvaj</button>
       <button class="tdp-delete-btn" id="tdpDeleteBtn" onclick="deleteToothDetail()" style="display:none">🗑 Obriši</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ CLINIC SETUP WIZARD ══════════════════════════════════════════ -->
+<div id="clinicWizard">
+  <div class="cwiz-card">
+    <div class="cwiz-progress"><div class="cwiz-progress-fill" id="cwizProgress"></div></div>
+    <div class="cwiz-steps-row" id="cwizPips"></div>
+    <div class="cwiz-head">
+      <div class="cwiz-step-badge" id="cwizBadge">1</div>
+      <div class="cwiz-step-text">
+        <div class="cwiz-step-title" id="cwizTitle">Osnovno</div>
+        <div class="cwiz-step-sub" id="cwizSub">Unesite podatke o klinici</div>
+      </div>
+      <button class="cwiz-skip-btn" id="cwizSkipBtn" onclick="cwizSkip()">Preskoči →</button>
+    </div>
+    <div class="cwiz-body" id="cwizBody"></div>
+    <div class="cwiz-footer">
+      <button class="cwiz-back-btn" id="cwizBackBtn" onclick="cwizBack()" style="display:none">← Nazad</button>
+      <div class="cwiz-err" id="cwizErr"></div>
+      <button class="cwiz-next-btn" id="cwizNextBtn" onclick="cwizNext()">Dalje →</button>
     </div>
   </div>
 </div>
