@@ -1066,16 +1066,35 @@ body {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(0,0,0,0.92);
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+}
+.xray-lb-viewport {
+  flex: 1; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  cursor: grab;
+}
+.xray-lb-viewport.dragging { cursor: grabbing; }
+.xray-lb-viewport.zoomed-in { cursor: grab; }
+.xray-lb-canvas {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform;
+  touch-action: none;
 }
 .xray-lightbox-img {
-  max-width: 90vw; max-height: 80vh;
+  display: block; max-width: 100%; max-height: 100%;
   object-fit: contain; border-radius: 4px;
-  cursor: zoom-in;
+  user-select: none; -webkit-user-drag: none;
+  pointer-events: none;
 }
-.xray-lightbox-img.zoomed {
-  max-width: none; max-height: none;
-  cursor: zoom-out; width: auto; height: auto;
+.xray-lb-zoom-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 20px 10px;
+  color: rgba(255,255,255,0.5); font-size: 0.72rem; font-weight: 700;
+}
+.xray-lb-zoom-label { color: #fff; min-width: 42px; text-align: center; font-size: 0.78rem; }
+.xray-lb-zoom-slider {
+  flex: 1; max-width: 180px; accent-color: var(--blue);
+  cursor: pointer;
 }
 .xray-lightbox-bar {
   display: flex; align-items: center; gap: 14px;
@@ -3032,21 +3051,38 @@ let allXrays = [];        // current patient's xrays
 let lightboxIdx = -1;     // which xray is open in lightbox
 
 // ── Load & render ─────────────────────────────────────────────
+function extractStoragePath(fileUrl) {
+  // Handle both old format (full public URL) and new format (storage path only)
+  if (!fileUrl) return null;
+  if (fileUrl.startsWith('http')) {
+    // Extract path after /object/public/xrays/ or /object/sign/xrays/
+    const match = fileUrl.match(/\/object\/(?:public|sign)\/xrays\/(.+?)(?:\?|$)/);
+    if (match) return match[1];
+    // Try after /xrays/
+    const match2 = fileUrl.match(/\/xrays\/(.+?)(?:\?|$)/);
+    if (match2) return match2[1];
+    return null;
+  }
+  return fileUrl; // already a path
+}
+
 async function loadXrays(patientId) {
   const { data, error } = await sb.from('xrays')
     .select('*').eq('patient_id', patientId)
     .order('created_at', { ascending: false });
   if (!data?.length) { allXrays = []; renderXrayGrid(); return; }
 
-  // Generate signed URLs (1 hour expiry) for each xray
-  const paths = data.map(x => x.file_url); // file_url stores the storage path
-  const { data: signed, error: signErr } = await sb.storage
-    .from('xrays').createSignedUrls(paths, 3600);
-
-  allXrays = data.map((x, i) => ({
-    ...x,
-    signedUrl: signed?.[i]?.signedUrl || null,
+  // Generate signed URLs one by one (createSignedUrls may not exist in all versions)
+  const withUrls = await Promise.all(data.map(async x => {
+    const path = extractStoragePath(x.file_url);
+    if (!path) return { ...x, signedUrl: x.file_url }; // fallback to stored value
+    const { data: signed, error: signErr } = await sb.storage
+      .from('xrays').createSignedUrl(path, 3600);
+    if (signErr) console.error('Signed URL error for', path, signErr);
+    return { ...x, signedUrl: signed?.signedUrl || null };
   }));
+
+  allXrays = withUrls;
   renderXrayGrid();
 }
 
@@ -3187,35 +3223,158 @@ function openLightbox(idx) {
 
   lb.innerHTML = `
     <div class="xray-lightbox-bar">
-      <div style="flex:1">
+      <div style="flex:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <input class="xray-label-input" id="lbLabelInput" value="${x.label || ''}"
           placeholder="Naziv snimka…"
           onchange="updateXrayLabel('${x.id}', this.value)">
-        <span class="xray-lightbox-date" style="margin-left:10px">${x.taken_at ? fmtDate(x.taken_at) : ''}</span>
         <input type="date" id="lbDateInput" value="${x.taken_at || ''}"
-          style="margin-left:8px;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:3px 8px;font-size:0.75rem;font-family:Syne,sans-serif"
+          style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:3px 8px;font-size:0.75rem;font-family:Syne,sans-serif"
           onchange="updateXrayDate('${x.id}', this.value)">
+        <span style="color:#9ca3af;font-size:0.75rem">${idx+1} / ${allXrays.length}</span>
       </div>
-      <span style="color:#9ca3af;font-size:0.75rem">${idx+1} / ${allXrays.length}</span>
-      <button class="xray-lb-btn" onclick="toggleZoom()">🔍 Zoom</button>
+      <button class="xray-lb-btn" onclick="lbResetZoom()">↺ Reset</button>
       <button class="xray-lb-btn danger" onclick="deleteXray('${x.id}','${x.file_url}')">🗑 Obriši</button>
       <button class="xray-lb-btn" onclick="closeLightbox()">✕ Zatvori</button>
     </div>
-    <div style="position:relative;display:flex;align-items:center;justify-content:center;flex:1;width:100%;overflow:auto">
-      ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-prev" onclick="lbNav(-1)">‹</button>` : ''}
-      <img id="lbImg" class="xray-lightbox-img" src="${x.signedUrl || ''}" alt="${x.label || 'Snimak'}"
-        onclick="toggleZoom()">
-      ${allXrays.length > 1 ? `<button class="xray-lb-nav xray-lb-next" onclick="lbNav(1)">›</button>` : ''}
+    <div class="xray-lb-viewport" id="lbViewport">
+      ${allXrays.length > 1 ? '<button class="xray-lb-nav xray-lb-prev" onclick="lbNav(-1)">‹</button>' : ''}
+      <div class="xray-lb-canvas" id="lbCanvas">
+        <img id="lbImg" class="xray-lightbox-img" src="${x.signedUrl || ''}" alt="${x.label || 'Snimak'}">
+      </div>
+      ${allXrays.length > 1 ? '<button class="xray-lb-nav xray-lb-next" onclick="lbNav(1)">›</button>' : ''}
+    </div>
+    <div class="xray-lb-zoom-bar">
+      <span>🔍</span>
+      <input type="range" class="xray-lb-zoom-slider" id="lbZoomSlider"
+        min="0.5" max="8" step="0.1" value="1"
+        oninput="lbSetZoomFromSlider(this.value)">
+      <span class="xray-lb-zoom-label" id="lbZoomLabel">100%</span>
+      <span style="color:rgba(255,255,255,0.35);font-size:0.68rem;margin-left:8px">Scroll = zoom · Drag = pan · Pinch = zoom</span>
     </div>`;
+  initLbInteraction();
 
   lb.style.display = 'flex';
   document.addEventListener('keydown', lbKeyHandler);
+}
+
+// ── Lightbox zoom/pan state ───────────────────────────────────
+let lbScale = 1, lbX = 0, lbY = 0;
+let lbDragging = false, lbDragStartX = 0, lbDragStartY = 0, lbDragOriginX = 0, lbDragOriginY = 0;
+let lbPinchDist = null;
+
+function lbApplyTransform() {
+  const canvas = document.getElementById('lbCanvas');
+  if (canvas) canvas.style.transform = `translate(${lbX}px,${lbY}px) scale(${lbScale})`;
+  const label = document.getElementById('lbZoomLabel');
+  if (label) label.textContent = Math.round(lbScale * 100) + '%';
+  const slider = document.getElementById('lbZoomSlider');
+  if (slider) slider.value = lbScale;
+  const vp = document.getElementById('lbViewport');
+  if (vp) vp.classList.toggle('zoomed-in', lbScale > 1);
+}
+
+function lbResetZoom() {
+  lbScale = 1; lbX = 0; lbY = 0;
+  lbApplyTransform();
+}
+
+function lbSetZoom(newScale, cx, cy) {
+  const vp = document.getElementById('lbViewport');
+  if (!vp) return;
+  const rect = vp.getBoundingClientRect();
+  // Default zoom center = viewport center
+  const pivotX = cx !== undefined ? cx - rect.left : rect.width / 2;
+  const pivotY = cy !== undefined ? cy - rect.top  : rect.height / 2;
+  // Adjust pan so zoom is centered on pivot
+  lbX = pivotX - (pivotX - lbX) * (newScale / lbScale);
+  lbY = pivotY - (pivotY - lbY) * (newScale / lbScale);
+  lbScale = Math.max(0.5, Math.min(8, newScale));
+  lbApplyTransform();
+}
+
+function lbSetZoomFromSlider(val) {
+  lbSetZoom(parseFloat(val));
+}
+
+function initLbInteraction() {
+  const vp = document.getElementById('lbViewport');
+  if (!vp) return;
+  lbScale = 1; lbX = 0; lbY = 0;
+  lbApplyTransform();
+
+  // ── Scroll to zoom ──────────────────────────────
+  vp.onwheel = (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+    lbSetZoom(lbScale * factor, e.clientX, e.clientY);
+  };
+
+  // ── Mouse drag to pan ───────────────────────────
+  vp.onmousedown = (e) => {
+    if (e.target.closest('button')) return;
+    lbDragging = true;
+    lbDragStartX = e.clientX; lbDragStartY = e.clientY;
+    lbDragOriginX = lbX; lbDragOriginY = lbY;
+    vp.classList.add('dragging');
+    e.preventDefault();
+  };
+  window.addEventListener('mousemove', (e) => {
+    if (!lbDragging) return;
+    lbX = lbDragOriginX + (e.clientX - lbDragStartX);
+    lbY = lbDragOriginY + (e.clientY - lbDragStartY);
+    lbApplyTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    lbDragging = false;
+    document.getElementById('lbViewport')?.classList.remove('dragging');
+  });
+
+  // ── Double-click to zoom in/out ─────────────────
+  vp.ondblclick = (e) => {
+    if (e.target.closest('button')) return;
+    lbSetZoom(lbScale > 1.5 ? 1 : 2.5, e.clientX, e.clientY);
+  };
+
+  // ── Touch: pinch-to-zoom + drag ────────────────
+  vp.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      lbPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+    } else if (e.touches.length === 1) {
+      lbDragging = true;
+      lbDragStartX = e.touches[0].clientX; lbDragStartY = e.touches[0].clientY;
+      lbDragOriginX = lbX; lbDragOriginY = lbY;
+    }
+  }, { passive: true });
+  vp.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+      if (lbPinchDist) {
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        lbSetZoom(lbScale * (dist / lbPinchDist), cx, cy);
+      }
+      lbPinchDist = dist;
+    } else if (e.touches.length === 1 && lbDragging) {
+      lbX = lbDragOriginX + (e.touches[0].clientX - lbDragStartX);
+      lbY = lbDragOriginY + (e.touches[0].clientY - lbDragStartY);
+      lbApplyTransform();
+    }
+  }, { passive: false });
+  vp.addEventListener('touchend', () => {
+    lbDragging = false; lbPinchDist = null;
+  }, { passive: true });
 }
 
 function closeLightbox() {
   const lb = document.getElementById('xrayLightbox');
   if (lb) lb.style.display = 'none';
   lightboxIdx = -1;
+  lbDragging = false;
   document.removeEventListener('keydown', lbKeyHandler);
 }
 
@@ -3224,15 +3383,13 @@ function lbNav(dir) {
   openLightbox(next);
 }
 
-function toggleZoom() {
-  const img = document.getElementById('lbImg');
-  if (img) img.classList.toggle('zoomed');
-}
-
 function lbKeyHandler(e) {
-  if (e.key === 'Escape')       closeLightbox();
-  if (e.key === 'ArrowLeft')    lbNav(-1);
-  if (e.key === 'ArrowRight')   lbNav(1);
+  if (e.key === 'Escape')     closeLightbox();
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === '+' || e.key === '=') lbSetZoom(lbScale * 1.2);
+  if (e.key === '-')          lbSetZoom(lbScale * 0.83);
+  if (e.key === '0')          lbResetZoom();
 }
 
 async function updateXrayLabel(id, label) {
