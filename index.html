@@ -2219,7 +2219,7 @@ async function saveEntry() {
         dob:   document.getElementById('newPtDob').value   || null,
         phone: document.getElementById('newPtPhone').value.trim() || null,
       };
-      const { data: created, error: ptErr } = await sb.from('patients').insert(newPt).select().single();
+      const { data: created, error: ptErr } = await sb.from('patients').insert({ ...newPt, created_by: doctor.id }).select().single();
       if (ptErr) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr', ptErr.message); }
       // Add to allPatients cache
       if (created) allPatients.push(created);
@@ -2930,7 +2930,7 @@ async function savePatient() {
   if (editingPatientId) {
     ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
   } else {
-    ({ error } = await sb.from('patients').insert(payload));
+    ({ error } = await sb.from('patients').insert({ ...payload, created_by: doctor.id }));
   }
   btn.disabled = false;
   btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
