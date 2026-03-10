@@ -1755,7 +1755,23 @@ async function initApp(user) {
   await loadDoctors();
   await loadServices();
   syncViewSelUI();
-  renderCalendar();
+
+  // Restore last page from URL hash
+  const hash = location.hash.replace('#','');
+  if (hash.startsWith('patient/')) {
+    const patId = hash.split('/')[1];
+    switchTab('patients', null, true);
+    await renderPatients();
+    await openPatientDetail(patId);
+  } else if (hash === 'list') {
+    switchTab('list', null, true);
+  } else if (hash === 'services') {
+    switchTab('services', null, true);
+  } else if (hash === 'patients') {
+    switchTab('patients', null, true);
+  } else {
+    renderCalendar();
+  }
 }
 
 async function doLogout() {
@@ -1768,10 +1784,10 @@ async function doLogout() {
 }
 
 // ── TABS ──────────────────────────────────────────────
-function switchTab(tab, btn) {
+function switchTab(tab, btn, noHash) {
+  if (!noHash) location.hash = tab;
   // Sync both topbar tabs and bottom nav buttons
   document.querySelectorAll('.tab-btn, .bottom-nav-btn').forEach(b => b.classList.remove('active'));
-  // Activate the clicked button plus its counterpart
   document.querySelectorAll(`.tab-btn, .bottom-nav-btn`).forEach(b => {
     if (b.dataset.tab === tab || b.getAttribute('onclick')?.includes(`'${tab}'`)) {
       b.classList.add('active');
@@ -2219,7 +2235,7 @@ async function saveEntry() {
         dob:   document.getElementById('newPtDob').value   || null,
         phone: document.getElementById('newPtPhone').value.trim() || null,
       };
-      const { data: created, error: ptErr } = await sb.from('patients').insert({ ...newPt, created_by: doctor.id }).select().single();
+      const { data: created, error: ptErr } = await sb.from('patients').insert({ ...newPt, created_by: doctor.id, clinic_id: doctor.clinic_id }).select().single();
       if (ptErr) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr', ptErr.message); }
       // Add to allPatients cache
       if (created) allPatients.push(created);
@@ -2827,6 +2843,7 @@ function filterPatients() {
 }
 
 async function openPatientDetail(id) {
+  location.hash = 'patient/' + id;
   currentPatientId = id;
   const p = allPatients.find(x => x.id === id);
   if (!p) return;
@@ -2884,6 +2901,7 @@ async function openPatientDetail(id) {
 
 function showPatientList() {
   currentPatientId = null;
+  location.hash = 'patients';
   document.getElementById('patientDetailView').style.display = 'none';
   document.getElementById('patientListView').style.display = 'block';
 }
@@ -2930,7 +2948,7 @@ async function savePatient() {
   if (editingPatientId) {
     ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
   } else {
-    ({ error } = await sb.from('patients').insert({ ...payload, created_by: doctor.id }));
+    ({ error } = await sb.from('patients').insert({ ...payload, created_by: doctor.id, clinic_id: doctor.clinic_id }));
   }
   btn.disabled = false;
   btn.textContent = editingPatientId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
