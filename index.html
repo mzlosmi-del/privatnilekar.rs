@@ -173,6 +173,7 @@ body {
 
 /* ── PANELS ────────────────────────────────────── */
 .panels { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+#panelPatients { overflow: auto; }
 .panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
 .panel.active { display: flex; }
 
@@ -717,6 +718,7 @@ body {
   flex: 1; min-height: 0; overflow-y: auto;
   padding: 24px 28px;
   display: flex; flex-direction: column; gap: 24px;
+  box-sizing: border-box;
 }
 
 .pt-info-strip {
@@ -1257,7 +1259,7 @@ body {
       </div>
 
       <!-- Patient Detail View (odontogram + history) -->
-      <div id="patientDetailView" style="display:none; flex-direction:column; flex:1; min-height:0; overflow:hidden;">
+      <div id="patientDetailView" style="display:none; flex-direction:column; flex:1; min-height:0;">
         <div class="pt-detail-header">
           <button class="pt-back-btn" onclick="showPatientList()">← Nazad</button>
           <div class="pt-detail-name" id="ptDetailName"></div>
@@ -2741,7 +2743,7 @@ async function openPatientDetail(id) {
   if (!p) return;
   document.getElementById('patientListView').style.display = 'none';
   const dv = document.getElementById('patientDetailView');
-  dv.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;';
+  dv.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0;';
   document.getElementById('ptDetailName').textContent = p.first_name + ' ' + p.last_name;
   document.getElementById('ptInfoStrip').innerHTML = [
     p.dob   ? { l:'Datum rodjenja', v:fmtDate(p.dob) } : null,
