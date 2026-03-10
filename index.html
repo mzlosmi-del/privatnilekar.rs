@@ -2381,7 +2381,7 @@ function buildOdontogram() {
   const makeRow = (teeth, flip) => {
     let html = '<div class="odo-row">';
     teeth.forEach((num, i) => {
-      if (i === 4) html += '<div class="odo-quadrant-sep"></div>';
+      if (i === 8) html += '<div class="odo-quadrant-sep"></div>';
       const label = flip
         ? `<div class="odo-tooth-label" style="order:2">${num}</div>`
         : `<div class="odo-tooth-label">${num}</div>`;
