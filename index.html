@@ -4074,6 +4074,9 @@ const ENDO_STATUSES     = new Set(['endo']);
 const PARO_STATUSES     = new Set(['recession','mobility','abscess','pocket','furcation']);
 const MOBILITY_STATUSES = new Set(['mobility']);
 
+// These are diagnostic findings only — not procedures, so they shouldn't appear as therapy tabs
+const DIAGNOSIS_ONLY_STATUSES = new Set(['caries','fracture','attrition','erosion','impacted']);
+
 function tdpKey(layer, num, surface) { return layer + ':' + num + ':' + surface; }
 
 // Collect all non-healthy surfaces+layers for a tooth
@@ -4087,6 +4090,8 @@ function collectTabs(num) {
       if (st && st !== 'healthy') {
         // For whole-tooth statuses only add once (keyed by O surface)
         if (WHOLE_TOOTH_STATUSES.has(st) && sf !== 'O') continue;
+        // Diagnosis-only statuses (fracture, caries, etc.) don't belong in therapy tabs
+        if (layer === 'therapy' && DIAGNOSIS_ONLY_STATUSES.has(st)) continue;
         tabs.push({ layer, surface: sf, status: st });
       }
     }
@@ -4151,7 +4156,7 @@ function tdmSelectTab(idx) {
     (WHOLE_TOOTH_STATUSES.has(status) ? ' · Ceo zub' : ' · ' + SURFACE_LABELS[tab.surface]);
 
   // Fields
-  document.getElementById('tdpDate').value         = existing.proc_date    || '';
+  document.getElementById('tdpDate').value         = existing.proc_date    || activeSessionAppt?.date || '';
   document.getElementById('tdpDoctor').value        = existing.doctor_name  || doctor?.full_name || '';
   document.getElementById('tdpMaterial').value      = existing.material     || '';
   document.getElementById('tdpShade').value         = existing.shade        || '';
@@ -4169,6 +4174,20 @@ function tdmSelectTab(idx) {
   document.getElementById('tdpParoWrap').classList.toggle('visible', PARO_STATUSES.has(status));
   document.getElementById('tdpMobilityWrap').classList.toggle('visible', MOBILITY_STATUSES.has(status));
   document.getElementById('tdpDeleteBtn').style.display = tdpRecordId ? 'block' : 'none';
+
+  // Diagnosis-only statuses (findings, not procedures) — hide save footer
+  const isDiagOnly = DIAGNOSIS_ONLY_STATUSES.has(status);
+  document.querySelector('.tdm-footer').style.display = isDiagOnly ? 'none' : 'flex';
+  // Show a note if diagnosis-only
+  let diagOnlyNote = document.getElementById('tdmDiagOnlyNote');
+  if (!diagOnlyNote) {
+    diagOnlyNote = document.createElement('div');
+    diagOnlyNote.id = 'tdmDiagOnlyNote';
+    diagOnlyNote.style.cssText = 'padding:16px 18px;font-size:0.82rem;color:var(--slate);background:var(--off);border-top:1px solid var(--line);flex-shrink:0;text-align:center;';
+    document.querySelector('.tdm-card').appendChild(diagOnlyNote);
+  }
+  diagOnlyNote.style.display = isDiagOnly ? 'block' : 'none';
+  if (isDiagOnly) diagOnlyNote.textContent = `"${st?.label}" je dijagnostički nalaz — nema procedure za beleženje.`;
 }
 
 // Legacy single-surface opener (right-click)
