@@ -2126,8 +2126,8 @@ const localDate = d => {
 const todayLocal = () => localDate(new Date());
 const parseTime  = t => { const [h,m] = (t||'00:00').split(':').map(Number); return h*60+m; };
 const minsToTime = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
-const fmtDate    = d => new Date(d+'T12:00:00').toLocaleDateString('sr-RS',{weekday:'short',day:'numeric',month:'short'});
-const fmtDateLong= d => new Date(d+'T12:00:00').toLocaleDateString('sr-RS',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const fmtDate    = d => { const dt = new Date(d+'T12:00:00'); return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear(); };
+const fmtDateLong= d => { const dt = new Date(d+'T12:00:00'); const dow = ['Nedjelja','Ponedeljak','Utorak','Sreda','Četvrtak','Petak','Subota'][dt.getDay()]; return dow+', '+String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear(); };
 
 function getMondayOf(offset) {
   const now = new Date();
