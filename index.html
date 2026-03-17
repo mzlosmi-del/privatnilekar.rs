@@ -4082,7 +4082,7 @@ const PARO_STATUSES     = new Set(['recession','mobility','abscess','pocket','fu
 const MOBILITY_STATUSES = new Set(['mobility']);
 
 // These are diagnostic findings only — not procedures, so they shouldn't appear as therapy tabs
-const DIAGNOSIS_ONLY_STATUSES = new Set(['caries','fracture','attrition','erosion','impacted']);
+const DIAGNOSIS_ONLY_STATUSES = new Set(['caries','fracture','attrition','erosion','impacted','recession','mobility','abscess','missing']);
 
 function tdpKey(layer, num, surface) { return layer + ':' + num + ':' + surface; }
 
@@ -4276,6 +4276,49 @@ async function deleteToothDetail() {
   document.getElementById('tdpDeleteBtn').style.display = 'none';
   tdpRecordId = null;
   refreshToothSVG(tdpToothNum);
+  showOdoSaveStatus('ok');
+}
+
+async function deleteToothStatus() {
+  if (!tdpToothNum || !currentPatientId) return;
+  const tab = tdmAllTabs.find(t => t.surface === tdpSurface && t.layer === tdpLayer);
+  if (!tab) return;
+
+  const st = TOOTH_STATUSES.find(s => s.val === tab.status);
+  const layerLabel = tdpLayer === 'diagnosis' ? 'dijagnozu' : 'terapiju';
+  const isWhole = WHOLE_TOOTH_STATUSES.has(tab.status);
+  const surfaceLabel = isWhole ? 'ceo zub' : `površinu ${tdpSurface}`;
+
+  if (!confirm(`Obrisati ${layerLabel} "${st?.label}" (${surfaceLabel}) za zub ${tdpToothNum}?`)) return;
+
+  const surfacesToDelete = isWhole ? SURFACES : [tdpSurface];
+  const dataStore = tdpLayer === 'diagnosis' ? diagData : therData;
+
+  // Delete from DB
+  for (const sf of surfacesToDelete) {
+    await sb.from('tooth_records').delete()
+      .eq('patient_id', currentPatientId)
+      .eq('tooth_num', parseInt(tdpToothNum))
+      .eq('surface', sf)
+      .eq('layer', tdpLayer);
+  }
+
+  // Also delete any saved details for this tab
+  if (tdpRecordId) {
+    await sb.from('tooth_details').delete().eq('id', tdpRecordId);
+    delete toothDetails[tdpKey(tdpLayer, tdpToothNum, tdpSurface)];
+  }
+
+  // Update local data
+  if (dataStore[tdpToothNum]) {
+    surfacesToDelete.forEach(sf => { delete dataStore[tdpToothNum][sf]; });
+  }
+
+  // Remove from session-modified if applicable
+  sessionModifiedTeeth.delete(tdpToothNum);
+
+  refreshToothSVG(tdpToothNum);
+  closeToothDetail();
   showOdoSaveStatus('ok');
 }
 
@@ -5427,7 +5470,8 @@ async function updateXrayDate(id, taken_at) {
     </div>
     <div class="tdm-footer" id="tdmFooter">
       <button class="tdp-save-btn" onclick="saveToothDetail()">💾 Sačuvaj</button>
-      <button class="tdp-delete-btn" id="tdpDeleteBtn" onclick="deleteToothDetail()" style="display:none">🗑 Obriši</button>
+      <button class="tdp-delete-btn" id="tdpDeleteBtn" onclick="deleteToothDetail()" style="display:none">🗑 Detalji</button>
+      <button class="tdp-delete-btn" id="tdpDeleteStatusBtn" onclick="deleteToothStatus()" title="Obriši ovo stanje sa zuba">✕ Stanje</button>
     </div>
   </div>
 </div>
