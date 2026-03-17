@@ -1464,6 +1464,59 @@ body {
 }
 .session-note:focus { border-color: var(--amber); }
 
+/* ── PLAN USAGE BAR ──────────────────────────────────────────── */
+.plan-bar-wrap {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px; background: var(--off);
+  border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.plan-bar-label { font-size: 0.78rem; font-weight: 600; color: var(--slate); white-space: nowrap; }
+.plan-bar-track {
+  flex: 1; max-width: 200px; height: 6px;
+  background: var(--line); border-radius: 3px; overflow: hidden;
+}
+.plan-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--blue); transition: width 0.3s;
+}
+.plan-bar-fill.warn  { background: var(--amber); }
+.plan-bar-fill.full  { background: var(--red); }
+.plan-bar-count { font-size: 0.75rem; font-weight: 700; color: var(--slate); white-space: nowrap; }
+.plan-upgrade-btn {
+  padding: 4px 12px; border-radius: 20px;
+  background: var(--blue); color: #fff;
+  border: none; font-family: 'Syne', sans-serif;
+  font-size: 0.72rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap; transition: background 0.12s;
+}
+.plan-upgrade-btn:hover { background: var(--blue-mid); }
+
+/* ── UPGRADE MODAL ───────────────────────────────────────────── */
+.upgrade-card {
+  text-align: center; padding: 8px 0 4px;
+}
+.upgrade-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.upgrade-title {
+  font-family: 'Spectral', serif; font-size: 1.2rem;
+  font-weight: 600; color: var(--ink); margin-bottom: 8px;
+}
+.upgrade-desc { font-size: 0.85rem; color: var(--slate); line-height: 1.6; margin-bottom: 20px; }
+.upgrade-price {
+  font-size: 1.8rem; font-weight: 800; color: var(--blue);
+  margin-bottom: 4px; letter-spacing: -0.03em;
+}
+.upgrade-price-sub { font-size: 0.78rem; color: var(--slate); margin-bottom: 20px; }
+.upgrade-features {
+  text-align: left; background: var(--off);
+  border-radius: var(--r); padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.upgrade-feature {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; color: var(--ink); padding: 3px 0;
+}
+.upgrade-feature::before { content: '✓'; color: var(--green); font-weight: 800; flex-shrink: 0; }
+
 .btn-settings {
   background: none; border: 1px solid var(--line);
   border-radius: var(--r); padding: 6px 9px;
@@ -1849,6 +1902,13 @@ body {
           <div class="list-title">Pacijenti</div>
           <button class="cal-add-btn" onclick="openPatientModal()">+ Novi pacijent</button>
         </div>
+        <!-- Plan usage bar -->
+        <div id="planUsageBar" style="display:none" class="plan-bar-wrap">
+          <span class="plan-bar-label">Free plan:</span>
+          <div class="plan-bar-track"><div class="plan-bar-fill" id="planBarFill"></div></div>
+          <span class="plan-bar-count" id="planBarCount"></span>
+          <button class="plan-upgrade-btn" onclick="openUpgradeModal()">⬆ Nadogradi</button>
+        </div>
         <div class="pt-search-wrap">
           <input id="ptSearch" type="text" placeholder="Pretraži po imenu…" oninput="filterPatients()" class="pt-search">
         </div>
@@ -2185,6 +2245,7 @@ const DAYS = ['Pon','Uto','Sre','Čet','Pet','Sub','Ned'];
 
 // ── STATE ─────────────────────────────────────────────
 let doctor       = null;
+let clinic       = null;   // current clinic object (plan, patient_limit, etc.)
 let calOffset    = 0;
 let calAppts     = [];
 let calBlocks    = [];
@@ -2413,6 +2474,12 @@ async function initApp(user) {
     return;
   }
   doctor = doc;
+
+  // Load clinic
+  if (doc.clinic_id) {
+    const { data: cl } = await sb.from('clinics').select('*').eq('id', doc.clinic_id).maybeSingle();
+    clinic = cl || null;
+  }
 
   // Set UI
   document.getElementById('doctorName').textContent = doctor.full_name;
@@ -2932,6 +2999,14 @@ async function saveEntry() {
       const first = document.getElementById('newPtFirst').value.trim();
       const last  = document.getElementById('newPtLast').value.trim();
       if (!first || !last) { btn.disabled=false; btn.textContent='Sačuvaj →'; return showErr('editErr','Unesite ime i prezime novog pacijenta.'); }
+      // Check plan limit
+      const limit = getPatientLimit();
+      if (allPatients.length >= limit) {
+        btn.disabled=false; btn.textContent='Sačuvaj →';
+        closeModal('editModal');
+        openUpgradeModal();
+        return;
+      }
       const newPt = {
         first_name: first, last_name: last,
         dob:   document.getElementById('newPtDob').value   || null,
@@ -3645,12 +3720,43 @@ async function saveOdoNotesMilk() {
 }
 
 // ── Patient CRUD ──────────────────────────────────────────────
+function getPatientLimit() {
+  if (!clinic) return 25;
+  if (clinic.plan === 'paid') return Infinity;
+  return clinic.patient_limit || 25;
+}
+
+function openUpgradeModal() {
+  openModal('upgradeModal');
+}
+
+function renderPlanBar(count) {
+  const limit = getPatientLimit();
+  const bar   = document.getElementById('planUsageBar');
+  if (!bar) return;
+
+  // Only show bar on free plan
+  if (clinic?.plan === 'paid' || limit === Infinity) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  const pct  = Math.min(100, Math.round((count / limit) * 100));
+  const fill = document.getElementById('planBarFill');
+  const cnt  = document.getElementById('planBarCount');
+  fill.style.width = pct + '%';
+  fill.className = 'plan-bar-fill' + (pct >= 100 ? ' full' : pct >= 80 ? ' warn' : '');
+  cnt.textContent = `${count} / ${limit} pacijenata`;
+}
+
 async function renderPatients() {
   const tbody = document.getElementById('patientTableBody');
   const empty = document.getElementById('patientEmpty');
   if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate)">Učitavamo…</td></tr>';
   const { data } = await sb.from('patients').select('*').order('last_name').order('first_name');
   allPatients = data || [];
+  renderPlanBar(allPatients.length);
   renderPatientTable(allPatients);
 }
 
@@ -3874,6 +3980,11 @@ async function saveSessionNote() {
 }
 
 function openPatientModal(id) {
+  // Block new patient if at limit
+  if (!id && allPatients.length >= getPatientLimit()) {
+    openUpgradeModal();
+    return;
+  }
   editingPatientId = id || null;
   document.getElementById('patientModalTitle').textContent = id ? 'Izmeni pacijenta' : 'Novi pacijent';
   document.getElementById('ptSaveBtn').textContent = id ? 'Sačuvaj izmene →' : 'Sačuvaj →';
@@ -3915,6 +4026,15 @@ async function savePatient() {
   if (editingPatientId) {
     ({ error } = await sb.from('patients').update(payload).eq('id', editingPatientId));
   } else {
+    // Check plan limit before inserting
+    const limit = getPatientLimit();
+    if (allPatients.length >= limit) {
+      btn.disabled = false;
+      btn.textContent = 'Sačuvaj →';
+      closeModal('patientModal');
+      openUpgradeModal();
+      return;
+    }
     ({ error } = await sb.from('patients').insert({ ...payload, created_by: doctor.id, clinic_id: doctor.clinic_id }));
   }
   btn.disabled = false;
@@ -5509,6 +5629,45 @@ async function updateXrayDate(id, taken_at) {
       <button class="cwiz-back-btn" id="cwizBackBtn" onclick="cwizBack()" style="display:none">← Nazad</button>
       <div class="cwiz-err" id="cwizErr"></div>
       <button class="cwiz-next-btn" id="cwizNextBtn" onclick="cwizNext()">Dalje →</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="overlay" id="upgradeModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h3>Nadogradite plan</h3>
+      <button class="modal-close" onclick="closeModal('upgradeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upgrade-card">
+        <div class="upgrade-icon">🚀</div>
+        <div class="upgrade-title">PrivatniLekar Pro</div>
+        <div class="upgrade-desc">
+          Dostigli ste limit od <strong>25 pacijenata</strong> na besplatnom planu.<br>
+          Nadogradite na Pro za neograničen broj pacijenata.
+        </div>
+        <div class="upgrade-price">€29 <span style="font-size:1rem;font-weight:600">/mesec</span></div>
+        <div class="upgrade-price-sub">po ordinaciji, bez obzira na broj lekara</div>
+        <div class="upgrade-features">
+          <div class="upgrade-feature">Neograničen broj pacijenata</div>
+          <div class="upgrade-feature">Neograničen broj lekara</div>
+          <div class="upgrade-feature">Kompletan odontogram i istorija</div>
+          <div class="upgrade-feature">Prioritetna podrška</div>
+        </div>
+        <a href="mailto:hello@privatnilekar.rs?subject=Pro plan - ${clinic?.name || ''}"
+          style="display:block;width:100%;padding:12px;background:var(--blue);color:#fff;
+          border-radius:var(--r);font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;
+          text-decoration:none;text-align:center;transition:background 0.12s;box-sizing:border-box"
+          onmouseover="this.style.background='var(--blue-mid)'"
+          onmouseout="this.style.background='var(--blue)'">
+          Kontaktirajte nas →
+        </a>
+        <div style="margin-top:12px;font-size:0.75rem;color:var(--slate);text-align:center">
+          hello@privatnilekar.rs · Aktivacija u roku od 24h
+        </div>
+      </div>
     </div>
   </div>
 </div>
