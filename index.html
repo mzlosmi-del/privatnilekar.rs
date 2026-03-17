@@ -3210,7 +3210,6 @@ const TOOTH_STATUSES = [
   { val:'whitening',  label:'Izbeljivanje',      color:'#fef9c3', border:'#ca8a04', group:'protetika' },
   // ── Endodoncija ───────────────────────────────────────────────
   { val:'endo',       label:'Endodoncija',       color:'#f9a8d4', border:'#db2777', group:'endo' },
-  { val:'surgical_exp',label:'Hirurška ekspozicija',color:'#fde68a',border:'#b45309',group:'endo' },
   // ── Parodontologija ───────────────────────────────────────────
   { val:'recession',  label:'Recesija',          color:'#fde68a', border:'#d97706', group:'paro' },
   { val:'mobility',   label:'Mobilnost',         color:'#fcd34d', border:'#b45309', group:'paro' },
@@ -3229,7 +3228,7 @@ const WHOLE_TOOTH_STATUSES = new Set([
   'healthy','crown','endo','missing','implant','bridge',
   'veneer','post_core','recession','mobility','abscess',
   'attrition','erosion','impacted','temporary',
-  'extraction','surgical_exp','whitening'
+  'extraction','whitening'
 ]);
 
 function statusStyle(val) {
@@ -3420,15 +3419,12 @@ function buildOdoPalette() {
 
   const isTherapy = activeLayer === 'therapy';
   const groups = ['osnovno','protetika','endo','paro','patologija','ostalo'];
-  const groupLabels = { osnovno:'Osnovno', protetika:'Protetika', endo:'Endodoncija', paro:'Parodont', patologija:'Patologija', ostalo:'Ostalo' };
   let html = '';
   groups.forEach(g => {
-    // In therapy mode, filter out diagnosis-only statuses
     const items = TOOTH_STATUSES.filter(s =>
       s.group === g && !(isTherapy && DIAGNOSIS_ONLY_STATUSES.has(s.val))
     );
     if (!items.length) return;
-    html += `<span class="odo-pal-group-label">${groupLabels[g]}</span>`;
     html += items.map(s => {
       const wholeLabel = WHOLE_TOOTH_STATUSES.has(s.val) ? ' 🦷' : '';
       return `<button class="odo-pal-btn" id="palBtn-${s.val}"
@@ -3439,7 +3435,6 @@ function buildOdoPalette() {
         ${s.label}${wholeLabel}
       </button>`;
     }).join('');
-    html += '<br style="width:100%;display:block;margin:0;border:none;height:4px">';
   });
   palette.innerHTML = html;
 
@@ -4096,7 +4091,7 @@ let toothDetails = {};   // { "layer:num:surface": { ...fields } }
 let tdmAllTabs   = [];   // [{ layer, surface, status }] for current tooth
 
 const MATERIAL_STATUSES = new Set(['filled','temporary','crown','bridge','veneer','post_core','implant','inlay','onlay','sealant','buildup']);
-const ENDO_STATUSES     = new Set(['endo','surgical_exp']);
+const ENDO_STATUSES     = new Set(['endo']);
 const PARO_STATUSES     = new Set(['recession','mobility','abscess','pocket','furcation','gingivectomy']);
 const MOBILITY_STATUSES = new Set(['mobility']);
 
