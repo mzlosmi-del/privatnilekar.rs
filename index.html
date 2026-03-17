@@ -4177,17 +4177,10 @@ function tdmSelectTab(idx) {
 
   // Diagnosis-only statuses (findings, not procedures) — hide save footer
   const isDiagOnly = DIAGNOSIS_ONLY_STATUSES.has(status);
-  document.querySelector('.tdm-footer').style.display = isDiagOnly ? 'none' : 'flex';
-  // Show a note if diagnosis-only
-  let diagOnlyNote = document.getElementById('tdmDiagOnlyNote');
-  if (!diagOnlyNote) {
-    diagOnlyNote = document.createElement('div');
-    diagOnlyNote.id = 'tdmDiagOnlyNote';
-    diagOnlyNote.style.cssText = 'padding:16px 18px;font-size:0.82rem;color:var(--slate);background:var(--off);border-top:1px solid var(--line);flex-shrink:0;text-align:center;';
-    document.querySelector('.tdm-card').appendChild(diagOnlyNote);
-  }
-  diagOnlyNote.style.display = isDiagOnly ? 'block' : 'none';
-  if (isDiagOnly) diagOnlyNote.textContent = `"${st?.label}" je dijagnostički nalaz — nema procedure za beleženje.`;
+  document.getElementById('tdmFooter').style.display = isDiagOnly ? 'none' : 'flex';
+  const diagMsg = document.getElementById('tdmDiagOnlyMsg');
+  diagMsg.style.display = isDiagOnly ? 'block' : 'none';
+  if (isDiagOnly) diagMsg.textContent = `"${st?.label}" je dijagnostički nalaz — nema procedure za beleženje.`;
 }
 
 // Legacy single-surface opener (right-click)
@@ -4225,7 +4218,7 @@ function closeToothDetail() {
 
 async function saveToothDetail() {
   if (!tdpToothNum || !currentPatientId) return;
-  const btn = document.querySelector('.tdp-save-btn');
+  const btn = document.querySelector('#tdmFooter .tdp-save-btn');
   btn.textContent = 'Čuvam…'; btn.disabled = true;
 
   const payload = {
@@ -5426,7 +5419,9 @@ async function updateXrayDate(id, taken_at) {
         <input class="tdp-input" type="number" id="tdpPrice" placeholder="npr. 5000">
       </div>
     </div>
-    <div class="tdm-footer">
+    <div id="tdmDiagOnlyMsg" style="display:none;padding:14px 18px;font-size:0.82rem;color:var(--slate);background:var(--off);border-top:1px solid var(--line);text-align:center;flex-shrink:0;">
+    </div>
+    <div class="tdm-footer" id="tdmFooter">
       <button class="tdp-save-btn" onclick="saveToothDetail()">💾 Sačuvaj</button>
       <button class="tdp-delete-btn" id="tdpDeleteBtn" onclick="deleteToothDetail()" style="display:none">🗑 Obriši</button>
     </div>
