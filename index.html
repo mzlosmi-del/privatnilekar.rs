@@ -3368,12 +3368,12 @@ function toothDiagramSVG(num, diag, ther) {
 // ── Layer switcher ────────────────────────────────────────────
 function setOdoLayer(layer) {
   activeLayer = layer;
-  activeStatus = null; // reset brush when switching layers
+  activeStatus = null;
   document.querySelectorAll('.odo-pal-btn').forEach(b => b.classList.remove('active'));
-  const diagBtn = document.getElementById('layerBtnDiag');
-  const therBtn = document.getElementById('layerBtnTher');
-  const desc    = document.getElementById('odoLayerDesc');
-  const hint    = document.getElementById('odoHint');
+  const diagBtn  = document.getElementById('layerBtnDiag');
+  const therBtn  = document.getElementById('layerBtnTher');
+  const desc     = document.getElementById('odoLayerDesc');
+  const hint     = document.getElementById('odoHint');
   const hintText = document.getElementById('odoHintText');
   diagBtn.classList.toggle('active', layer === 'diagnosis');
   diagBtn.classList.toggle('diag',   layer === 'diagnosis');
@@ -3383,24 +3383,31 @@ function setOdoLayer(layer) {
     ? 'Postojeće stanje zuba — dijagnoza'
     : 'Urađene procedure — terapija';
   if (hint) hint.classList.remove('has-status');
-  if (hintText) hintText.textContent = '← Odaberite stanje pa kliknite · Desni klik = detalji';
+  if (hintText) hintText.textContent = activeSessionAppt
+    ? '← Odaberite stanje pa kliknite · Desni klik = detalji'
+    : '← Izaberite termin da biste uneli nalaze';
+  // Rebuild palette so therapy filters diagnosis-only statuses
+  buildOdoPalette();
 }
 
 // ── Build palette toolbar ─────────────────────────────────────
 function buildOdoPalette() {
   const palette = document.getElementById('odoPalette');
   if (!palette) return;
-  // Init layer button styles
   const diagBtn = document.getElementById('layerBtnDiag');
   const therBtn = document.getElementById('layerBtnTher');
   if (diagBtn) { diagBtn.classList.toggle('active', activeLayer==='diagnosis'); diagBtn.classList.toggle('diag', activeLayer==='diagnosis'); }
   if (therBtn) { therBtn.classList.toggle('active', activeLayer==='therapy');  therBtn.classList.toggle('ther', activeLayer==='therapy'); }
 
+  const isTherapy = activeLayer === 'therapy';
   const groups = ['osnovno','protetika','endo','paro','patologija','ostalo'];
   const groupLabels = { osnovno:'Osnovno', protetika:'Protetika', endo:'Endodoncija', paro:'Parodont', patologija:'Patologija', ostalo:'Ostalo' };
   let html = '';
   groups.forEach(g => {
-    const items = TOOTH_STATUSES.filter(s => s.group === g);
+    // In therapy mode, filter out diagnosis-only statuses
+    const items = TOOTH_STATUSES.filter(s =>
+      s.group === g && !(isTherapy && DIAGNOSIS_ONLY_STATUSES.has(s.val))
+    );
     if (!items.length) return;
     html += `<span class="odo-pal-group-label">${groupLabels[g]}</span>`;
     html += items.map(s => {
@@ -3417,7 +3424,7 @@ function buildOdoPalette() {
   });
   palette.innerHTML = html;
 
-  // Start disabled if no session active
+  // Disabled if no session active
   if (!activeSessionAppt) {
     palette.style.opacity = '0.4';
     palette.style.pointerEvents = 'none';
@@ -4167,7 +4174,7 @@ function tdmSelectTab(idx) {
   document.getElementById('tdpNote').value          = existing.note         || '';
   document.getElementById('tdpPrice').value         = existing.price        || '';
 
-  // Conditional fields
+  // Conditional fields based on status type
   document.getElementById('tdpMaterialWrap').classList.toggle('visible', MATERIAL_STATUSES.has(status));
   document.getElementById('tdpShadeWrap').classList.toggle('visible', MATERIAL_STATUSES.has(status));
   document.getElementById('tdpEndoWrap').classList.toggle('visible', ENDO_STATUSES.has(status));
@@ -4175,12 +4182,9 @@ function tdmSelectTab(idx) {
   document.getElementById('tdpMobilityWrap').classList.toggle('visible', MOBILITY_STATUSES.has(status));
   document.getElementById('tdpDeleteBtn').style.display = tdpRecordId ? 'block' : 'none';
 
-  // Diagnosis-only statuses (findings, not procedures) — hide save footer
-  const isDiagOnly = DIAGNOSIS_ONLY_STATUSES.has(status);
-  document.getElementById('tdmFooter').style.display = isDiagOnly ? 'none' : 'flex';
-  const diagMsg = document.getElementById('tdmDiagOnlyMsg');
-  diagMsg.style.display = isDiagOnly ? 'block' : 'none';
-  if (isDiagOnly) diagMsg.textContent = `"${st?.label}" je dijagnostički nalaz — nema procedure za beleženje.`;
+  // Always show footer — all statuses can have a note recorded
+  document.getElementById('tdmFooter').style.display = 'flex';
+  document.getElementById('tdmDiagOnlyMsg').style.display = 'none';
 }
 
 // Legacy single-surface opener (right-click)
