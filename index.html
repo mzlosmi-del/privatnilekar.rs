@@ -3198,18 +3198,24 @@ const TOOTH_STATUSES = [
   { val:'filled',     label:'Plomba',            color:'#86efac', border:'#16a34a', group:'osnovno' },
   { val:'temporary',  label:'Privremena plomba', color:'#d1fae5', border:'#6ee7b7', group:'osnovno' },
   { val:'fracture',   label:'Fraktura',          color:'#fca5a5', border:'#dc2626', group:'osnovno' },
+  { val:'sealant',    label:'Pečaćenje fisura',  color:'#a7f3d0', border:'#059669', group:'osnovno' },
+  { val:'buildup',    label:'Nadogradnja',       color:'#c7d2fe', border:'#4338ca', group:'osnovno' },
+  { val:'extraction', label:'Ekstrakcija',       color:'#fda4af', border:'#e11d48', group:'osnovno' },
   // ── Protetika ─────────────────────────────────────────────────
   { val:'crown',      label:'Kruna',             color:'#93c5fd', border:'#2563eb', group:'protetika' },
   { val:'bridge',     label:'Most',              color:'#fed7aa', border:'#ea580c', group:'protetika' },
   { val:'veneer',     label:'Faseta',            color:'#e0f2fe', border:'#0284c7', group:'protetika' },
   { val:'post_core',  label:'Kolčić+nadogradnja',color:'#ddd6fe', border:'#7c3aed', group:'protetika' },
   { val:'implant',    label:'Implant',           color:'#c4b5fd', border:'#7c3aed', group:'protetika' },
+  { val:'whitening',  label:'Izbeljivanje',      color:'#fef9c3', border:'#ca8a04', group:'protetika' },
   // ── Endodoncija ───────────────────────────────────────────────
   { val:'endo',       label:'Endodoncija',       color:'#f9a8d4', border:'#db2777', group:'endo' },
+  { val:'surgical_exp',label:'Hirurška ekspozicija',color:'#fde68a',border:'#b45309',group:'endo' },
   // ── Parodontologija ───────────────────────────────────────────
   { val:'recession',  label:'Recesija',          color:'#fde68a', border:'#d97706', group:'paro' },
   { val:'mobility',   label:'Mobilnost',         color:'#fcd34d', border:'#b45309', group:'paro' },
   { val:'abscess',    label:'Apsces',            color:'#fecaca', border:'#b91c1c', group:'paro' },
+  { val:'gingivectomy',label:'Gingivektomija/Kiretaža',color:'#bbf7d0',border:'#16a34a',group:'paro' },
   // ── Patologija ────────────────────────────────────────────────
   { val:'attrition',  label:'Atricija',          color:'#e5e7eb', border:'#6b7280', group:'patologija' },
   { val:'erosion',    label:'Erozija',           color:'#f1f5f9', border:'#64748b', group:'patologija' },
@@ -3222,7 +3228,8 @@ const TOOTH_STATUSES = [
 const WHOLE_TOOTH_STATUSES = new Set([
   'healthy','crown','endo','missing','implant','bridge',
   'veneer','post_core','recession','mobility','abscess',
-  'attrition','erosion','impacted','temporary'
+  'attrition','erosion','impacted','temporary',
+  'extraction','surgical_exp','whitening'
 ]);
 
 function statusStyle(val) {
@@ -3318,8 +3325,20 @@ function toothDiagramSVG(num, diag, ther) {
     if (therDominant === 'missing')
       return `<line x1="4" y1="4" x2="${sz-4}" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>
               <line x1="${sz-4}" y1="4" x2="4" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>`;
-    // recession, mobility, abscess, attrition, erosion, impacted — colored fill + label initial
-    const initials = { recession:'R', mobility:'M', abscess:'A', attrition:'At', erosion:'E', impacted:'I' };
+    if (therDominant === 'extraction')
+      return `${genericFill}
+              <line x1="8" y1="8" x2="${sz-8}" y2="${sz-8}" stroke="${ts.border}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
+              <line x1="${sz-8}" y1="8" x2="8" y2="${sz-8}" stroke="${ts.border}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'surgical_exp')
+      return `${genericFill}
+              <path d="M${sz/2} 6 L${sz/2} ${sz-6}" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+              <path d="M${sz/2-7} 14 L${sz/2} 6 L${sz/2+7} 14" fill="none" stroke="${ts.border}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+    if (therDominant === 'whitening')
+      return `${genericFill}
+              <text x="${sz/2}" y="${sz/2+5}" text-anchor="middle" font-size="14" font-weight="800"
+                fill="${ts.border}" font-family="sans-serif" pointer-events="none">W</text>`;
+    // recession, mobility, abscess, attrition, erosion, impacted, gingivectomy — colored fill + label initial
+    const initials = { recession:'R', mobility:'M', abscess:'A', attrition:'At', erosion:'E', impacted:'I', gingivectomy:'G' };
     const init = initials[therDominant] || '?';
     return `${genericFill}
             <text x="${sz/2}" y="${sz/2+5}" text-anchor="middle" font-size="13" font-weight="800"
@@ -4076,9 +4095,9 @@ let tdpRecordId  = null;
 let toothDetails = {};   // { "layer:num:surface": { ...fields } }
 let tdmAllTabs   = [];   // [{ layer, surface, status }] for current tooth
 
-const MATERIAL_STATUSES = new Set(['filled','temporary','crown','bridge','veneer','post_core','implant','inlay','onlay']);
-const ENDO_STATUSES     = new Set(['endo']);
-const PARO_STATUSES     = new Set(['recession','mobility','abscess','pocket','furcation']);
+const MATERIAL_STATUSES = new Set(['filled','temporary','crown','bridge','veneer','post_core','implant','inlay','onlay','sealant','buildup']);
+const ENDO_STATUSES     = new Set(['endo','surgical_exp']);
+const PARO_STATUSES     = new Set(['recession','mobility','abscess','pocket','furcation','gingivectomy']);
 const MOBILITY_STATUSES = new Set(['mobility']);
 
 // These are diagnostic findings only — not procedures, so they shouldn't appear as therapy tabs
