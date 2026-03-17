@@ -13,11 +13,17 @@
   "routes": [
     {
       "src": "/admin",
-      "dest": "/admin.html"
+      "dest": "/admin.html",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      }
     },
     {
       "src": "/admin.html",
-      "dest": "/admin.html"
+      "dest": "/admin.html",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      }
     },
     {
       "src": "/(.*)",
