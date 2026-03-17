@@ -2404,7 +2404,7 @@ async function doResetPassword() {
   btn.disabled = true; btn.textContent = 'Šaljem…';
 
   // redirectTo must match your deployed URL exactly
-  const redirectUrl = window.location.origin + window.location.pathname;
+  const redirectUrl = window.location.origin + '/app';
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: redirectUrl,
   });
@@ -2519,7 +2519,7 @@ async function initApp(user) {
 async function doLogout() {
   await sb.auth.signOut();
   doctor = null;
-  location.hash = '';
+  window.location.href = '/';
   document.getElementById('app').classList.remove('visible');
   document.getElementById('loginScreen').style.display = 'flex';
   showAuthScreen('authLogin');

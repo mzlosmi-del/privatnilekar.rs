@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrivatniLekar — Softver za stomatološke ordinacije</title>
+<meta name="description" content="Digitalni karton pacijenta, odontogram, kalendar i timski rad — sve u jednom. Počnite besplatno.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Spectral:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:      #2563eb;
+  --blue-mid:  #3b82f6;
+  --blue-dark: #1d4ed8;
+  --blue-dim:  rgba(37,99,235,0.10);
+  --blue-glow: rgba(37,99,235,0.20);
+  --ink:       #0f172a;
+  --ink-soft:  #334155;
+  --slate:     #64748b;
+  --line:      #e2e8f0;
+  --off:       #f8fafc;
+  --white:     #ffffff;
+  --green:     #16a34a;
+  --green-dim: rgba(22,163,74,0.10);
+  --amber:     #d97706;
+  --r:         10px;
+  --r-lg:      16px;
+  --r-xl:      24px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--white);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ── NAV ─────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226,232,240,0.8);
+  transition: box-shadow 0.2s;
+}
+nav.scrolled { box-shadow: 0 4px 24px rgba(37,99,235,0.08); }
+
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.1rem; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.02em; text-decoration: none;
+}
+.nav-logo-mark {
+  width: 32px; height: 32px; background: var(--blue);
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.nav-logo-mark svg { width: 16px; height: 16px; }
+.nav-logo span { color: var(--blue); }
+
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links a {
+  font-size: 0.85rem; font-weight: 600; color: var(--slate);
+  text-decoration: none; transition: color 0.12s;
+}
+.nav-links a:hover { color: var(--ink); }
+
+.nav-actions { display: flex; align-items: center; gap: 10px; }
+.btn-ghost {
+  padding: 8px 18px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700;
+  color: var(--ink); background: transparent;
+  border: 1px solid var(--line); cursor: pointer; transition: all 0.12s;
+  text-decoration: none; display: inline-flex; align-items: center;
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+.btn-primary {
+  padding: 8px 20px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700;
+  color: #fff; background: var(--blue);
+  border: none; cursor: pointer; transition: all 0.12s;
+  text-decoration: none; display: inline-flex; align-items: center;
+}
+.btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+
+/* ── HERO ─────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 24px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background mesh */
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37,99,235,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 80% 60%, rgba(59,130,246,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 30% 30% at 20% 70%, rgba(37,99,235,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Floating dots grid */
+.hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(37,99,235,0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 20px;
+  background: var(--blue-dim); border: 1px solid rgba(37,99,235,0.2);
+  color: var(--blue); font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.04em; margin-bottom: 28px;
+  animation: fadeUp 0.6s ease both;
+  position: relative; z-index: 1;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue); animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+.hero-title {
+  font-family: 'Spectral', serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 600; line-height: 1.15;
+  color: var(--ink); letter-spacing: -0.02em;
+  max-width: 760px; margin-bottom: 20px;
+  animation: fadeUp 0.6s 0.1s ease both;
+  position: relative; z-index: 1;
+}
+.hero-title em { font-style: italic; color: var(--blue); }
+
+.hero-sub {
+  font-size: 1.05rem; color: var(--slate); line-height: 1.7;
+  max-width: 520px; margin-bottom: 40px;
+  animation: fadeUp 0.6s 0.2s ease both;
+  position: relative; z-index: 1;
+}
+
+.hero-actions {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 56px;
+  animation: fadeUp 0.6s 0.3s ease both;
+  position: relative; z-index: 1;
+}
+.btn-hero-primary {
+  padding: 14px 32px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700;
+  color: #fff; background: var(--blue); border: none; cursor: pointer;
+  transition: all 0.15s; letter-spacing: -0.01em;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.3);
+}
+.btn-hero-primary:hover { background: var(--blue-dark); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,0.4); }
+.btn-hero-ghost {
+  padding: 14px 28px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700;
+  color: var(--ink); background: #fff; border: 1px solid var(--line); cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-hero-ghost:hover { border-color: var(--blue); color: var(--blue); }
+
+.hero-note {
+  font-size: 0.78rem; color: var(--slate);
+  animation: fadeUp 0.6s 0.35s ease both;
+  position: relative; z-index: 1;
+}
+.hero-note strong { color: var(--green); }
+
+/* App mockup */
+.hero-mockup {
+  width: 100%; max-width: 900px; margin-top: 16px;
+  border-radius: var(--r-xl);
+  box-shadow: 0 24px 80px rgba(37,99,235,0.15), 0 4px 16px rgba(0,0,0,0.08);
+  overflow: hidden; border: 1px solid var(--line);
+  animation: fadeUp 0.7s 0.4s ease both;
+  position: relative; z-index: 1;
+}
+.mockup-bar {
+  background: #fff; height: 44px; display: flex; align-items: center;
+  padding: 0 16px; gap: 8px; border-bottom: 1px solid var(--line);
+}
+.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mockup-tab {
+  height: 28px; border-radius: 6px; background: #e2e8f0;
+  display: inline-block;
+}
+.mockup-tab.active { background: var(--blue-dim); }
+.mockup-body {
+  background: #f8fafc; padding: 20px;
+  display: grid; grid-template-columns: 1fr 2fr; gap: 16px;
+  min-height: 340px;
+}
+.mockup-panel {
+  background: #fff; border-radius: var(--r); border: 1px solid var(--line);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.mockup-row {
+  height: 10px; border-radius: 5px; background: var(--line);
+}
+.mockup-row.blue { background: var(--blue-dim); width: 70%; }
+.mockup-row.short { width: 50%; }
+.mockup-row.shorter { width: 35%; }
+.mockup-tooth-grid {
+  display: grid; grid-template-columns: repeat(8,1fr); gap: 4px; margin-top: 4px;
+}
+.mockup-tooth {
+  aspect-ratio: 1; border-radius: 4px; border: 1px solid var(--line);
+  background: #fff;
+}
+.mockup-tooth.filled { background: #86efac; border-color: #16a34a; }
+.mockup-tooth.crown  { background: #93c5fd; border-color: #2563eb; }
+.mockup-tooth.caries { background: #fef08a; border-color: #ca8a04; }
+.mockup-tooth.endo   { background: #f9a8d4; border-color: #db2777; }
+.mockup-tooth.missing { background: #e5e7eb; border-color: #9ca3af; }
+.mockup-appt {
+  height: 36px; border-radius: 6px; border-left: 3px solid var(--blue);
+  background: var(--blue-dim); display: flex; align-items: center; padding: 0 10px;
+}
+.mockup-appt-line { height: 8px; border-radius: 4px; background: var(--blue); width: 60%; opacity: 0.4; }
+.mockup-appt.amber { border-left-color: var(--amber); background: rgba(217,119,6,0.08); }
+.mockup-appt.amber .mockup-appt-line { background: var(--amber); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+
+/* ── FEATURES ─────────────────────────────────────── */
+.section {
+  padding: 96px 24px;
+  max-width: 1100px; margin: 0 auto;
+}
+.section-label {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Spectral', serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 600; color: var(--ink); letter-spacing: -0.02em;
+  line-height: 1.2; margin-bottom: 16px;
+}
+.section-sub {
+  font-size: 1rem; color: var(--slate); line-height: 1.7;
+  max-width: 520px; margin-bottom: 56px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+.feature-card {
+  background: var(--off); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 28px;
+  transition: all 0.2s;
+}
+.feature-card:hover {
+  border-color: rgba(37,99,235,0.3);
+  box-shadow: 0 8px 32px rgba(37,99,235,0.08);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--blue-dim); display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem; margin-bottom: 16px;
+}
+.feature-title {
+  font-size: 1rem; font-weight: 700; color: var(--ink);
+  margin-bottom: 8px; letter-spacing: -0.01em;
+}
+.feature-desc {
+  font-size: 0.85rem; color: var(--slate); line-height: 1.65;
+}
+
+/* ── SCREENSHOT SECTION ──────────────────────────── */
+.screenshot-section {
+  background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fc 50%, #f0f6ff 100%);
+  padding: 96px 24px;
+}
+.screenshot-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+}
+.screenshot-text { max-width: 440px; }
+.screenshot-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
+.screenshot-list li {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 0.9rem; color: var(--ink-soft); line-height: 1.5;
+}
+.screenshot-list li::before {
+  content: '✓'; color: var(--green); font-weight: 800;
+  flex-shrink: 0; font-size: 0.85rem; margin-top: 2px;
+}
+.screenshot-visual {
+  background: #fff; border-radius: var(--r-xl);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 48px rgba(37,99,235,0.12);
+  overflow: hidden;
+}
+.sv-header {
+  background: var(--off); padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 8px;
+}
+.sv-title { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--slate); }
+.sv-body { padding: 16px; }
+.sv-patient-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+  border: 1px solid var(--line); background: #fff;
+  transition: background 0.1s;
+}
+.sv-patient-row:hover { background: var(--blue-dim); }
+.sv-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.68rem; font-weight: 800; flex-shrink: 0;
+}
+.sv-avatar.a { background: #dbeafe; color: #1d4ed8; }
+.sv-avatar.b { background: #dcfce7; color: #15803d; }
+.sv-avatar.c { background: #fef3c7; color: #92400e; }
+.sv-avatar.d { background: #fce7f3; color: #9d174d; }
+.sv-name { font-size: 0.83rem; font-weight: 700; color: var(--ink); flex: 1; }
+.sv-date { font-size: 0.72rem; color: var(--slate); }
+.sv-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.68rem; font-weight: 700; }
+.sv-badge.confirmed { background: var(--blue-dim); color: var(--blue); }
+.sv-badge.pending   { background: rgba(217,119,6,0.1); color: var(--amber); }
+
+/* ── PRICING ──────────────────────────────────────── */
+.pricing-section {
+  padding: 96px 24px;
+  max-width: 860px; margin: 0 auto; text-align: center;
+}
+.pricing-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 24px; margin-top: 48px; text-align: left;
+}
+.pricing-card {
+  border-radius: var(--r-xl); padding: 36px;
+  border: 1px solid var(--line); background: #fff;
+  transition: all 0.2s;
+}
+.pricing-card:hover { box-shadow: 0 8px 32px rgba(37,99,235,0.10); }
+.pricing-card.featured {
+  border: 2px solid var(--blue);
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 60%);
+  position: relative;
+}
+.pricing-popular {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff;
+  padding: 3px 16px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.pricing-plan { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--slate); margin-bottom: 12px; }
+.pricing-price {
+  font-family: 'Spectral', serif;
+  font-size: 2.8rem; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.03em; line-height: 1; margin-bottom: 4px;
+}
+.pricing-price span { font-size: 1.1rem; font-weight: 400; color: var(--slate); }
+.pricing-desc { font-size: 0.82rem; color: var(--slate); margin-bottom: 28px; line-height: 1.5; }
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+.pricing-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.85rem; color: var(--ink-soft);
+}
+.pricing-features li::before {
+  content: '✓'; color: var(--green); font-weight: 800; flex-shrink: 0;
+}
+.pricing-features li.no::before { content: '✕'; color: #cbd5e1; }
+.pricing-features li.no { color: var(--slate); }
+.btn-pricing {
+  width: 100%; padding: 12px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; border: none;
+}
+.btn-pricing.primary { background: var(--blue); color: #fff; }
+.btn-pricing.primary:hover { background: var(--blue-dark); }
+.btn-pricing.ghost { background: transparent; color: var(--blue); border: 1px solid var(--blue); }
+.btn-pricing.ghost:hover { background: var(--blue-dim); }
+
+/* ── FOOTER ───────────────────────────────────────── */
+footer {
+  background: var(--ink); color: rgba(255,255,255,0.7);
+  padding: 48px 40px 32px;
+}
+.footer-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 32px; flex-wrap: wrap; margin-bottom: 40px;
+}
+.footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.footer-logo-mark { width: 28px; height: 28px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.footer-logo-mark svg { width: 14px; height: 14px; }
+.footer-logo-text { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.footer-logo-text span { color: var(--blue-mid); }
+.footer-tagline { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+.footer-links { display: flex; flex-direction: column; gap: 8px; }
+.footer-links a { font-size: 0.82rem; color: rgba(255,255,255,0.55); text-decoration: none; transition: color 0.12s; }
+.footer-links a:hover { color: #fff; }
+.footer-bottom {
+  max-width: 1100px; margin: 0 auto;
+  padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
+
+/* ── MODAL ────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,0.5);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: #fff; border-radius: var(--r-xl);
+  width: 100%; max-width: 480px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+  animation: modalIn 0.2s ease;
+  overflow: hidden;
+}
+@keyframes modalIn { from { transform: translateY(16px) scale(0.97); opacity:0; } to { transform:none; opacity:1; } }
+.modal-head {
+  padding: 24px 28px 0;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.modal-title { font-family: 'Spectral', serif; font-size: 1.4rem; font-weight: 600; color: var(--ink); }
+.modal-sub { font-size: 0.82rem; color: var(--slate); margin-top: 4px; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: #f1f5f9; border: none; color: var(--slate);
+  font-size: 0.9rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; margin-left: 12px;
+}
+.modal-close:hover { background: #fee2e2; color: #dc2626; }
+.modal-body { padding: 24px 28px 28px; }
+.mfield { margin-bottom: 14px; }
+.mfield label { display: block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); margin-bottom: 5px; }
+.mfield input {
+  width: 100%; padding: 10px 14px;
+  background: #f8fafc; border: 1px solid var(--line);
+  border-radius: var(--r); color: var(--ink);
+  font-family: 'Syne', sans-serif; font-size: 0.88rem;
+  outline: none; transition: border-color 0.15s;
+}
+.mfield input:focus { border-color: var(--blue); background: #fff; }
+.mfield input::placeholder { color: #94a3b8; }
+.modal-divider {
+  height: 1px; background: var(--line); margin: 20px 0;
+}
+.modal-err { font-size: 0.8rem; color: #dc2626; background: #fee2e2; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; display: none; }
+.modal-success { font-size: 0.8rem; color: #15803d; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; display: none; }
+.btn-modal {
+  width: 100%; padding: 12px; border-radius: var(--r);
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; border: none; transition: all 0.12s;
+}
+.btn-modal.primary { background: var(--blue); color: #fff; }
+.btn-modal.primary:hover { background: var(--blue-dark); }
+.btn-modal:disabled { opacity: 0.5; cursor: not-allowed; }
+.modal-switch { text-align: center; margin-top: 14px; font-size: 0.82rem; color: var(--slate); }
+.modal-switch a { color: var(--blue); font-weight: 700; cursor: pointer; text-decoration: none; }
+.modal-switch a:hover { text-decoration: underline; }
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 768px) {
+  nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero { padding: 100px 20px 60px; }
+  .hero-mockup { display: none; }
+  .section { padding: 64px 20px; }
+  .screenshot-section { padding: 64px 20px; }
+  .screenshot-inner { grid-template-columns: 1fr; gap: 40px; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .pricing-section { padding: 64px 20px; }
+  footer { padding: 40px 20px 24px; }
+  .footer-inner { flex-direction: column; gap: 24px; }
+}
+@media (max-width: 480px) {
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .btn-hero-primary, .btn-hero-ghost { text-align: center; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a class="nav-logo" href="/">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 18 18" fill="none"><rect x="8" y="2" width="2" height="14" rx="1" fill="#ffffff"/><rect x="2" y="8" width="14" height="2" rx="1" fill="#ffffff"/></svg>
+    </div>
+    Privatni<span>Lekar</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">Funkcionalnosti</a>
+    <a href="#pricing">Cenovnik</a>
+    <a href="mailto:hello@privatnilekar.rs">Kontakt</a>
+  </div>
+  <div class="nav-actions">
+    <a class="btn-ghost" href="/app">Prijavi se</a>
+    <button class="btn-primary" onclick="openRegisterModal()">Počni besplatno</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    Softver za stomatološke ordinacije
+  </div>
+  <h1 class="hero-title">
+    Sve što vaša ordinacija treba —
+    <em>na jednom mestu</em>
+  </h1>
+  <p class="hero-sub">
+    Digitalni karton pacijenta, interaktivni odontogram, kalendar termina i timski rad.
+    Bez instalacije, bez papira.
+  </p>
+  <div class="hero-actions">
+    <button class="btn-hero-primary" onclick="openRegisterModal()">Počni besplatno →</button>
+    <a class="btn-hero-ghost" href="/app">Već imate nalog? Prijavite se</a>
+  </div>
+  <p class="hero-note"><strong>Besplatno do 25 pacijenata.</strong> Bez kreditne kartice.</p>
+
+  <!-- App mockup -->
+  <div class="hero-mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot" style="background:#ff5f56"></div>
+      <div class="mockup-dot" style="background:#ffbd2e"></div>
+      <div class="mockup-dot" style="background:#27c93f"></div>
+      <div style="width:16px"></div>
+      <div class="mockup-tab active" style="width:80px"></div>
+      <div class="mockup-tab" style="width:60px;margin-left:6px"></div>
+      <div class="mockup-tab" style="width:60px;margin-left:6px"></div>
+      <div class="mockup-tab" style="width:70px;margin-left:6px"></div>
+    </div>
+    <div class="mockup-body">
+      <div class="mockup-panel">
+        <div class="mockup-row blue"></div>
+        <div class="mockup-row short"></div>
+        <div style="height:8px"></div>
+        <div class="mockup-appt"><div class="mockup-appt-line"></div></div>
+        <div class="mockup-appt amber"><div class="mockup-appt-line"></div></div>
+        <div class="mockup-appt"><div class="mockup-appt-line"></div></div>
+        <div class="mockup-appt"><div class="mockup-appt-line"></div></div>
+        <div class="mockup-appt amber"><div class="mockup-appt-line"></div></div>
+        <div class="mockup-appt"><div class="mockup-appt-line"></div></div>
+      </div>
+      <div class="mockup-panel">
+        <div class="mockup-row blue"></div>
+        <div class="mockup-row shorter"></div>
+        <div style="height:8px"></div>
+        <div class="mockup-tooth-grid">
+          <div class="mockup-tooth crown"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth filled"></div>
+          <div class="mockup-tooth filled"></div>
+          <div class="mockup-tooth caries"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth endo"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth filled"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth crown"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth missing"></div>
+          <div class="mockup-tooth"></div>
+          <div class="mockup-tooth filled"></div>
+        </div>
+        <div style="height:8px"></div>
+        <div class="mockup-row"></div>
+        <div class="mockup-row short"></div>
+        <div class="mockup-row shorter"></div>
+        <div style="height:4px"></div>
+        <div class="mockup-row"></div>
+        <div class="mockup-row short"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-label">Funkcionalnosti</div>
+  <h2 class="section-title">Sve što vam treba,<br>ništa što vam ne treba</h2>
+  <p class="section-sub">Dizajnirano za stomatološke ordinacije u Srbiji. Jednostavno, brzo, pouzdano.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🦷</div>
+      <div class="feature-title">Interaktivni odontogram</div>
+      <div class="feature-desc">FDI sistem sa dijagnozom i terapijskim layerom. Bojite površine zuba klikom, beležite materijale, kanale, džepove — sve vezano za konkretni termin.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <div class="feature-title">Kalendar termina</div>
+      <div class="feature-desc">Dnevni, radni i nedeljni prikaz. Preklapanja termina, blokade, pregled kolega. Kliknite na slot u kalendaru da odmah zakažete termin.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👤</div>
+      <div class="feature-title">Digitalni karton pacijenta</div>
+      <div class="feature-desc">Kompletna medicinska istorija, alergije, lekovi, hronična stanja. Upozorenje se automatski prikazuje pri svakom otvaranju kartona.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🩻</div>
+      <div class="feature-title">Snimci i RTG</div>
+      <div class="feature-desc">Privatan storage za rendgen snimke po pacijentu. Drag-and-drop upload, zoom, pan, lightbox pregled direktno u kartonu.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👥</div>
+      <div class="feature-title">Timski rad</div>
+      <div class="feature-desc">Više lekara u istoj ordinaciji, svaki sa sopstvenim kalendarom. Pregled tuđih termina kao "ghost" blokova — bez mešanja podataka.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <div class="feature-title">Usluge i procedure</div>
+      <div class="feature-desc">Definišite cenovnik usluga sa trajanjem. Automatsko popunjavanje pri zakazivanju, praćenje urađenih procedura po zubu i terminu.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOT — patient list -->
+<div class="screenshot-section">
+  <div class="screenshot-inner">
+    <div class="screenshot-text">
+      <div class="section-label">Kartoni pacijenata</div>
+      <h2 class="section-title">Cela istorija pacijenta na jednom mestu</h2>
+      <ul class="screenshot-list">
+        <li>Kompletan odontogram sa dijagnozom i terapijom, vezan za svaki termin</li>
+        <li>Automatsko upozorenje na alergije i kritična medicinska stanja</li>
+        <li>Pretraga po imenu, filtriranje, brz pristup iz kalendara</li>
+        <li>Istorija svih termina sa nalazima i napomenama</li>
+      </ul>
+    </div>
+    <div class="screenshot-visual">
+      <div class="sv-header">
+        <div class="sv-title">Pacijenti</div>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <div style="height:24px;width:80px;background:var(--line);border-radius:6px"></div>
+          <div style="height:24px;width:100px;background:var(--blue);border-radius:6px"></div>
+        </div>
+      </div>
+      <div class="sv-body">
+        <div class="sv-patient-row">
+          <div class="sv-avatar a">MM</div>
+          <div class="sv-name">Marković, Marko</div>
+          <div class="sv-date">12/03/2026</div>
+          <div class="sv-badge confirmed">Potvrđen</div>
+        </div>
+        <div class="sv-patient-row">
+          <div class="sv-avatar b">JP</div>
+          <div class="sv-name">Jovanović, Petar</div>
+          <div class="sv-date">08/03/2026</div>
+          <div class="sv-badge confirmed">Potvrđen</div>
+        </div>
+        <div class="sv-patient-row">
+          <div class="sv-avatar c">NS</div>
+          <div class="sv-name">Nikolić, Sara</div>
+          <div class="sv-date">01/03/2026</div>
+          <div class="sv-badge pending">Na čekanju</div>
+        </div>
+        <div class="sv-patient-row">
+          <div class="sv-avatar d">DP</div>
+          <div class="sv-name">Đorđević, Milica</div>
+          <div class="sv-date">22/02/2026</div>
+          <div class="sv-badge confirmed">Potvrđen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="section-label">Cenovnik</div>
+  <h2 class="section-title">Transparentne cene</h2>
+  <p style="font-size:1rem;color:var(--slate);line-height:1.7;max-width:480px;margin:0 auto">
+    Počnite besplatno. Nadogradite kada budete spremni — bez ugovora, bez skrivenih troškova.
+  </p>
+
+  <div class="pricing-grid">
+    <!-- Free -->
+    <div class="pricing-card">
+      <div class="pricing-plan">Free</div>
+      <div class="pricing-price">€0 <span>/ mesec</span></div>
+      <div class="pricing-desc">Za ordinacije koje tek počinju ili žele da isprobaju platformu.</div>
+      <ul class="pricing-features">
+        <li>Do 25 pacijenata</li>
+        <li>Neograničen broj termina</li>
+        <li>Kompletan odontogram</li>
+        <li>Snimci i RTG (privatni storage)</li>
+        <li class="no">Više od 1 lekara</li>
+        <li class="no">Prioritetna podrška</li>
+      </ul>
+      <button class="btn-pricing ghost" onclick="openRegisterModal()">Počni besplatno</button>
+    </div>
+    <!-- Pro -->
+    <div class="pricing-card featured">
+      <div class="pricing-popular">Najpopularniji</div>
+      <div class="pricing-plan">Pro</div>
+      <div class="pricing-price">€29 <span>/ mesec</span></div>
+      <div class="pricing-desc">Za aktivne ordinacije sa timom. Jedna cena, neograničeno sve.</div>
+      <ul class="pricing-features">
+        <li>Neograničen broj pacijenata</li>
+        <li>Neograničen broj termina</li>
+        <li>Kompletan odontogram</li>
+        <li>Snimci i RTG (privatni storage)</li>
+        <li>Više lekara u timu</li>
+        <li>Prioritetna podrška</li>
+      </ul>
+      <button class="btn-pricing primary" onclick="openRegisterModal()">Počni besplatno →</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">
+        <div class="footer-logo-mark">
+          <svg viewBox="0 0 14 14" fill="none"><rect x="6" y="1" width="2" height="12" rx="1" fill="#ffffff"/><rect x="1" y="6" width="12" height="2" rx="1" fill="#ffffff"/></svg>
+        </div>
+        <div class="footer-logo-text">Privatni<span>Lekar</span></div>
+      </div>
+      <div class="footer-tagline">Softver za stomatološke ordinacije u Srbiji</div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:12px">Linkovi</div>
+      <div class="footer-links">
+        <a href="#features">Funkcionalnosti</a>
+        <a href="#pricing">Cenovnik</a>
+        <a href="/app">Prijava</a>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:12px">Kontakt</div>
+      <div class="footer-links">
+        <a href="mailto:hello@privatnilekar.rs">hello@privatnilekar.rs</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 PrivatniLekar. Sva prava zadržana.</div>
+    <div class="footer-copy">Napravljeno za srpske stomatološke ordinacije 🦷</div>
+  </div>
+</footer>
+
+<!-- REGISTER MODAL -->
+<div class="overlay" id="registerOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modalTitle">Registracija</div>
+        <div class="modal-sub" id="modalSub">Kreirajte nalog za vašu ordinaciju</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Register form -->
+      <div id="formRegister">
+        <div class="mfield">
+          <label>Naziv ordinacije *</label>
+          <input id="regClinic" type="text" placeholder="npr. Stomatološka ordinacija Dr. Marković">
+        </div>
+        <div class="mfield">
+          <label>Vaše ime i prezime *</label>
+          <input id="regName" type="text" placeholder="Dr. Ime Prezime">
+        </div>
+        <div class="modal-divider"></div>
+        <div class="mfield">
+          <label>Email *</label>
+          <input id="regEmail" type="email" placeholder="vas@email.com">
+        </div>
+        <div class="mfield">
+          <label>Lozinka *</label>
+          <input id="regPass" type="password" placeholder="Minimum 8 karaktera">
+        </div>
+        <div class="mfield">
+          <label>Potvrda lozinke *</label>
+          <input id="regPass2" type="password" placeholder="Ponovite lozinku" onkeydown="if(event.key==='Enter')doRegister()">
+        </div>
+        <div class="modal-err" id="regErr"></div>
+        <div class="modal-success" id="regSuccess"></div>
+        <button class="btn-modal primary" id="regBtn" onclick="doRegister()">Kreiraj nalog →</button>
+        <div class="modal-switch">
+          Već imate nalog? <a onclick="goToApp()">Prijavite se u aplikaciji</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://vuwjngaeimzeraytfqyp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1d2puZ2FlaW16ZXJheXRmcXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDIxMjcsImV4cCI6MjA4ODQ3ODEyN30.G1iw4_Expb2ey11LTbpQoSj6OecC2NLN5saPFGHfMaM';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── Nav scroll effect ──────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Modal ──────────────────────────────────────────
+function openRegisterModal() {
+  document.getElementById('registerOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('regClinic')?.focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('registerOverlay').classList.remove('open');
+}
+
+document.getElementById('registerOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+function goToApp() {
+  window.location.href = '/app';
+}
+
+// ── Registration ───────────────────────────────────
+async function doRegister() {
+  const clinicName = document.getElementById('regClinic').value.trim();
+  const fullName   = document.getElementById('regName').value.trim();
+  const email      = document.getElementById('regEmail').value.trim();
+  const pass       = document.getElementById('regPass').value;
+  const pass2      = document.getElementById('regPass2').value;
+
+  const errEl = document.getElementById('regErr');
+  const sucEl = document.getElementById('regSuccess');
+  errEl.style.display = 'none';
+  sucEl.style.display = 'none';
+
+  if (!clinicName) return showErr('Unesite naziv ordinacije.');
+  if (!fullName)   return showErr('Unesite vaše ime i prezime.');
+  if (!email)      return showErr('Unesite email adresu.');
+  if (pass.length < 8) return showErr('Lozinka mora imati minimum 8 karaktera.');
+  if (pass !== pass2)  return showErr('Lozinke se ne poklapaju.');
+
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = 'Kreiramo nalog…';
+
+  // 1. Create auth user
+  const { data: authData, error: authErr } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: fullName } }
+  });
+
+  if (authErr) {
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+    return showErr(authErr.message);
+  }
+
+  const user = authData.user;
+  if (!user) {
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+    return showErr('Greška pri kreiranju naloga. Pokušajte ponovo.');
+  }
+
+  // 2. Create clinic
+  const { data: clinic, error: clinicErr } = await sb.from('clinics')
+    .insert({ name: clinicName, plan: 'free', patient_limit: 25 })
+    .select().single();
+
+  if (clinicErr) {
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+    return showErr('Greška pri kreiranju ordinacije: ' + clinicErr.message);
+  }
+
+  // 3. Create doctor row
+  const { error: docErr } = await sb.from('doctors').insert({
+    id:         user.id,
+    email:      email,
+    full_name:  fullName,
+    clinic_id:  clinic.id,
+    role:       'owner',
+  });
+
+  // 4. Set owner_id on clinic
+  await sb.from('clinics').update({ owner_id: user.id }).eq('id', clinic.id);
+
+  btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+
+  if (docErr && docErr.code !== '23505') {
+    return showErr('Nalog kreiran, ali greška pri profilu: ' + docErr.message);
+  }
+
+  // 5. Success
+  if (authData.session) {
+    // Email confirmation disabled — redirect straight to app
+    sucEl.textContent = '✓ Nalog uspešno kreiran! Preusmeravamo vas…';
+    sucEl.style.display = 'block';
+    setTimeout(() => { window.location.href = '/app'; }, 1200);
+  } else {
+    // Email confirmation required
+    sucEl.textContent = '✓ Nalog kreiran! Proverite email i potvrdite adresu, pa se prijavite u aplikaciji.';
+    sucEl.style.display = 'block';
+    setTimeout(() => {
+      document.getElementById('regBtn').style.display = 'none';
+    }, 100);
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('regErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>
