@@ -834,7 +834,7 @@ body {
   width: 100%; min-width: max-content;
 }
 .odo-row {
-  display: flex; gap: 5px; justify-content: flex-start; align-items: flex-start;
+  display: flex; gap: 1px; justify-content: flex-start; align-items: flex-start;
   flex-wrap: nowrap; min-width: max-content;
 }
 .odo-quadrant-sep {
@@ -849,9 +849,9 @@ body {
   font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1; text-align: center;
 }
 /* Desktop tooth size — generous */
-.odo-tooth-diagram { width: 76px; height: 56px; position: relative; flex-shrink: 0; }
+.odo-tooth-diagram { width: 58px; height: 88px; position: relative; flex-shrink: 0; }
 .odo-tooth-diagram svg {
-  width: 76px; height: 56px; display: block;
+  width: 58px; height: 88px; display: block;
   transition: filter 0.12s; overflow: visible;
 }
 .odo-tooth-wrap:hover .odo-tooth-diagram svg {
@@ -938,17 +938,16 @@ body {
   .odo-pal-dot { width: 10px; height: 10px; }
   .odo-hint { padding: 7px 14px; font-size: 0.75rem; }
   .odo-wrap { padding: 10px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; align-items: flex-start; }
-  .odo-row { flex-wrap: nowrap; justify-content: flex-start; min-width: max-content; }
+  .odo-row { flex-wrap: nowrap; justify-content: flex-start; min-width: max-content; gap: 1px; }
   /* Appointment rows — compact on mobile */
   .pt-appt-row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .pt-appt-date-col { min-width: 90px; }
   .pt-appt-svc { font-size: 0.78rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pt-appt-open-btn { padding: 5px 10px; font-size: 0.72rem; }
   .pt-appt-row .appt-badge { font-size: 0.65rem; padding: 2px 6px; }
-  .odo-tooth-diagram { width: 38px; height: 38px; }
-  .odo-tooth-diagram svg { width: 38px; height: 38px; }
+  .odo-tooth-diagram { width: 40px; height: 62px; }
+  .odo-tooth-diagram svg { width: 40px; height: 62px; }
   .odo-tooth-label { font-size: 0.55rem; }
-  .odo-row { gap: 2px; }
   .odo-notes-wrap { padding: 12px 14px; }
   .pt-history-item { padding: 11px 14px; gap: 10px; }
   .pt-history-date { min-width: 78px; font-size: 0.72rem; }
@@ -958,11 +957,11 @@ body {
 
 
 @media (max-width: 480px) {
-  .odo-tooth-diagram { width: 36px; height: 36px; }
-  .odo-tooth-diagram svg { width: 36px; height: 36px; }
+  .odo-tooth-diagram { width: 36px; height: 56px; }
+  .odo-tooth-diagram svg { width: 36px; height: 56px; }
   .odo-tooth-label { font-size: 0.54rem; }
-  .odo-row { gap: 2px; }
-  .odo-quadrant-sep { margin: 0 3px; }
+  .odo-row { gap: 1px; }
+  .odo-quadrant-sep { margin: 0 2px; }
   .xray-grid { grid-template-columns: repeat(auto-fill, minmax(85px,1fr)); gap: 6px; }
   .xray-dropzone { padding: 16px 10px; }
   .pt-history-svc { font-size: 0.8rem; }
@@ -3734,20 +3733,37 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
   };
 
   function makeBadge(label, bgColor, borderColor, x, y) {
-    const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
+    const w = label.length <= 2 ? 15 : label.length <= 3 ? 19 : 23;
     const cx = x + w / 2;
     const ty = y + 9.5;
     const textTransform = flip
       ? `transform="scale(1,-1) translate(0,${-(2 * ty)})"` : '';
-    return `<rect x="${x}" y="${y}" width="${w}" height="13" rx="4"
-              fill="${bgColor}" stroke="${borderColor}" stroke-width="1.2" pointer-events="none"/>
+    return `<rect x="${x}" y="${y}" width="${w}" height="12" rx="3"
+              fill="${bgColor}" stroke="${borderColor}" stroke-width="1" pointer-events="none"/>
             <text x="${cx}" y="${ty}" text-anchor="middle"
-              font-size="7.5" font-weight="800" fill="${borderColor}"
+              font-size="7" font-weight="800" fill="${borderColor}"
               font-family="Arial,sans-serif" ${textTransform} pointer-events="none">${label}</text>`;
   }
 
+  // Stack multiple therapy badges horizontally, centered on tooth width
+  function makeBadgeRow(items, yPos) {
+    if (!items.length) return '';
+    const BW = 15, BGAP = 2;
+    // Compute total width to center the row
+    const widths = items.map(([lbl]) => lbl.length <= 2 ? 15 : lbl.length <= 3 ? 19 : 23);
+    const totalW = widths.reduce((s, w) => s + w, 0) + BGAP * (items.length - 1);
+    let x = (sz - totalW) / 2;
+    let result = '';
+    items.forEach(([lbl, bg, border], i) => {
+      result += makeBadge(lbl, bg, border, x, yPos);
+      x += widths[i] + BGAP;
+    });
+    return result;
+  }
+
   // Badge y-position: top for upper, bottom for lower (flipped via CSS)
-  const badgeY = flip ? sz - 11 : 0;
+  const therBadgeY = flip ? sz + 4 : -16;  // therapy: above tooth (flipped for lower)
+  const diagBadgeY = flip ? -16 : sz + 4;  // diagnosis: below tooth (flipped for lower)
   const BW = 14; // badge width unit
   const BGAP = 2; // gap between badges
 
@@ -3770,14 +3786,12 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
     }
 
     // Draw a badge for each whole-tooth therapy, right-aligned, wrapping if needed
-    therWholeAll.forEach((v, i) => {
+    // Build badge row above tooth, centered
+    const badgeItems = therWholeAll.map(v => {
       const ts = statusStyle(v);
-      const label = BADGE_LABELS[v] || '?';
-      const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
-      // Stack badges right of the tooth: first at x=sz+2, next further right
-      const bx = sz + 2 + i * (BW + BGAP);
-      result += makeBadge(label, ts.fill, ts.border, bx, badgeY);
+      return [BADGE_LABELS[v] || '?', ts.fill, ts.border];
     });
+    result += makeBadgeRow(badgeItems, therBadgeY);
     return result;
   })();
 
@@ -3788,7 +3802,7 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
     const label = BADGE_LABELS[diagDominant] || '?';
     return `<path d="${crown}" fill="none" stroke="${ds.border}" stroke-width="1.8"
               stroke-dasharray="4 3" opacity="0.6" pointer-events="none"/>
-            ${makeBadge(label, ds.fill, ds.border, -18, badgeY)}`;
+            ${makeBadgeRow([[label, ds.fill, ds.border]], diagBadgeY)}`;
   })();
 
   const missingMark = isMissing ? `
@@ -3800,7 +3814,7 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
   // Cervical line — separates crown from root area
   const cervLine = `<path d="M 14,42 Q 26,44 38,42" stroke="#e5e7eb" stroke-width="0.8" fill="none" pointer-events="none"/>`;
 
-  return `<svg viewBox="-22 -2 ${sz+80} ${sz+2}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg viewBox="-2 -18 ${sz+4} ${sz+36}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <clipPath id="${clipId}"><path d="${crown}"/></clipPath>
   </defs>
