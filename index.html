@@ -763,6 +763,7 @@ body {
 .pt-info-value { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
 
 .pt-section { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.pt-section .odo-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .pt-section-title {
   font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--slate);
@@ -924,7 +925,8 @@ body {
   }
   .odo-pal-dot { width: 10px; height: 10px; }
   .odo-hint { padding: 7px 14px; font-size: 0.75rem; }
-  .odo-wrap { padding: 10px 6px; }
+  .odo-wrap { padding: 10px 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .odo-row { flex-wrap: nowrap; justify-content: flex-start; min-width: max-content; }
   .odo-tooth-diagram { width: 38px; height: 38px; }
   .odo-tooth-diagram svg { width: 38px; height: 38px; }
   .odo-tooth-label { font-size: 0.55rem; }
@@ -935,40 +937,7 @@ body {
   .xray-grid { grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 8px; }
 }
 
-/* ── MOBILE ODONTOGRAM — QUADRANT GRID ───────────────────────── */
-@media (max-width: 600px) {
-  /* Hide the normal single-row odontogram wrap */
-  .odo-wrap { display: none !important; }
-  /* Show the mobile quadrant grid instead */
-  .odo-mobile-grid { display: grid !important; }
-}
-@media (min-width: 601px) {
-  /* Hide mobile grid on desktop/tablet */
-  .odo-mobile-grid { display: none !important; }
-}
 
-.odo-mobile-grid {
-  display: none;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px; background: var(--line);
-  border: 1px solid var(--line); border-radius: var(--r);
-  overflow: hidden; margin: 0 10px;
-}
-.odo-quadrant {
-  background: #fff; padding: 8px 4px 6px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-}
-.odo-quadrant-label {
-  font-size: 0.58rem; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--slate); margin-bottom: 3px;
-  text-align: center;
-}
-.odo-quadrant-row {
-  display: flex; gap: 2px; justify-content: center;
-}
-/* Flip lower jaw teeth vertically */
-.odo-quadrant.lower .odo-tooth-diagram { transform: scaleY(-1); }
-.odo-quadrant.lower .odo-tooth-label   { order: 2; }
 
 @media (max-width: 480px) {
   .odo-tooth-diagram { width: 36px; height: 36px; }
@@ -1428,6 +1397,17 @@ body {
 }
 .odo-tooth-wrap.has-details:hover .odo-detail-btn {
   opacity: 1; transform: scale(1);
+}
+
+/* On touch devices — only show detail button when tooth has recorded data */
+@media (hover: none) and (pointer: coarse) {
+  .odo-tooth-wrap.has-details .odo-detail-btn {
+    opacity: 0.8; pointer-events: auto; transform: scale(0.95);
+    top: -4px; right: -4px; width: 18px; height: 18px;
+  }
+  .odo-tooth-wrap.has-details:active .odo-detail-btn {
+    opacity: 1; transform: scale(1);
+  }
 }
 
 
@@ -2102,101 +2082,6 @@ body {
             </div>
             <!-- Tooth chart — permanent (desktop) -->
             <div class="odo-wrap" id="odontogram"></div>
-            <!-- Tooth chart — permanent (mobile quadrant grid) -->
-            <div class="odo-mobile-grid" id="odontogramMobile">
-              <div class="odo-quadrant upper" id="mq-ur">
-                <div class="odo-quadrant-label">↖ Q1 (11–18)</div>
-                <div class="odo-quadrant-row" id="mqrow-ur"></div>
-              </div>
-              <div class="odo-quadrant upper" id="mq-ul">
-                <div class="odo-quadrant-label">Q2 (21–28) ↗</div>
-                <div class="odo-quadrant-row" id="mqrow-ul"></div>
-              </div>
-              <div class="odo-quadrant lower" id="mq-ll">
-                <div class="odo-quadrant-label">↙ Q3 (31–38)</div>
-                <div class="odo-quadrant-row" id="mqrow-ll"></div>
-              </div>
-              <div class="odo-quadrant lower" id="mq-lr">
-                <div class="odo-quadrant-label">Q4 (41–48) ↘</div>
-                <div class="odo-quadrant-row" id="mqrow-lr"></div>
-              </div>
-            </div>
-            <!-- Per-appointment note (shown only when session active) -->
-            <div class="session-note-wrap" id="sessionNoteWrap" style="display:none">
-              <div class="session-note-label">📝 Napomena za ovaj termin</div>
-              <textarea class="session-note" id="sessionNoteInput"
-                placeholder="Nalazi, procedure, preporuke za ovaj termin…"
-                oninput="saveSessionNote()"></textarea>
-            </div>
-            <div class="odo-notes-wrap">
-              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate);margin-bottom:5px">Opšta napomena o pacijentu</div>
-              <textarea id="odoNotes" class="odo-notes" placeholder="Trajna napomena o pacijentu…" oninput="saveOdoNotes()"></textarea>
-            </div>
-          </div>
-
-          <!-- Milk teeth odontogram -->
-          <div class="pt-section">
-            <div class="pt-section-title" style="display:flex;align-items:center;gap:10px">
-              Mlečni zubi
-              <span style="font-size:0.68rem;font-weight:600;color:var(--slate);text-transform:none;letter-spacing:0">(FDI 51–85)</span>
-            </div>
-            <div class="odo-hint" id="odoHintMilk" style="font-size:0.75rem;color:var(--slate);padding:7px 18px;border-bottom:1px solid var(--line);background:var(--off)">
-              Koristite istu paletu gore za bojenje mlečnih zuba
-            </div>
-            <div class="odo-wrap" id="odontogramMilk"></div>
-            <!-- Milk teeth mobile quadrant grid -->
-            <div class="odo-mobile-grid" id="odontogramMilkMobile">
-              <div class="odo-quadrant upper" id="mq-milk-ur">
-                <div class="odo-quadrant-label">↖ Q5 (51–55)</div>
-                <div class="odo-quadrant-row" id="mqrow-milk-ur"></div>
-              </div>
-              <div class="odo-quadrant upper" id="mq-milk-ul">
-                <div class="odo-quadrant-label">Q6 (61–65) ↗</div>
-                <div class="odo-quadrant-row" id="mqrow-milk-ul"></div>
-              </div>
-              <div class="odo-quadrant lower" id="mq-milk-ll">
-                <div class="odo-quadrant-label">↙ Q7 (71–75)</div>
-                <div class="odo-quadrant-row" id="mqrow-milk-ll"></div>
-              </div>
-              <div class="odo-quadrant lower" id="mq-milk-lr">
-                <div class="odo-quadrant-label">Q8 (81–85) ↘</div>
-                <div class="odo-quadrant-row" id="mqrow-milk-lr"></div>
-              </div>
-            </div>
-            <div class="odo-notes-wrap">
-              <textarea id="odoNotesMilk" class="odo-notes" placeholder="Napomena za mlečne zube…" oninput="saveOdoNotesMilk()"></textarea>
-            </div>
-          </div>
-
-          <!-- X-rays -->
-          <div class="pt-section">
-            <div class="pt-section-title" style="display:flex;align-items:center;gap:12px">
-              Snimci
-              <button class="cal-add-btn" style="margin-left:auto;font-size:0.75rem;padding:5px 12px"
-                onclick="document.getElementById('xrayFileInput').click()">
-                + Dodaj snimak
-              </button>
-            </div>
-            <input type="file" id="xrayFileInput" accept="image/*,.dcm" multiple
-              style="display:none" onchange="handleXrayUpload(event)">
-            <div class="xray-dropzone" id="xrayDropzone"
-              ondragover="event.preventDefault();this.classList.add('dragover')"
-              ondragleave="this.classList.remove('dragover')"
-              ondrop="handleXrayDrop(event)">
-              <div class="xray-drop-icon">🦷</div>
-              <div class="xray-drop-text">Prevucite snimke ovde ili <span class="xray-drop-link" onclick="document.getElementById('xrayFileInput').click()">kliknite da izaberete</span></div>
-              <div class="xray-drop-sub">JPG, PNG, WEBP — do 20MB po snimku</div>
-            </div>
-            <div id="xrayUploadProgress" style="display:none">
-              <div class="xray-progress-bar"><div class="xray-progress-fill" id="xrayProgressFill"></div></div>
-              <div class="xray-progress-label" id="xrayProgressLabel">Učitavanje…</div>
-            </div>
-            <div class="xray-grid" id="xrayGrid"></div>
-          </div>
-
-        </div>
-      </div>
-    </div>
 
     <!-- SERVICES -->
     <div class="panel" id="panelServices">
@@ -3842,15 +3727,14 @@ function selectPaletteStatus(val) {
 }
 
 function refreshToothSVG(num) {
-  // Both desktop and mobile use same id — querySelectorAll handles duplicates if any
-  document.querySelectorAll('#toothwrap-' + num).forEach(wrap => {
-    const diagram = wrap.querySelector('.odo-tooth-diagram');
-    if (diagram) diagram.innerHTML = toothDiagramSVG(num, diagData[num], therData[num]);
-    const hasDetail = ['diagnosis','therapy'].some(layer =>
-      SURFACES.some(sf => toothDetails[tdpKey(layer, num, sf)])
-    );
-    wrap.classList.toggle('has-details', hasDetail);
-  });
+  const wrap = document.getElementById('toothwrap-' + num);
+  if (!wrap) return;
+  const diagram = wrap.querySelector('.odo-tooth-diagram');
+  if (diagram) diagram.innerHTML = toothDiagramSVG(num, diagData[num], therData[num]);
+  const hasDetail = ['diagnosis','therapy'].some(layer =>
+    SURFACES.some(sf => toothDetails[tdpKey(layer, num, sf)])
+  );
+  wrap.classList.toggle('has-details', hasDetail);
 }
 
 function buildOdontogramIn(targetId, upperLeft, upperRight, lowerLeft, lowerRight, midline) {
@@ -3889,55 +3773,6 @@ function buildOdontogramIn(targetId, upperLeft, upperRight, lowerLeft, lowerRigh
   `;
 }
 
-// ── MOBILE ODONTOGRAM ──────────────────────────────────────────
-// Long-press timer for touch-based tooth detail
-let _lpTimer = null;
-
-function makeMobileToothHtml(num) {
-  return `<div class="odo-tooth-wrap" title="Zub ${num}" id="toothwrap-${num}"
-      onclick="surfaceClick(event,${num},'O')"
-      ontouchstart="mobileTouchStart(event,${num})"
-      ontouchend="mobileTouchEnd(event)"
-      ontouchmove="mobileTouchEnd(event)">
-    <div class="odo-tooth-label">${num}</div>
-    <div class="odo-tooth-diagram">${toothDiagramSVG(num, diagData[num], therData[num])}</div>
-  </div>`;
-}
-
-function buildMobileOdontogram() {
-  // Permanent teeth
-  const urEl = document.getElementById('mqrow-ur');
-  const ulEl = document.getElementById('mqrow-ul');
-  const llEl = document.getElementById('mqrow-ll');
-  const lrEl = document.getElementById('mqrow-lr');
-  if (urEl) urEl.innerHTML = FDI_UPPER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
-  if (ulEl) ulEl.innerHTML = FDI_UPPER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
-  if (llEl) llEl.innerHTML = FDI_LOWER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
-  if (lrEl) lrEl.innerHTML = FDI_LOWER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
-
-  // Milk teeth
-  const murEl = document.getElementById('mqrow-milk-ur');
-  const mulEl = document.getElementById('mqrow-milk-ul');
-  const mllEl = document.getElementById('mqrow-milk-ll');
-  const mlrEl = document.getElementById('mqrow-milk-lr');
-  if (murEl) murEl.innerHTML = FDI_MILK_UPPER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
-  if (mulEl) mulEl.innerHTML = FDI_MILK_UPPER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
-  if (mllEl) mllEl.innerHTML = FDI_MILK_LOWER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
-  if (mlrEl) mlrEl.innerHTML = FDI_MILK_LOWER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
-}
-
-function mobileTouchStart(e, num) {
-  mobileTouchEnd(e); // clear any previous
-  _lpTimer = setTimeout(() => {
-    _lpTimer = null;
-    openToothDetailForTooth(e, num);
-  }, 500); // 500ms long press = open details
-}
-
-function mobileTouchEnd(e) {
-  if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
-}
-
 function buildOdontogram() {
   buildOdontogramIn('odontogram',
     FDI_UPPER_LEFT, FDI_UPPER_RIGHT,
@@ -3945,7 +3780,6 @@ function buildOdontogram() {
   buildOdontogramIn('odontogramMilk',
     FDI_MILK_UPPER_LEFT, FDI_MILK_UPPER_RIGHT,
     FDI_MILK_LOWER_LEFT, FDI_MILK_LOWER_RIGHT, 5);
-  buildMobileOdontogram();
   buildOdoPalette();
   setOdoLayer('diagnosis');
 }
@@ -3977,7 +3811,8 @@ async function surfaceClick(e, num, surface) {
 
   // Mark as modified in this session
   sessionModifiedTeeth.add(num);
-  document.querySelectorAll('#toothwrap-' + num).forEach(w => w.classList.add('session-modified'));
+  const wrap = document.getElementById('toothwrap-' + num);
+  if (wrap) wrap.classList.add('session-modified');
 
   refreshToothSVG(num);
 
@@ -4284,9 +4119,8 @@ async function openSession(appt) {
   const allNums = [...FDI_UPPER_LEFT,...FDI_UPPER_RIGHT,...FDI_LOWER_LEFT,...FDI_LOWER_RIGHT,
     ...FDI_MILK_UPPER_LEFT,...FDI_MILK_UPPER_RIGHT,...FDI_MILK_LOWER_LEFT,...FDI_MILK_LOWER_RIGHT];
   allNums.forEach(n => {
-    document.querySelectorAll('#toothwrap-' + n).forEach(wrap => {
-      wrap.classList.toggle('session-modified', sessionModifiedTeeth.has(n));
-    });
+    const wrap = document.getElementById('toothwrap-' + n);
+    if (wrap) wrap.classList.toggle('session-modified', sessionModifiedTeeth.has(n));
   });
 
   renderPatientApptList(currentPatientAppts);
