@@ -3569,7 +3569,7 @@ function statusStyle(val) {
 }
 
 // ── Build SVG for one tooth — shows diagnosis as base fill, therapy as overlay
-function toothDiagramSVG(num, diag, ther) {
+function toothDiagramSVG(num, diag, ther, flip = false) {
   const d = diag || {};
   const t = ther || {};
   const sz = 52;
@@ -3734,12 +3734,19 @@ function toothDiagramSVG(num, diag, ther) {
   function makeBadge(label, bgColor, borderColor, x, y) {
     const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
     const cx = x + w / 2;
+    const ty = y + 9.5;
+    // When flipped (lower teeth), counter-rotate text so it reads correctly
+    const textTransform = flip
+      ? `transform="scale(1,-1) translate(0,${-(2 * ty)})"` : '';
     return `<rect x="${x}" y="${y}" width="${w}" height="13" rx="4"
               fill="${bgColor}" stroke="${borderColor}" stroke-width="1.2" pointer-events="none"/>
-            <text x="${cx}" y="${y + 9.5}" text-anchor="middle"
+            <text x="${cx}" y="${ty}" text-anchor="middle"
               font-size="7.5" font-weight="800" fill="${borderColor}"
-              font-family="Arial,sans-serif" pointer-events="none">${label}</text>`;
+              font-family="Arial,sans-serif" ${textTransform} pointer-events="none">${label}</text>`;
   }
+
+  // Badge y-position: top for upper teeth, bottom for lower (which are flipped)
+  const badgeY = flip ? sz - 11 : 0;
 
   // Therapy whole-tooth badge — top-right
   const therWholeMark = (() => {
@@ -3750,12 +3757,12 @@ function toothDiagramSVG(num, diag, ther) {
     if (therDominant === 'missing')
       return `<line x1="12" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
               <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
-              ${makeBadge(label, ts.fill, ts.border, 38, 0)}`;
+              ${makeBadge(label, ts.fill, ts.border, 38, badgeY)}`;
     if (therDominant === 'extraction')
       return `<line x1="16" y1="12" x2="36" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
               <line x1="36" y1="12" x2="16" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              ${makeBadge(label, ts.fill, ts.border, 38, 0)}`;
-    return makeBadge(label, ts.fill, ts.border, 38, 0);
+              ${makeBadge(label, ts.fill, ts.border, 38, badgeY)}`;
+    return makeBadge(label, ts.fill, ts.border, 38, badgeY);
   })();
 
   // Diagnosis whole-tooth badge — top-left (dashed outline style)
@@ -3765,7 +3772,7 @@ function toothDiagramSVG(num, diag, ther) {
     const label = BADGE_LABELS[diagDominant] || '?';
     return `<path d="${crown}" fill="none" stroke="${ds.border}" stroke-width="1.8"
               stroke-dasharray="4 3" opacity="0.6" pointer-events="none"/>
-            ${makeBadge(label, ds.fill, ds.border, 0, 0)}`;
+            ${makeBadge(label, ds.fill, ds.border, 0, badgeY)}`;
   })();
 
   const missingMark = isMissing ? `
@@ -3897,8 +3904,8 @@ function buildOdontogramIn(targetId, upperLeft, upperRight, lowerLeft, lowerRigh
         ? `<div class="odo-tooth-label" style="order:2">${num}</div>`
         : `<div class="odo-tooth-label">${num}</div>`;
       const svgWrap = flip
-        ? `<div class="odo-tooth-diagram" style="transform:scaleY(-1)">${toothDiagramSVG(num, diagData[num], therData[num])}</div>`
-        : `<div class="odo-tooth-diagram">${toothDiagramSVG(num, diagData[num], therData[num])}</div>`;
+        ? `<div class="odo-tooth-diagram" style="transform:scaleY(-1)">${toothDiagramSVG(num, diagData[num], therData[num], true)}</div>`
+        : `<div class="odo-tooth-diagram">${toothDiagramSVG(num, diagData[num], therData[num], false)}</div>`;
       html += `<div class="odo-tooth-wrap" title="Zub ${num}" id="toothwrap-${num}">
         ${label}${svgWrap}
         <button class="odo-detail-btn" title="Detalji zuba ${num}"
