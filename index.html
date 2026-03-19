@@ -3691,24 +3691,30 @@ function toothDiagramSVG(num, diag, ther) {
   function surfaceRect(sf) {
     const r = regions[sf];
     const c = sfFill(sf);
-    return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"
+    const tv = t[sf];
+    const hasTher = tv && tv !== 'healthy' && !WHOLE_TOOTH_STATUSES.has(tv);
+    const ts = hasTher ? statusStyle(tv) : null;
+
+    // Base rect — diagnosis color (full surface)
+    let html = `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"
       fill="${c.fill}" stroke="${c.stroke}" stroke-width="0.4"
       clip-path="url(#${clipId})"
       class="odo-surface" data-surface="${sf}" data-tooth="${num}"
       onclick="surfaceClick(event,${num},'${sf}')" oncontextmenu="surfaceRightClick(event,${num},'${sf}')"/>`;
+
+    // Therapy overlay — inner 65% of surface, clearly visible
+    if (hasTher) {
+      const px = r.x + r.w * 0.175, py = r.y + r.h * 0.175;
+      const pw = r.w * 0.65,        ph = r.h * 0.65;
+      html += `<rect x="${px.toFixed(1)}" y="${py.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}"
+        fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.2" rx="2"
+        clip-path="url(#${clipId})" pointer-events="none"/>`;
+    }
+    return html;
   }
 
-  function therDot(sf) {
-    const tv = t[sf];
-    if (!tv || tv==='healthy' || WHOLE_TOOTH_STATUSES.has(tv)) return '';
-    const ts = statusStyle(tv);
-    const r = regions[sf];
-    const cx = r.x + r.w/2, cy = r.y + r.h/2;
-    return `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8" clip-path="url(#${clipId})" pointer-events="none"/>`;
-  }
-
-  const isMissing = SURFACES.some(sf => d[sf]==='missing' || t[sf]==='missing');
-  const therDominant = t['O'] || t['M'] || null;
+  // therDominant — check all surfaces for whole-tooth therapy
+  const therDominant = SURFACES.map(sf => t[sf]).find(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)) || null;
   const diagDominant = d['O'] || d['M'] || null;
 
   const therWholeMark = (() => {
@@ -3757,7 +3763,7 @@ function toothDiagramSVG(num, diag, ther) {
     <line x1="12" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
     <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>` : '';
 
-  const therSurfaceOverlays = SURFACES.map(sf => therDot(sf)).join('');
+  const therSurfaceOverlays = ''; // now handled inside surfaceRect
 
   // Cervical line — separates crown from root area
   const cervLine = `<path d="M 14,42 Q 26,44 38,42" stroke="#e5e7eb" stroke-width="0.8" fill="none" pointer-events="none"/>`;
