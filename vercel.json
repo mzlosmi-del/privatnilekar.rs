@@ -1,15 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "landing.html", "use": "@vercel/static" },
-    { "src": "index.html",   "use": "@vercel/static" },
-    { "src": "admin.html",   "use": "@vercel/static" }
+    { "src": "landing.html",   "use": "@vercel/static" },
+    { "src": "index.html",     "use": "@vercel/static" },
+    { "src": "admin.html",     "use": "@vercel/static" },
+    { "src": "education.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/",         "dest": "/landing.html" },
-    { "src": "/join",     "dest": "/landing.html" },
-    { "src": "/app",      "dest": "/index.html" },
-    { "src": "/app.html", "dest": "/index.html" },
+    { "src": "/",             "dest": "/landing.html" },
+    { "src": "/join",         "dest": "/landing.html" },
+    { "src": "/app",          "dest": "/index.html" },
+    { "src": "/app.html",     "dest": "/index.html" },
+    { "src": "/education",    "dest": "/education.html" },
     {
       "src": "/admin",
       "dest": "/admin.html",
