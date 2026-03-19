@@ -880,6 +880,9 @@ async function doRegister() {
   const btn = document.getElementById('regBtn');
   btn.disabled = true; btn.textContent = 'Kreiramo nalog\u2026';
 
+  // Sign out any existing session — prevents reusing a logged-in owner's account
+  await sb.auth.signOut();
+
   const { data: authData, error: authErr } = await sb.auth.signUp({
     email, password: pass,
     options: { data: { full_name: fullName } }

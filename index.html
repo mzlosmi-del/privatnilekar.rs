@@ -2541,19 +2541,15 @@ async function doSetNewPassword() {
 }
 
 async function initApp(user) {
-  console.log('[initApp] user.id:', user.id, 'email:', user.email);
-  let { data: doc, error: fetchErr } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
-  console.log('[initApp] doc:', JSON.stringify(doc), 'fetchErr:', fetchErr);
+  let { data: doc } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
   if (!doc) {
     const name      = user.user_metadata?.full_name || user.email.split('@')[0];
     const specialty = user.user_metadata?.specialty || null;
     const { data: created, error: insertErr } = await sb.from('doctors')
       .insert({ id: user.id, email: user.email, full_name: name, specialty })
       .select().single();
-    console.log('[initApp] insert created:', JSON.stringify(created), 'insertErr:', insertErr);
     if (insertErr) {
       const { data: retry } = await sb.from('doctors').select('*').eq('id', user.id).maybeSingle();
-      console.log('[initApp] retry:', JSON.stringify(retry));
       doc = retry;
     } else {
       doc = created;
@@ -2564,7 +2560,6 @@ async function initApp(user) {
     return;
   }
   doctor = doc;
-  console.log('[initApp] FINAL doctor.id:', doctor.id, 'status:', doctor.status, 'role:', doctor.role);
 
   // Block access if pending approval
   if (doctor.status === 'pending') {
