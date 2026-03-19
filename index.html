@@ -848,21 +848,30 @@ body {
   font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1; text-align: center;
 }
 /* Desktop tooth size — generous */
-.odo-tooth-diagram { width: 56px; height: 56px; position: relative; flex-shrink: 0; }
+.odo-tooth-diagram { width: 46px; height: 56px; position: relative; flex-shrink: 0; }
 .odo-tooth-diagram svg {
-  width: 56px; height: 56px; display: block;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.08));
+  width: 46px; height: 56px; display: block;
   transition: filter 0.12s;
 }
 .odo-tooth-wrap:hover .odo-tooth-diagram svg {
-  filter: drop-shadow(0 2px 6px rgba(37,99,235,0.25));
+  filter: drop-shadow(0 2px 6px rgba(37,99,235,0.22));
 }
-.odo-tooth-wrap.paintable { cursor: crosshair; }
 .odo-tooth-wrap.paintable .odo-tooth-diagram svg { filter: drop-shadow(0 0 4px rgba(37,99,235,0.20)); }
 .odo-tooth-wrap.paintable:hover .odo-tooth-diagram svg { filter: drop-shadow(0 2px 8px rgba(37,99,235,0.40)); }
 
-.odo-surface { cursor: pointer; stroke-width: 0.6; transition: opacity 0.1s, stroke-width 0.1s; }
-.odo-surface:hover { opacity: 0.78; stroke-width: 1.4 !important; }
+.odo-surface {
+  cursor: pointer;
+  transition: opacity 0.1s, filter 0.1s;
+}
+.odo-surface:hover {
+  opacity: 0.72;
+  filter: brightness(0.92);
+}
+/* Active session — paintable teeth glow */
+.odo-tooth-wrap.paintable .odo-surface:hover {
+  opacity: 0.85;
+  filter: brightness(0.88) drop-shadow(0 0 3px rgba(37,99,235,0.5));
+}
 
 .odo-notes-wrap { padding: 14px 20px; border-top: 1px solid var(--line); }
 .odo-notes {
@@ -3562,148 +3571,203 @@ function statusStyle(val) {
 function toothDiagramSVG(num, diag, ther) {
   const d = diag || {};
   const t = ther || {};
-  const sz = 50; const m = 9;
-  const ci = m, cw = sz - 2*m;
+  const sz = 50;
 
-  // Base fill comes from diagnosis layer
-  function diagFill(sf) {
+  // ── Tooth type by FDI number ──────────────────────────────
+  function toothType(n) {
+    const u = n % 10 || (n % 100 === 0 ? 10 : n % 10);
+    const last = n % 10;
+    // Milk teeth
+    if (n >= 51 && n <= 85) {
+      if (last === 1 || last === 2) return 'incisor';
+      if (last === 3) return 'canine';
+      return 'premolar';
+    }
+    if (last === 1 || last === 2) return 'incisor';
+    if (last === 3) return 'canine';
+    if (last === 4 || last === 5) return 'premolar';
+    if (last === 8) return 'wisdom';
+    return 'molar';
+  }
+
+  // ── Tooth outline paths by type ───────────────────────────
+  // All in 50x50 viewBox. Crown occupies upper portion, root lower.
+  // Each path defines the CROWN outline only (we don't show root).
+  function crownPath(type) {
+    switch(type) {
+      case 'incisor':
+        // Narrow rectangular crown, rounded incisal edge
+        return `M 14,6 Q 14,4 17,4 L 33,4 Q 36,4 36,6 L 36,38 Q 36,41 33,41 Q 25,43 17,41 Q 14,41 14,38 Z`;
+      case 'canine':
+        // Slightly wider, pointed cusp at top
+        return `M 13,8 Q 13,5 17,4 L 25,2 L 33,4 Q 37,5 37,8 L 37,37 Q 37,41 33,42 Q 25,44 17,42 Q 13,41 13,37 Z`;
+      case 'premolar':
+        // Bicuspid — two cusps visible
+        return `M 12,7 Q 12,4 16,4 L 34,4 Q 38,4 38,7 L 38,37 Q 38,41 34,42 Q 25,44 16,42 Q 12,41 12,37 Z`;
+      case 'molar':
+        // Wide crown, 4 cusps
+        return `M 9,8 Q 9,4 14,4 L 36,4 Q 41,4 41,8 L 41,37 Q 41,42 36,43 Q 25,45 14,43 Q 9,42 9,37 Z`;
+      case 'wisdom':
+        return `M 11,8 Q 11,4 15,4 L 35,4 Q 39,4 39,8 L 39,36 Q 39,41 35,42 Q 25,44 15,42 Q 11,41 11,36 Z`;
+      default:
+        return `M 10,7 Q 10,4 14,4 L 36,4 Q 40,4 40,7 L 40,37 Q 40,42 36,43 Q 25,45 14,43 Q 10,42 10,37 Z`;
+    }
+  }
+
+  // ── Surface clip regions (within crown bbox) ─────────────
+  // B=top strip, L=bottom strip, M=left strip, D=right strip, O=center
+  function surfaceRegions(type) {
+    // Get bounding box based on type
+    const bb = {
+      incisor:  {x1:14, y1:4,  x2:36, y2:41},
+      canine:   {x1:13, y1:2,  x2:37, y2:44},
+      premolar: {x1:12, y1:4,  x2:38, y2:44},
+      molar:    {x1:9,  y1:4,  x2:41, y2:45},
+      wisdom:   {x1:11, y1:4,  x2:39, y2:44},
+    }[type] || {x1:10, y1:4, x2:40, y2:45};
+
+    const {x1, y1, x2, y2} = bb;
+    const w = x2 - x1, h = y2 - y1;
+    const bw = Math.round(w * 0.28); // border band width
+    const bh = Math.round(h * 0.24); // border band height
+
+    return {
+      B: { x: x1,      y: y1,      w: w,       h: bh },
+      L: { x: x1,      y: y2 - bh, w: w,       h: bh },
+      M: { x: x1,      y: y1,      w: bw,      h: h  },
+      D: { x: x2 - bw, y: y1,      w: bw,      h: h  },
+      O: { x: x1 + bw, y: y1 + bh, w: w - 2*bw, h: h - 2*bh },
+    };
+  }
+
+  const type = toothType(num);
+  const crown = crownPath(type);
+  const regions = surfaceRegions(type);
+
+  // ── Colors ───────────────────────────────────────────────
+  function sfColor(sf) {
     const st = statusStyle(d[sf] || 'healthy');
-    return `fill="${st.fill}" stroke="${st.stroke}"`;
+    return { fill: st.fill, stroke: st.stroke };
   }
 
-  // Therapy overlay: small colored triangle/mark inside each surface
-  function therOverlay(sf, points, cx, cy) {
-    const tv = t[sf];
-    if (!tv || tv === 'healthy') return '';
-    const ts = statusStyle(tv);
-    // Small inner indicator: a filled circle or dot at center of surface
-    return `<circle cx="${cx}" cy="${cy}" r="4" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.5" pointer-events="none"/>`;
+  // ── Clip path id (unique per tooth) ─────────────────────
+  const clipId = `tc${num}`;
+
+  // ── Build surface rects clipped to crown shape ───────────
+  function surfaceRect(sf) {
+    const r = regions[sf];
+    const c = sfColor(sf);
+    return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"
+      fill="${c.fill}" stroke="${c.stroke}" stroke-width="0.5"
+      clip-path="url(#${clipId})"
+      class="odo-surface" data-surface="${sf}" data-tooth="${num}"
+      onclick="surfaceClick(event,${num},'${sf}')" oncontextmenu="surfaceRightClick(event,${num},'${sf}')"/>`;
   }
 
-  // Whole-tooth therapy overlays (crown, implant, endo, bridge, missing)
-  const therDominant = t['O'] || t['M'] || null;
-  const diagDominant = d['O'] || d['M'] || 'healthy';
-
-  const isMissing = SURFACES.some(sf => d[sf] === 'missing' || t[sf] === 'missing');
-
-  const missingX = isMissing ? `
-    <line x1="4" y1="4" x2="${sz-4}" y2="${sz-4}" stroke="#9ca3af" stroke-width="2" pointer-events="none"/>
-    <line x1="${sz-4}" y1="4" x2="4" y2="${sz-4}" stroke="#9ca3af" stroke-width="2" pointer-events="none"/>` : '';
-
-  // Diagnosis whole-tooth marks (dashed, subtle)
-  const diagWholeMark = (() => {
-    if (diagDominant === 'healthy' || !diagDominant) return '';
-    const ds = statusStyle(diagDominant);
-    const genericDash = `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
-      fill="${ds.fill}" stroke="${ds.border}" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.45" pointer-events="none"/>`;
-    if (diagDominant === 'crown')
-      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5" pointer-events="none"/>`;
-    if (diagDominant === 'implant')
-      return `<line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>`;
-    if (diagDominant === 'endo')
-      return `<line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>
-              <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.5" pointer-events="none"/>`;
-    if (diagDominant === 'bridge')
-      return `<rect x="0" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>
-              <rect x="${sz-m}" y="${sz/2-3}" width="${m}" height="6" fill="#fed7aa" stroke="#ea580c" stroke-width="0.8" opacity="0.5" pointer-events="none"/>`;
-    // All other whole-tooth diagnoses: dashed colored rect
-    return genericDash;
-  })();
-
-  // Therapy whole-tooth marks (bold, solid — these are done procedures)
-  const therWholeMark = (() => {
-    if (!therDominant || therDominant === 'healthy') return '';
-    const ts = statusStyle(therDominant);
-    // Generic whole-tooth fill for any status not specifically handled
-    const genericFill = `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
-      fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" opacity="0.72" pointer-events="none"/>`;
-    if (therDominant === 'crown')
-      return `<rect x="1.5" y="1.5" width="${sz-3}" height="${sz-3}" rx="3.5" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1" pointer-events="none"/>
-              <rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3" fill="${ts.fill}" stroke="${ts.border}" stroke-width="2.5" opacity="0.85" pointer-events="none"/>`;
-    if (therDominant === 'implant')
-      return `${genericFill}
-              <line x1="${sz/2}" y1="6" x2="${sz/2}" y2="${sz-6}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
-              <line x1="${sz/2-6}" y1="14" x2="${sz/2+6}" y2="14" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
-              <line x1="${sz/2-5}" y1="20" x2="${sz/2+5}" y2="20" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>
-              <line x1="${sz/2-4}" y1="26" x2="${sz/2+4}" y2="26" stroke="#7c3aed" stroke-width="2" pointer-events="none"/>`;
-    if (therDominant === 'endo')
-      return `${genericFill}
-              <line x1="${sz/2}" y1="${m+2}" x2="${sz/2}" y2="${sz-m-2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              <line x1="${m+4}" y1="${sz/2}" x2="${sz-m-4}" y2="${sz/2}" stroke="#db2777" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant === 'bridge')
-      return `${genericFill}
-              <rect x="0" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1.5" pointer-events="none"/>
-              <rect x="${sz-m}" y="${sz/2-4}" width="${m}" height="8" fill="#fed7aa" stroke="#ea580c" stroke-width="1.5" pointer-events="none"/>`;
-    if (therDominant === 'veneer')
-      return `<rect x="2" y="2" width="${sz-4}" height="${m+2}" rx="2"
-        fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" opacity="0.9" pointer-events="none"/>`;
-    if (therDominant === 'post_core')
-      return `${genericFill}
-              <line x1="${sz/2}" y1="${m}" x2="${sz/2}" y2="${sz-m}" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant === 'temporary')
-      return `<rect x="2" y="2" width="${sz-4}" height="${sz-4}" rx="3"
-        fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" stroke-dasharray="5 3" opacity="0.9" pointer-events="none"/>`;
-    if (therDominant === 'missing')
-      return `<line x1="4" y1="4" x2="${sz-4}" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>
-              <line x1="${sz-4}" y1="4" x2="4" y2="${sz-4}" stroke="${ts.border}" stroke-width="2.5" pointer-events="none"/>`;
-    if (therDominant === 'extraction')
-      return `${genericFill}
-              <line x1="8" y1="8" x2="${sz-8}" y2="${sz-8}" stroke="${ts.border}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
-              <line x1="${sz-8}" y1="8" x2="8" y2="${sz-8}" stroke="${ts.border}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant === 'surgical_exp')
-      return `${genericFill}
-              <path d="M${sz/2} 6 L${sz/2} ${sz-6}" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              <path d="M${sz/2-7} 14 L${sz/2} 6 L${sz/2+7} 14" fill="none" stroke="${ts.border}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
-    if (therDominant === 'whitening')
-      return `${genericFill}
-              <text x="${sz/2}" y="${sz/2+5}" text-anchor="middle" font-size="14" font-weight="800"
-                fill="${ts.border}" font-family="sans-serif" pointer-events="none">W</text>`;
-    // recession, mobility, abscess, attrition, erosion, impacted, gingivectomy — colored fill + label initial
-    const initials = { recession:'R', mobility:'M', abscess:'A', attrition:'At', erosion:'E', impacted:'I', gingivectomy:'G' };
-    const init = initials[therDominant] || '?';
-    return `${genericFill}
-            <text x="${sz/2}" y="${sz/2+5}" text-anchor="middle" font-size="13" font-weight="800"
-              fill="${ts.border}" font-family="sans-serif" pointer-events="none">${init}</text>`;
-  })();
-
-  // Surface center coords for therapy dots
-  const centers = {
-    B: [sz/2, m/2],
-    L: [sz/2, sz - m/2],
-    M: [m/2, sz/2],
-    D: [sz - m/2, sz/2],
-    O: [sz/2, sz/2],
-  };
-
-  // Therapy surface overlays (only for non-whole-tooth statuses)
-  const therSurfaceOverlays = SURFACES.map(sf => {
+  // ── Therapy surface dots ──────────────────────────────────
+  function therDot(sf) {
     const tv = t[sf];
     if (!tv || tv === 'healthy' || WHOLE_TOOTH_STATUSES.has(tv)) return '';
     const ts = statusStyle(tv);
-    const [cx, cy] = centers[sf];
-    return `<circle cx="${cx}" cy="${cy}" r="5.5" fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="1.2" pointer-events="none"/><circle cx="${cx}" cy="${cy}" r="4.5" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>`;
-  }).join('');
+    const r = regions[sf];
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    return `<circle cx="${cx}" cy="${cy}" r="4.5"
+      fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.8"
+      clip-path="url(#${clipId})" pointer-events="none"/>`;
+  }
+
+  // ── Missing ───────────────────────────────────────────────
+  const isMissing = SURFACES.some(sf => d[sf] === 'missing' || t[sf] === 'missing');
+
+  // ── Therapy whole-tooth overlays ──────────────────────────
+  const therDominant = t['O'] || t['M'] || null;
+  const therWholeMark = (() => {
+    if (!therDominant || therDominant === 'healthy') return '';
+    const ts = statusStyle(therDominant);
+    const gf = `<path d="${crown}" fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" opacity="0.82" pointer-events="none"/>`;
+    if (therDominant === 'crown')
+      return `<path d="${crown}" fill="${ts.fill}" stroke="${ts.border}" stroke-width="3" opacity="0.9" pointer-events="none"/>
+              <path d="${crown}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="1" pointer-events="none"/>`;
+    if (therDominant === 'missing' || isMissing)
+      return `<line x1="10" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
+              <line x1="40" y1="8" x2="10" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>`;
+    if (therDominant === 'extraction')
+      return `${gf}
+              <line x1="14" y1="12" x2="36" y2="38" stroke="${ts.border}" stroke-width="2.8" stroke-linecap="round" pointer-events="none"/>
+              <line x1="36" y1="12" x2="14" y2="38" stroke="${ts.border}" stroke-width="2.8" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'implant')
+      return `${gf}
+              <line x1="25" y1="8"  x2="25" y2="40" stroke="${ts.border}" stroke-width="3" stroke-linecap="round" pointer-events="none"/>
+              <line x1="19" y1="16" x2="31" y2="16" stroke="${ts.border}" stroke-width="2" pointer-events="none"/>
+              <line x1="20" y1="22" x2="30" y2="22" stroke="${ts.border}" stroke-width="2" pointer-events="none"/>
+              <line x1="21" y1="28" x2="29" y2="28" stroke="${ts.border}" stroke-width="2" pointer-events="none"/>`;
+    if (therDominant === 'endo')
+      return `${gf}
+              <line x1="25" y1="8"  x2="25" y2="42" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+              <line x1="14" y1="25" x2="36" y2="25" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'bridge')
+      return `${gf}
+              <rect x="3"  y="21" width="8" height="8" rx="2" fill="${ts.border}" opacity="0.7" pointer-events="none"/>
+              <rect x="39" y="21" width="8" height="8" rx="2" fill="${ts.border}" opacity="0.7" pointer-events="none"/>`;
+    if (therDominant === 'veneer')
+      return `<path d="${crown}" fill="${ts.fill}" stroke="${ts.border}" stroke-width="2" clip-path="url(#${clipId})" pointer-events="none"/>
+              <rect x="0" y="0" width="50" height="14" fill="${ts.fill}" stroke="${ts.border}" stroke-width="1.5" clip-path="url(#${clipId})" pointer-events="none"/>`;
+    if (therDominant === 'post_core')
+      return `${gf}
+              <line x1="25" y1="8" x2="25" y2="40" stroke="${ts.border}" stroke-width="4" stroke-linecap="round" pointer-events="none"/>`;
+    if (therDominant === 'whitening')
+      return `${gf}
+              <text x="25" y="29" text-anchor="middle" font-size="13" font-weight="800"
+                fill="${ts.border}" font-family="sans-serif" pointer-events="none">W</text>`;
+    const initials = { recession:'R', mobility:'M', abscess:'A', attrition:'At', erosion:'E', impacted:'I', gingivectomy:'G' };
+    const init = initials[therDominant] || '?';
+    return `${gf}
+            <text x="25" y="29" text-anchor="middle" font-size="13" font-weight="800"
+              fill="${ts.border}" font-family="sans-serif" pointer-events="none">${init}</text>`;
+  })();
+
+  // ── Diagnosis whole-tooth overlays ────────────────────────
+  const diagDominant = d['O'] || d['M'] || null;
+  const diagWholeMark = (() => {
+    if (!diagDominant || diagDominant === 'healthy') return '';
+    const ds = statusStyle(diagDominant);
+    return `<path d="${crown}" fill="${ds.fill}" stroke="${ds.border}"
+      stroke-width="1.5" stroke-dasharray="5 3" opacity="0.45" pointer-events="none"/>`;
+  })();
+
+  // ── Missing X ─────────────────────────────────────────────
+  const missingMark = isMissing ? `
+    <line x1="10" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
+    <line x1="40" y1="8" x2="10" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>` : '';
+
+  // ── Therapy surface dots ──────────────────────────────────
+  const therSurfaceOverlays = SURFACES.map(sf => therDot(sf)).join('');
 
   return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
-  <polygon points="0,0 ${sz},0 ${sz-m},${m} ${m},${m}"
-    ${diagFill('B')} stroke-width="0.7" class="odo-surface" data-surface="B" data-tooth="${num}"
-    onclick="surfaceClick(event,${num},'B')" oncontextmenu="surfaceRightClick(event,${num},'B')"/>
-  <polygon points="${m},${sz-m} ${sz-m},${sz-m} ${sz},${sz} 0,${sz}"
-    ${diagFill('L')} stroke-width="0.7" class="odo-surface" data-surface="L" data-tooth="${num}"
-    onclick="surfaceClick(event,${num},'L')" oncontextmenu="surfaceRightClick(event,${num},'L')"/>
-  <polygon points="0,0 ${m},${m} ${m},${sz-m} 0,${sz}"
-    ${diagFill('M')} stroke-width="0.7" class="odo-surface" data-surface="M" data-tooth="${num}"
-    onclick="surfaceClick(event,${num},'M')" oncontextmenu="surfaceRightClick(event,${num},'M')"/>
-  <polygon points="${sz},0 ${sz},${sz} ${sz-m},${sz-m} ${sz-m},${m}"
-    ${diagFill('D')} stroke-width="0.7" class="odo-surface" data-surface="D" data-tooth="${num}"
-    onclick="surfaceClick(event,${num},'D')" oncontextmenu="surfaceRightClick(event,${num},'D')"/>
-  <rect x="${ci}" y="${ci}" width="${cw}" height="${cw}"
-    ${diagFill('O')} stroke-width="0.7" class="odo-surface" data-surface="O" data-tooth="${num}"
-    onclick="surfaceClick(event,${num},'O')" oncontextmenu="surfaceRightClick(event,${num},'O')"/>
-  <rect x="0.5" y="0.5" width="${sz-1}" height="${sz-1}" fill="none" stroke="#9ca3af" stroke-width="0.8" pointer-events="none"/>
-  ${missingX}${diagWholeMark}${therSurfaceOverlays}${therWholeMark}
+  <defs>
+    <clipPath id="${clipId}">
+      <path d="${crown}"/>
+    </clipPath>
+    <filter id="tshadow${num}" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="rgba(0,0,0,0.18)"/>
+    </filter>
+  </defs>
+  <!-- Crown base — healthy white -->
+  <path d="${crown}" fill="#fff" stroke="#d1d5db" stroke-width="1"
+    filter="url(#tshadow${num})" pointer-events="none"/>
+  <!-- Surface fills -->
+  ${surfaceRect('B')}
+  ${surfaceRect('L')}
+  ${surfaceRect('M')}
+  ${surfaceRect('D')}
+  ${surfaceRect('O')}
+  <!-- Crown outline on top -->
+  <path d="${crown}" fill="none" stroke="#9ca3af" stroke-width="1.2" pointer-events="none"/>
+  <!-- Whole-tooth marks -->
+  ${missingMark}${diagWholeMark}${therSurfaceOverlays}${therWholeMark}
 </svg>`;
 }
+
 
 // ── Layer switcher ────────────────────────────────────────────
 function setOdoLayer(layer) {
