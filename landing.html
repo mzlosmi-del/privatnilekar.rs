@@ -515,7 +515,7 @@ footer {
   <div class="nav-links">
     <a href="#features">Funkcionalnosti</a>
     <a href="#pricing">Cenovnik</a>
-    <a href="mailto:hello@privatnilekar.rs">Kontakt</a>
+    <a href="/cdn-cgi/l/email-protection#335b565f5f5c7343415a4552475d5a5f565852411d4140">Kontakt</a>
   </div>
   <div class="nav-actions">
     <a class="btn-ghost" href="/app">Prijavi se</a>
@@ -758,7 +758,7 @@ footer {
     <div>
       <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:12px">Kontakt</div>
       <div class="footer-links">
-        <a href="mailto:hello@privatnilekar.rs">hello@privatnilekar.rs</a>
+        <a href="/cdn-cgi/l/email-protection#d8b0bdb4b4b798a8aab1aeb9acb6b1b4bdb3b9aaf6aaab"><span class="__cf_email__" data-cfemail="335b565f5f5c7343415a4552475d5a5f565852411d4140">[email&#160;protected]</span></a>
       </div>
     </div>
   </div>
@@ -813,7 +813,7 @@ footer {
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const SUPA_URL = 'https://vuwjngaeimzeraytfqyp.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1d2puZ2FlaW16ZXJheXRmcXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDIxMjcsImV4cCI6MjA4ODQ3ODEyN30.G1iw4_Expb2ey11LTbpQoSj6OecC2NLN5saPFGHfMaM';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -833,9 +833,7 @@ function closeModal() {
   document.getElementById('registerOverlay').classList.remove('open');
 }
 
-document.getElementById('registerOverlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
-});
+// Modal only closes via ✕ button — not backdrop click
 
 function goToApp() {
   window.location.href = '/app';
@@ -880,32 +878,17 @@ async function doRegister() {
     return showErr('Greška pri kreiranju naloga. Pokušajte ponovo.');
   }
 
-  // 2. Create clinic
-  const { data: clinic, error: clinicErr } = await sb.from('clinics')
-    .insert({ name: clinicName, plan: 'free', patient_limit: 25 })
-    .select().single();
-
-  if (clinicErr) {
-    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
-    return showErr('Greška pri kreiranju ordinacije: ' + clinicErr.message);
-  }
-
-  // 3. Create doctor row
-  const { error: docErr } = await sb.from('doctors').insert({
-    id:         user.id,
-    email:      email,
-    full_name:  fullName,
-    clinic_id:  clinic.id,
-    role:       'owner',
+  // 2. Create clinic + doctor via secure function
+  const { data: clinicId, error: rpcErr } = await sb.rpc('register_clinic_and_doctor', {
+    p_clinic_name: clinicName,
+    p_full_name:   fullName,
+    p_email:       email,
   });
-
-  // 4. Set owner_id on clinic
-  await sb.from('clinics').update({ owner_id: user.id }).eq('id', clinic.id);
 
   btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
 
-  if (docErr && docErr.code !== '23505') {
-    return showErr('Nalog kreiran, ali greška pri profilu: ' + docErr.message);
+  if (rpcErr) {
+    return showErr('Greška pri kreiranju ordinacije: ' + rpcErr.message);
   }
 
   // 5. Success
@@ -917,18 +900,4 @@ async function doRegister() {
   } else {
     // Email confirmation required
     sucEl.textContent = '✓ Nalog kreiran! Proverite email i potvrdite adresu, pa se prijavite u aplikaciji.';
-    sucEl.style.display = 'block';
-    setTimeout(() => {
-      document.getElementById('regBtn').style.display = 'none';
-    }, 100);
-  }
-}
-
-function showErr(msg) {
-  const el = document.getElementById('regErr');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-</script>
-</body>
-</html>
+  
