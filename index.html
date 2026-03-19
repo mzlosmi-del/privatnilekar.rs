@@ -848,10 +848,10 @@ body {
   font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1; text-align: center;
 }
 /* Desktop tooth size — generous */
-.odo-tooth-diagram { width: 46px; height: 56px; position: relative; flex-shrink: 0; }
+.odo-tooth-diagram { width: 52px; height: 56px; position: relative; flex-shrink: 0; }
 .odo-tooth-diagram svg {
-  width: 46px; height: 56px; display: block;
-  transition: filter 0.12s;
+  width: 52px; height: 56px; display: block;
+  transition: filter 0.12s; overflow: visible;
 }
 .odo-tooth-wrap:hover .odo-tooth-diagram svg {
   filter: drop-shadow(0 2px 6px rgba(37,99,235,0.22));
@@ -3719,57 +3719,53 @@ function toothDiagramSVG(num, diag, ther) {
   const therDominant = SURFACES.map(sf => t[sf]).find(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)) || null;
   const diagDominant = d['O'] || d['M'] || null;
 
-  // Whole-tooth marks — outlines only, no fill, so surface colors stay visible
-  // Therapy: solid colored outline + inner symbol
+  // ── BADGE SYSTEM ─────────────────────────────────────────────
+  // Whole-tooth statuses render as colored badges OUTSIDE the tooth.
+  // Top-right corner for therapy, top-left for diagnosis whole-tooth.
+  // This keeps surface colors fully visible underneath.
+
+  const BADGE_LABELS = {
+    crown:'Kr', implant:'Im', endo:'E', bridge:'Mo', veneer:'Fa',
+    post_core:'Kč', extraction:'Ex', whitening:'W', missing:'X',
+    recession:'R', mobility:'Mb', abscess:'Ab', attrition:'At',
+    erosion:'Er', impacted:'Imp', gingivectomy:'Gi',
+  };
+
+  function makeBadge(label, bgColor, borderColor, x, y) {
+    const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
+    const cx = x + w / 2;
+    return `<rect x="${x}" y="${y}" width="${w}" height="13" rx="4"
+              fill="${bgColor}" stroke="${borderColor}" stroke-width="1.2" pointer-events="none"/>
+            <text x="${cx}" y="${y + 9.5}" text-anchor="middle"
+              font-size="7.5" font-weight="800" fill="${borderColor}"
+              font-family="Arial,sans-serif" pointer-events="none">${label}</text>`;
+  }
+
+  // Therapy whole-tooth badge — top-right
   const therWholeMark = (() => {
-    if (!therDominant || therDominant==='healthy') return '';
+    if (!therDominant || therDominant === 'healthy') return '';
     const ts = statusStyle(therDominant);
-    // Base: just a colored outline around the tooth shape
-    const outline = `<path d="${crown}" fill="none" stroke="${ts.border}" stroke-width="2.8" pointer-events="none"/>`;
-    if (therDominant==='missing')
+    const label = BADGE_LABELS[therDominant] || '?';
+    // Missing / extraction: also draw X on tooth body
+    if (therDominant === 'missing')
       return `<line x1="12" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
-              <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>`;
-    if (therDominant==='extraction')
-      return `${outline}
-              <line x1="16" y1="14" x2="36" y2="36" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              <line x1="36" y1="14" x2="16" y2="36" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant==='crown')
-      return `<path d="${crown}" fill="none" stroke="${ts.border}" stroke-width="3.5" pointer-events="none"/>
-              <path d="${crown}" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.2" pointer-events="none"/>`;
-    if (therDominant==='implant')
-      return `${outline}
-              <line x1="26" y1="10" x2="26" y2="40" stroke="${ts.border}" stroke-width="2.2" stroke-linecap="round" pointer-events="none"/>
-              <line x1="20" y1="18" x2="32" y2="18" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>
-              <line x1="21" y1="24" x2="31" y2="24" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>
-              <line x1="22" y1="30" x2="30" y2="30" stroke="${ts.border}" stroke-width="1.8" pointer-events="none"/>`;
-    if (therDominant==='endo')
-      return `${outline}
-              <line x1="26" y1="9" x2="26" y2="41" stroke="${ts.border}" stroke-width="2.2" stroke-linecap="round" pointer-events="none"/>
-              <line x1="15" y1="25" x2="37" y2="25" stroke="${ts.border}" stroke-width="2.2" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant==='bridge')
-      return `${outline}
-              <rect x="3" y="21" width="7" height="7" rx="2" fill="${ts.border}" opacity="0.85" pointer-events="none"/>
-              <rect x="42" y="21" width="7" height="7" rx="2" fill="${ts.border}" opacity="0.85" pointer-events="none"/>`;
-    if (therDominant==='veneer')
-      return `${outline}
-              <path d="M 14,4 Q 26,2 38,4" stroke="${ts.border}" stroke-width="3" fill="none" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant==='post_core')
-      return `${outline}
-              <line x1="26" y1="9" x2="26" y2="41" stroke="${ts.border}" stroke-width="3.5" stroke-linecap="round" pointer-events="none"/>`;
-    if (therDominant==='whitening')
-      return `${outline}
-              <text x="26" y="30" text-anchor="middle" font-size="12" font-weight="800" fill="${ts.border}" font-family="sans-serif" pointer-events="none">W</text>`;
-    const initials = {recession:'R',mobility:'M',abscess:'A',attrition:'At',erosion:'E',impacted:'I',gingivectomy:'G'};
-    const init = initials[therDominant] || '?';
-    return `${outline}
-            <text x="26" y="30" text-anchor="middle" font-size="12" font-weight="800" fill="${ts.border}" font-family="sans-serif" pointer-events="none">${init}</text>`;
+              <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
+              ${makeBadge(label, ts.fill, ts.border, 38, 0)}`;
+    if (therDominant === 'extraction')
+      return `<line x1="16" y1="12" x2="36" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+              <line x1="36" y1="12" x2="16" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+              ${makeBadge(label, ts.fill, ts.border, 38, 0)}`;
+    return makeBadge(label, ts.fill, ts.border, 38, 0);
   })();
 
-  // Diagnosis whole-tooth: dashed outline only
+  // Diagnosis whole-tooth badge — top-left (dashed outline style)
   const diagWholeMark = (() => {
-    if (!diagDominant || diagDominant==='healthy') return '';
+    if (!diagDominant || diagDominant === 'healthy') return '';
     const ds = statusStyle(diagDominant);
-    return `<path d="${crown}" fill="none" stroke="${ds.border}" stroke-width="2" stroke-dasharray="5 3" opacity="0.7" pointer-events="none"/>`;
+    const label = BADGE_LABELS[diagDominant] || '?';
+    return `<path d="${crown}" fill="none" stroke="${ds.border}" stroke-width="1.8"
+              stroke-dasharray="4 3" opacity="0.6" pointer-events="none"/>
+            ${makeBadge(label, ds.fill, ds.border, 0, 0)}`;
   })();
 
   const missingMark = isMissing ? `
@@ -3781,7 +3777,7 @@ function toothDiagramSVG(num, diag, ther) {
   // Cervical line — separates crown from root area
   const cervLine = `<path d="M 14,42 Q 26,44 38,42" stroke="#e5e7eb" stroke-width="0.8" fill="none" pointer-events="none"/>`;
 
-  return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg viewBox="-2 -2 ${sz+14} ${sz+2}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <clipPath id="${clipId}"><path d="${crown}"/></clipPath>
   </defs>
