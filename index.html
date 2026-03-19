@@ -927,8 +927,14 @@ body {
   }
   .odo-pal-dot { width: 10px; height: 10px; }
   .odo-hint { padding: 7px 14px; font-size: 0.75rem; }
-  .odo-wrap { padding: 10px 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .odo-wrap { padding: 10px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .odo-row { flex-wrap: nowrap; justify-content: flex-start; min-width: max-content; }
+  /* Appointment rows — compact on mobile */
+  .pt-appt-row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .pt-appt-date-col { min-width: 90px; }
+  .pt-appt-svc { font-size: 0.78rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pt-appt-open-btn { padding: 5px 10px; font-size: 0.72rem; }
+  .pt-appt-row .appt-badge { font-size: 0.65rem; padding: 2px 6px; }
   .odo-tooth-diagram { width: 38px; height: 38px; }
   .odo-tooth-diagram svg { width: 38px; height: 38px; }
   .odo-tooth-label { font-size: 0.55rem; }
