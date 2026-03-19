@@ -915,12 +915,14 @@ body {
   .pt-section-title { padding: 11px 14px; }
   .odo-layer-toggle { padding: 10px 14px; }
   .odo-palette {
-    padding: 10px 14px; gap: 6px;
-    flex-wrap: nowrap; overflow-x: auto;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    padding: 8px 10px; gap: 5px;
+    flex-wrap: wrap; overflow: visible;
   }
-  .odo-palette::-webkit-scrollbar { display: none; }
-  .odo-pal-btn { flex-shrink: 0; padding: 6px 11px; font-size: 0.75rem; }
+  .odo-pal-btn {
+    flex-shrink: 0; padding: 5px 9px; font-size: 0.72rem;
+    gap: 5px;
+  }
+  .odo-pal-dot { width: 10px; height: 10px; }
   .odo-hint { padding: 7px 14px; font-size: 0.75rem; }
   .odo-wrap { padding: 10px 6px; }
   .odo-tooth-diagram { width: 38px; height: 38px; }
@@ -2142,6 +2144,25 @@ body {
               Koristite istu paletu gore za bojenje mlečnih zuba
             </div>
             <div class="odo-wrap" id="odontogramMilk"></div>
+            <!-- Milk teeth mobile quadrant grid -->
+            <div class="odo-mobile-grid" id="odontogramMilkMobile">
+              <div class="odo-quadrant upper" id="mq-milk-ur">
+                <div class="odo-quadrant-label">↖ Q5 (51–55)</div>
+                <div class="odo-quadrant-row" id="mqrow-milk-ur"></div>
+              </div>
+              <div class="odo-quadrant upper" id="mq-milk-ul">
+                <div class="odo-quadrant-label">Q6 (61–65) ↗</div>
+                <div class="odo-quadrant-row" id="mqrow-milk-ul"></div>
+              </div>
+              <div class="odo-quadrant lower" id="mq-milk-ll">
+                <div class="odo-quadrant-label">↙ Q7 (71–75)</div>
+                <div class="odo-quadrant-row" id="mqrow-milk-ll"></div>
+              </div>
+              <div class="odo-quadrant lower" id="mq-milk-lr">
+                <div class="odo-quadrant-label">Q8 (81–85) ↘</div>
+                <div class="odo-quadrant-row" id="mqrow-milk-lr"></div>
+              </div>
+            </div>
             <div class="odo-notes-wrap">
               <textarea id="odoNotesMilk" class="odo-notes" placeholder="Napomena za mlečne zube…" oninput="saveOdoNotesMilk()"></textarea>
             </div>
@@ -3884,20 +3905,25 @@ function makeMobileToothHtml(num) {
 }
 
 function buildMobileOdontogram() {
+  // Permanent teeth
   const urEl = document.getElementById('mqrow-ur');
   const ulEl = document.getElementById('mqrow-ul');
   const llEl = document.getElementById('mqrow-ll');
   const lrEl = document.getElementById('mqrow-lr');
-  if (!urEl) return;
+  if (urEl) urEl.innerHTML = FDI_UPPER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
+  if (ulEl) ulEl.innerHTML = FDI_UPPER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
+  if (llEl) llEl.innerHTML = FDI_LOWER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
+  if (lrEl) lrEl.innerHTML = FDI_LOWER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
 
-  // Q1: 18→11 (right to midline)
-  urEl.innerHTML = FDI_UPPER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
-  // Q2: 21→28 (midline to right)
-  ulEl.innerHTML = FDI_UPPER_LEFT.map(n => makeMobileToothHtml(n)).join('');
-  // Q3: 31→38
-  llEl.innerHTML = FDI_LOWER_LEFT.map(n => makeMobileToothHtml(n)).join('');
-  // Q4: 48→41
-  lrEl.innerHTML = FDI_LOWER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
+  // Milk teeth
+  const murEl = document.getElementById('mqrow-milk-ur');
+  const mulEl = document.getElementById('mqrow-milk-ul');
+  const mllEl = document.getElementById('mqrow-milk-ll');
+  const mlrEl = document.getElementById('mqrow-milk-lr');
+  if (murEl) murEl.innerHTML = FDI_MILK_UPPER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
+  if (mulEl) mulEl.innerHTML = FDI_MILK_UPPER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
+  if (mllEl) mllEl.innerHTML = FDI_MILK_LOWER_LEFT.map(n  => makeMobileToothHtml(n)).join('');
+  if (mlrEl) mlrEl.innerHTML = FDI_MILK_LOWER_RIGHT.map(n => makeMobileToothHtml(n)).join('');
 }
 
 function mobileTouchStart(e, num) {
