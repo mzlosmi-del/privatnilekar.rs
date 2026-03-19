@@ -825,16 +825,17 @@ body {
 /* ── ODONTOGRAM TOOTH GRID ───────────────────────────────────── */
 .odo-wrap {
   padding: 24px 20px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .odo-arch-label {
   font-size: 0.67rem; font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--slate); text-align: center; margin: 3px 0;
+  width: 100%; min-width: max-content;
 }
 .odo-row {
-  display: flex; gap: 5px; justify-content: center; align-items: flex-start;
-  flex-wrap: nowrap;
+  display: flex; gap: 5px; justify-content: flex-start; align-items: flex-start;
+  flex-wrap: nowrap; min-width: max-content;
 }
 .odo-quadrant-sep {
   width: 2px; background: var(--line); margin: 0 8px;
@@ -3714,10 +3715,15 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
     return html;
   }
 
-  const isMissing    = SURFACES.some(sf => d[sf]==='missing' || t[sf]==='missing');
-  // Collect ALL whole-tooth therapy statuses (a tooth can have endo + crown etc.)
-  const therWholeAll = [...new Set(SURFACES.map(sf => t[sf]).filter(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)))];
-  const diagDominant = d['O'] || d['M'] || null;
+  const isMissing    = SURFACES.some(sf => d[sf]==='missing' || t[sf]==='missing')
+                    || (d._whole||[]).includes('missing') || (t._whole||[]).includes('missing');
+  // Whole-tooth therapy: read from _whole array (set by whole_tooth_procedures table)
+  const therWholeAll = [...new Set([
+    ...(t._whole || []),
+    // fallback: also catch any whole-tooth status accidentally in surface slots
+    ...SURFACES.map(sf => t[sf]).filter(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v))
+  ])];
+  const diagDominant = d['O'] || d['M'] || (d._whole||[])[0] || null;
 
   // ── BADGE SYSTEM ──────────────────────────────────────────────
   const BADGE_LABELS = {
@@ -3953,7 +3959,6 @@ async function surfaceClick(e, num, surface) {
   e.stopPropagation();
   if (!currentPatientId) return;
 
-  // Require active session
   if (!activeSessionAppt) {
     showOdoSaveStatus('error', 'Izaberite termin pre unosa nalaza');
     document.getElementById('ptApptSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3967,44 +3972,66 @@ async function surfaceClick(e, num, surface) {
   }
 
   const isWhole = WHOLE_TOOTH_STATUSES.has(activeStatus);
-  const surfacesToSet = isWhole ? SURFACES : [surface];
-  const layer = activeLayer;
+  const layer   = activeLayer;
   const dataStore = layer === 'diagnosis' ? diagData : therData;
 
-  if (!dataStore[num]) dataStore[num] = {};
-  surfacesToSet.forEach(sf => { dataStore[num][sf] = activeStatus; });
-
-  // Mark as modified in this session
   sessionModifiedTeeth.add(num);
   const wrap = document.getElementById('toothwrap-' + num);
   if (wrap) wrap.classList.add('session-modified');
 
-  refreshToothSVG(num);
+  if (isWhole) {
+    // ── Whole-tooth procedure ─────────────────────────────
+    // Allow multiple — check if this exact status already recorded for this tooth
+    if (!dataStore[num]) dataStore[num] = {};
+    if (!dataStore[num]._whole) dataStore[num]._whole = [];
 
-  let anyFailed = false;
-  for (const sf of surfacesToSet) {
-    await sb.from('tooth_records')
-      .delete()
-      .eq('patient_id', currentPatientId)
-      .eq('tooth_num', parseInt(num))
-      .eq('surface', sf)
-      .eq('layer', layer);
+    // Don't add duplicate of same status
+    if (!dataStore[num]._whole.includes(activeStatus)) {
+      dataStore[num]._whole.push(activeStatus);
+    }
+    refreshToothSVG(num);
 
-    const { error: insErr } = await sb.from('tooth_records').insert({
+    // Save to whole_tooth_procedures (no delete — allows multiples)
+    const { error } = await sb.from('whole_tooth_procedures').insert({
       patient_id:     currentPatientId,
       tooth_num:      parseInt(num),
-      surface:        sf,
       layer:          layer,
       status:         activeStatus,
       appointment_id: activeSessionAppt.id,
     });
-    if (insErr) {
-      console.error('tooth_records insert error:', JSON.stringify(insErr));
-      showOdoSaveStatus('error', insErr.message || insErr.code || JSON.stringify(insErr));
-      anyFailed = true;
+    if (error) {
+      showOdoSaveStatus('error', error.message);
+    } else {
+      showOdoSaveStatus('ok');
+    }
+
+  } else {
+    // ── Per-surface procedure ─────────────────────────────
+    if (!dataStore[num]) dataStore[num] = {};
+    dataStore[num][surface] = activeStatus;
+    refreshToothSVG(num);
+
+    await sb.from('tooth_records')
+      .delete()
+      .eq('patient_id', currentPatientId)
+      .eq('tooth_num', parseInt(num))
+      .eq('surface', surface)
+      .eq('layer', layer);
+
+    const { error } = await sb.from('tooth_records').insert({
+      patient_id:     currentPatientId,
+      tooth_num:      parseInt(num),
+      surface:        surface,
+      layer:          layer,
+      status:         activeStatus,
+      appointment_id: activeSessionAppt.id,
+    });
+    if (error) {
+      showOdoSaveStatus('error', error.message);
+    } else {
+      showOdoSaveStatus('ok');
     }
   }
-  if (!anyFailed) showOdoSaveStatus('ok');
 }
 
 
@@ -4181,14 +4208,25 @@ async function openPatientDetail(id) {
 
   // Load tooth records
   const { data: teeth } = await sb.from('tooth_records').select('*').eq('patient_id', id);
+  const { data: wholeProcs } = await sb.from('whole_tooth_procedures').select('*').eq('patient_id', id);
   await loadToothDetails(id);
   diagData = {}; therData = {};
   (teeth || []).forEach(t => {
     const k = parseInt(t.tooth_num);
-    const isTherapy = t.layer === 'therapy';
-    const store = isTherapy ? therData : diagData;
+    const store = t.layer === 'therapy' ? therData : diagData;
     if (!store[k]) store[k] = {};
     store[k][t.surface] = t.status;
+  });
+  // Load whole-tooth procedures into _whole array
+  (wholeProcs || []).forEach(t => {
+    const k = parseInt(t.tooth_num);
+    const store = t.layer === 'therapy' ? therData : diagData;
+    if (!store[k]) store[k] = {};
+    if (!store[k]._whole) store[k]._whole = [];
+    if (!store[k]._whole.includes(t.status)) store[k]._whole.push(t.status);
+    // Also store with id for deletion
+    if (!store[k]._wholeRows) store[k]._wholeRows = [];
+    store[k]._wholeRows.push({ id: t.id, status: t.status });
   });
   buildOdontogram();
   await loadXrays(id);
@@ -4608,15 +4646,22 @@ function collectTabs(num) {
   const layerOrder = ['diagnosis','therapy'];
   for (const layer of layerOrder) {
     const store = layer === 'diagnosis' ? diagData : therData;
+    const data  = store[num] || {};
+
+    // Per-surface statuses
     for (const sf of SURFACES) {
-      const st = store[num]?.[sf];
-      if (st && st !== 'healthy') {
-        // For whole-tooth statuses only add once (keyed by O surface)
-        if (WHOLE_TOOTH_STATUSES.has(st) && sf !== 'O') continue;
-        // Diagnosis-only statuses (fracture, caries, etc.) don't belong in therapy tabs
+      const st = data[sf];
+      if (st && st !== 'healthy' && !WHOLE_TOOTH_STATUSES.has(st)) {
         if (layer === 'therapy' && DIAGNOSIS_ONLY_STATUSES.has(st)) continue;
         tabs.push({ layer, surface: sf, status: st });
       }
+    }
+
+    // Whole-tooth procedures from _whole array
+    const wholes = data._whole || [];
+    for (const st of wholes) {
+      if (layer === 'therapy' && DIAGNOSIS_ONLY_STATUSES.has(st)) continue;
+      tabs.push({ layer, surface: 'O', status: st, isWhole: true });
     }
   }
   return tabs;
@@ -4807,16 +4852,34 @@ async function deleteToothStatus() {
 
   if (!confirm(`Obrisati ${layerLabel} "${st?.label}" (${surfaceLabel}) za zub ${tdpToothNum}?`)) return;
 
-  const surfacesToDelete = isWhole ? SURFACES : [tdpSurface];
   const dataStore = tdpLayer === 'diagnosis' ? diagData : therData;
 
-  // Delete from DB
-  for (const sf of surfacesToDelete) {
+  if (isWhole) {
+    // Delete specific whole-tooth procedure from whole_tooth_procedures
+    await sb.from('whole_tooth_procedures').delete()
+      .eq('patient_id', currentPatientId)
+      .eq('tooth_num', parseInt(tdpToothNum))
+      .eq('layer', tdpLayer)
+      .eq('status', tab.status);
+
+    // Update local _whole array
+    if (dataStore[tdpToothNum]?._whole) {
+      dataStore[tdpToothNum]._whole = dataStore[tdpToothNum]._whole.filter(s => s !== tab.status);
+    }
+    if (dataStore[tdpToothNum]?._wholeRows) {
+      dataStore[tdpToothNum]._wholeRows = dataStore[tdpToothNum]._wholeRows.filter(r => r.status !== tab.status);
+    }
+  } else {
+    // Delete per-surface record
     await sb.from('tooth_records').delete()
       .eq('patient_id', currentPatientId)
       .eq('tooth_num', parseInt(tdpToothNum))
-      .eq('surface', sf)
+      .eq('surface', tdpSurface)
       .eq('layer', tdpLayer);
+
+    if (dataStore[tdpToothNum]) {
+      delete dataStore[tdpToothNum][tdpSurface];
+    }
   }
 
   // Also delete any saved details for this tab
@@ -4825,18 +4888,17 @@ async function deleteToothStatus() {
     delete toothDetails[tdpKey(tdpLayer, tdpToothNum, tdpSurface)];
   }
 
-  // Update local data
-  if (dataStore[tdpToothNum]) {
-    surfacesToDelete.forEach(sf => { delete dataStore[tdpToothNum][sf]; });
-  }
-
-  // Remove from session-modified if applicable
-  sessionModifiedTeeth.delete(tdpToothNum);
+  // Remove from session-modified if no more data
+  const hasAny = SURFACES.some(sf => dataStore[tdpToothNum]?.[sf]) ||
+                 (dataStore[tdpToothNum]?._whole?.length > 0);
+  if (!hasAny) sessionModifiedTeeth.delete(tdpToothNum);
 
   refreshToothSVG(tdpToothNum);
   closeToothDetail();
   showOdoSaveStatus('ok');
 }
+
+
 
 async function loadToothDetails(patientId) {
   const { data } = await sb.from('tooth_details').select('*').eq('patient_id', patientId);
