@@ -1491,7 +1491,91 @@ body {
 }
 .plan-upgrade-btn:hover { background: var(--blue-mid); }
 
-/* ── UPGRADE MODAL ───────────────────────────────────────────── */
+/* ── PENDING APPROVAL SCREEN ─────────────────────────────────── */
+.pending-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; padding: 40px; text-align: center;
+  background: linear-gradient(135deg, #f0f6ff 0%, #e8f0fc 100%);
+}
+.pending-icon { font-size: 3.5rem; margin-bottom: 20px; }
+.pending-title {
+  font-family: 'Spectral', serif; font-size: 1.6rem; font-weight: 600;
+  color: var(--ink); margin-bottom: 10px;
+}
+.pending-desc { font-size: 0.92rem; color: var(--slate); line-height: 1.7; max-width: 400px; margin-bottom: 28px; }
+.pending-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 20px; border-radius: 20px;
+  background: var(--amber-dim); border: 1px solid var(--amber);
+  color: var(--amber); font-size: 0.85rem; font-weight: 700; margin-bottom: 28px;
+}
+.pending-logout {
+  font-size: 0.82rem; color: var(--slate); cursor: pointer;
+  text-decoration: underline; background: none; border: none;
+  font-family: 'Syne', sans-serif;
+}
+.pending-logout:hover { color: var(--ink); }
+
+/* ── NOTIFICATION BADGE ──────────────────────────────────────── */
+.notif-btn {
+  position: relative; width: 34px; height: 34px; border-radius: 9px;
+  background: var(--navy-lite); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem; transition: all 0.12s; flex-shrink: 0;
+}
+.notif-btn:hover { border-color: var(--blue); background: var(--blue-dim); }
+.notif-count {
+  position: absolute; top: -5px; right: -5px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--red); color: #fff;
+  font-size: 0.6rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid #fff;
+}
+
+/* ── PENDING DOCTORS PANEL ───────────────────────────────────── */
+.pending-panel {
+  position: fixed; top: 64px; right: 16px; z-index: 200;
+  width: 340px; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: 0 8px 32px rgba(37,99,235,0.12);
+  display: none;
+}
+.pending-panel.open { display: block; }
+.pending-panel-head {
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+  font-size: 0.78rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--slate);
+}
+.pending-doc-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+}
+.pending-doc-row:last-child { border-bottom: none; }
+.pending-doc-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--amber-dim); color: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 800; flex-shrink: 0;
+}
+.pending-doc-info { flex: 1; min-width: 0; }
+.pending-doc-name { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
+.pending-doc-email { font-size: 0.72rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn-approve {
+  padding: 5px 12px; border-radius: 7px;
+  background: var(--green); color: #fff; border: none;
+  font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.btn-approve:hover { background: #15803d; }
+.btn-reject {
+  padding: 5px 10px; border-radius: 7px;
+  background: var(--red-dim); color: var(--red);
+  border: 1px solid var(--red);
+  font-family: 'Syne', sans-serif; font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.btn-reject:hover { background: var(--red); color: #fff; }
 .upgrade-card {
   text-align: center; padding: 8px 0 4px;
 }
@@ -1829,6 +1913,10 @@ body {
       <button class="tab-btn" data-tab="patients" onclick="switchTab('patients',this)">Pacijenti</button>
     </div>
     <div class="topbar-right">
+      <button class="notif-btn" id="notifBtn" onclick="togglePendingPanel()" style="display:none" title="Zahtevi za pristup">
+        🔔
+        <span class="notif-count" id="notifCount" style="display:none"></span>
+      </button>
       <div class="doctor-chip">
         <div class="doctor-avatar" id="doctorAvatar"></div>
         <span id="doctorName"></span>
@@ -2475,6 +2563,12 @@ async function initApp(user) {
   }
   doctor = doc;
 
+  // Block access if pending approval
+  if (doctor.status === 'pending') {
+    showPendingScreen();
+    return;
+  }
+
   // Load clinic
   if (doc.clinic_id) {
     const { data: cl } = await sb.from('clinics').select('*').eq('id', doc.clinic_id).maybeSingle();
@@ -2491,6 +2585,9 @@ async function initApp(user) {
   await loadDoctors();
   await loadServices();
   syncViewSelUI();
+
+  // Load pending colleague requests if owner
+  if (doctor.role === 'owner') await loadPendingDoctors();
 
   // First-run wizard: show if doctor has no clinic yet
   if (!doctor.clinic_id) {
@@ -2515,6 +2612,117 @@ async function initApp(user) {
     renderCalendar();
   }
 }
+
+// ── PENDING APPROVAL SCREEN ──────────────────────────────────────
+function showPendingScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.remove('visible');
+  // Remove existing pending screen if any
+  document.getElementById('pendingApprovalScreen')?.remove();
+  const div = document.createElement('div');
+  div.id = 'pendingApprovalScreen';
+  div.className = 'pending-screen';
+  div.innerHTML = `
+    <div class="pending-icon">⏳</div>
+    <div class="pending-title">Čekate odobrenje</div>
+    <div class="pending-desc">
+      Vaš zahtev za pristup je primljen.<br>
+      Administrator ordinacije treba da odobri vaš nalog.<br>
+      Pokušajte ponovo nakon što dobijete potvrdu.
+    </div>
+    <div class="pending-badge">⧖ Nalog na čekanju</div>
+    <button class="pending-logout" onclick="doLogout()">Odjavite se</button>
+  `;
+  document.body.appendChild(div);
+}
+
+// ── PENDING DOCTORS NOTIFICATION ─────────────────────────────────
+let pendingDoctors = [];
+
+async function loadPendingDoctors() {
+  if (doctor?.role !== 'owner') return;
+  const { data } = await sb.from('doctors')
+    .select('id,full_name,email')
+    .eq('clinic_id', doctor.clinic_id)
+    .eq('status', 'pending');
+  pendingDoctors = data || [];
+  renderPendingNotif();
+}
+
+function renderPendingNotif() {
+  const btn   = document.getElementById('notifBtn');
+  const count = document.getElementById('notifCount');
+  if (!btn || !count) return;
+  if (pendingDoctors.length > 0) {
+    btn.style.display = 'flex';
+    count.style.display = 'flex';
+    count.textContent = pendingDoctors.length;
+  } else {
+    btn.style.display = 'none';
+    count.style.display = 'none';
+    // Close panel if open
+    document.getElementById('pendingPanel')?.classList.remove('open');
+  }
+}
+
+function togglePendingPanel() {
+  const panel = document.getElementById('pendingPanel');
+  if (!panel) return;
+  const isOpen = panel.classList.toggle('open');
+  if (isOpen) renderPendingPanel();
+}
+
+function renderPendingPanel() {
+  const body = document.getElementById('pendingPanelBody');
+  if (!body) return;
+  if (!pendingDoctors.length) {
+    body.innerHTML = '<div style="padding:16px;font-size:0.82rem;color:var(--slate);text-align:center">Nema novih zahteva.</div>';
+    return;
+  }
+  body.innerHTML = pendingDoctors.map(d => `
+    <div class="pending-doc-row">
+      <div class="pending-doc-avatar">${d.full_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+      <div class="pending-doc-info">
+        <div class="pending-doc-name">${d.full_name}</div>
+        <div class="pending-doc-email">${d.email}</div>
+      </div>
+      <button class="btn-approve" onclick="approveDoctor('${d.id}')">✓ Odobri</button>
+      <button class="btn-reject"  onclick="rejectDoctor('${d.id}')">✕</button>
+    </div>`).join('');
+}
+
+async function approveDoctor(docId) {
+  const { error } = await sb.from('doctors')
+    .update({ status: 'active' })
+    .eq('id', docId)
+    .eq('clinic_id', doctor.clinic_id);
+  if (error) { alert('Greška: ' + error.message); return; }
+  pendingDoctors = pendingDoctors.filter(d => d.id !== docId);
+  renderPendingNotif();
+  renderPendingPanel();
+}
+
+async function rejectDoctor(docId) {
+  if (!confirm('Odbiti ovaj zahtev? Korisnik neće moći da pristupi aplikaciji.')) return;
+  const { error } = await sb.from('doctors')
+    .delete()
+    .eq('id', docId)
+    .eq('clinic_id', doctor.clinic_id)
+    .eq('status', 'pending');
+  if (error) { alert('Greška: ' + error.message); return; }
+  pendingDoctors = pendingDoctors.filter(d => d.id !== docId);
+  renderPendingNotif();
+  renderPendingPanel();
+}
+
+// Close pending panel when clicking outside
+document.addEventListener('click', e => {
+  const panel  = document.getElementById('pendingPanel');
+  const notif  = document.getElementById('notifBtn');
+  if (panel?.classList.contains('open') && !panel.contains(e.target) && !notif?.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
 
 async function doLogout() {
   await sb.auth.signOut();
@@ -4728,30 +4936,61 @@ function cwizToggleDay(id) {
 
 // ── Step: Invite ───────────────────────────────────────────────
 function cwizBodyInvite() {
-  const shareLink = window.location.origin + window.location.pathname +
-    (cwizClinic?.id ? '?clinic=' + cwizClinic.id : '');
+  setTimeout(() => generateInviteToken(), 0);
   return `
   <div class="cwiz-hint">
-    Kolege se registruju sami, a vi ih potom dodate u kliniku u Supabase panelu.<br>
-    Podelite im ovaj link:
+    Podelite ovaj link sa kolegom. Kada se registruje, dobićete obaveštenje za potvrdu.
   </div>
   <div style="padding:14px 16px;background:var(--navy);border-radius:var(--r);border:1px solid var(--line)">
-    <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--slate);margin-bottom:6px">Link za registraciju</div>
-    <div style="font-size:0.8rem;color:var(--ink);word-break:break-all;line-height:1.5" id="cwizShareLink">${shareLink}</div>
-    <button onclick="navigator.clipboard.writeText('${shareLink}').then(()=>{this.textContent='✓ Kopirano!';setTimeout(()=>this.textContent='📋 Kopiraj link',2000)}).catch(()=>{})"
+    <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--slate);margin-bottom:6px">Link za pozivnicu</div>
+    <div style="font-size:0.8rem;color:var(--ink);word-break:break-all;line-height:1.5" id="cwizShareLink">
+      <span style="color:var(--slate);font-style:italic">Generišem link…</span>
+    </div>
+    <button id="cwizCopyBtn" onclick="cwizCopyInvite()"
       style="margin-top:10px;padding:6px 14px;border-radius:6px;border:1px solid var(--line);
       background:#fff;font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;
-      cursor:pointer;color:var(--blue)">📋 Kopiraj link</button>
+      cursor:pointer;color:var(--blue);opacity:0.5" disabled>📋 Kopiraj link</button>
   </div>
-  <div style="padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r)">
-    <div style="font-size:0.75rem;font-weight:700;color:#92400e;margin-bottom:4px">Kako dodati kolegu?</div>
-    <div style="font-size:0.75rem;color:#78350f;line-height:1.6">
-      1. Kolega se registruje koristeći gornji link<br>
-      2. Vi otvorite <strong>Supabase → Table Editor → doctors</strong><br>
-      3. Pronađete red sa email adresom kolege<br>
-      4. Postavite <code>clinic_id</code> na <code>${cwizClinic?.id || 'vaš-clinic-id'}</code>
+  <div style="padding:12px 16px;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r)">
+    <div style="font-size:0.75rem;font-weight:700;color:#15803d;margin-bottom:4px">Kako funkcioniše?</div>
+    <div style="font-size:0.75rem;color:#166534;line-height:1.7">
+      1. Podelite link sa kolegom<br>
+      2. Kolega se registruje koristeći link<br>
+      3. Vi dobijate 🔔 obaveštenje u aplikaciji<br>
+      4. Kliknete "Odobri" — kolega dobija pristup
     </div>
+  </div>
+  <div style="font-size:0.72rem;color:var(--slate);margin-top:8px;text-align:center">
+    Link važi 7 dana. Možete generisati novi u bilo kom trenutku.
   </div>`;
+}
+
+let cwizCurrentInviteLink = null;
+
+async function generateInviteToken() {
+  if (!cwizClinic?.id) return;
+  const linkEl  = document.getElementById('cwizShareLink');
+  const copyBtn = document.getElementById('cwizCopyBtn');
+  if (!linkEl) return;
+  const { data, error } = await sb.from('clinic_invites')
+    .insert({ clinic_id: cwizClinic.id, created_by: doctor.id })
+    .select('token').single();
+  if (error || !data) {
+    if (linkEl) linkEl.innerHTML = '<span style="color:var(--red)">Greška pri generisanju linka.</span>';
+    return;
+  }
+  const link = window.location.origin + '/join?token=' + data.token;
+  cwizCurrentInviteLink = link;
+  if (linkEl) linkEl.textContent = link;
+  if (copyBtn) { copyBtn.disabled = false; copyBtn.style.opacity = '1'; }
+}
+
+function cwizCopyInvite() {
+  if (!cwizCurrentInviteLink) return;
+  const btn = document.getElementById('cwizCopyBtn');
+  navigator.clipboard.writeText(cwizCurrentInviteLink)
+    .then(() => { if (btn) { btn.textContent = '✓ Kopirano!'; setTimeout(() => btn.textContent = '📋 Kopiraj link', 2000); }})
+    .catch(() => {});
 }
 
 // ── Step: Summary ──────────────────────────────────────────────
@@ -5656,6 +5895,12 @@ async function updateXrayDate(id, taken_at) {
       <button class="cwiz-next-btn" id="cwizNextBtn" onclick="cwizNext()">Dalje →</button>
     </div>
   </div>
+</div>
+
+<!-- PENDING DOCTORS PANEL -->
+<div class="pending-panel" id="pendingPanel">
+  <div class="pending-panel-head">Zahtevi za pristup</div>
+  <div id="pendingPanelBody"></div>
 </div>
 
 <!-- UPGRADE MODAL -->

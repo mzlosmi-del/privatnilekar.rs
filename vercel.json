@@ -7,6 +7,7 @@
   ],
   "routes": [
     { "src": "/",         "dest": "/landing.html" },
+    { "src": "/join",     "dest": "/landing.html" },
     { "src": "/app",      "dest": "/index.html" },
     { "src": "/app.html", "dest": "/index.html" },
     {

@@ -781,10 +781,11 @@ footer {
     <div class="modal-body">
       <!-- Register form -->
       <div id="formRegister">
-        <div class="mfield">
+        <div class="mfield" id="regClinicLabel">
           <label>Naziv ordinacije *</label>
           <input id="regClinic" type="text" placeholder="npr. Stomatološka ordinacija Dr. Marković">
         </div>
+        <div id="regClinicField" style="display:none"></div>
         <div class="mfield">
           <label>Vaše ime i prezime *</label>
           <input id="regName" type="text" placeholder="Dr. Ime Prezime">
@@ -823,10 +824,27 @@ window.addEventListener('scroll', () => {
   document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 20);
 });
 
+// ── Check for invite token in URL ──────────────────
+const _urlToken = new URLSearchParams(window.location.search).get('token');
+if (_urlToken) {
+  document.addEventListener('DOMContentLoaded', () => openRegisterModal(true));
+}
+
 // ── Modal ──────────────────────────────────────────
-function openRegisterModal() {
+function openRegisterModal(isJoin = false) {
+  if (isJoin && _urlToken) {
+    document.getElementById('modalTitle').textContent = 'Pridružite se ordinaciji';
+    document.getElementById('modalSub').textContent   = 'Registrujte se da biste prihvatili pozivnicu';
+    document.getElementById('regClinicField').style.display = 'none';
+    document.getElementById('regClinicLabel').style.display = 'none';
+  } else {
+    document.getElementById('modalTitle').textContent = 'Registracija';
+    document.getElementById('modalSub').textContent   = 'Kreirajte nalog za vašu ordinaciju';
+    document.getElementById('regClinicField').style.display = 'block';
+    document.getElementById('regClinicLabel').style.display = 'block';
+  }
   document.getElementById('registerOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('regClinic')?.focus(), 100);
+  setTimeout(() => document.getElementById(_urlToken ? 'regName' : 'regClinic')?.focus(), 100);
 }
 
 function closeModal() {
@@ -841,6 +859,7 @@ function goToApp() {
 
 // ── Registration ───────────────────────────────────
 async function doRegister() {
+  const isJoin     = !!_urlToken;
   const clinicName = document.getElementById('regClinic').value.trim();
   const fullName   = document.getElementById('regName').value.trim();
   const email      = document.getElementById('regEmail').value.trim();
@@ -852,52 +871,78 @@ async function doRegister() {
   errEl.style.display = 'none';
   sucEl.style.display = 'none';
 
-  if (!clinicName) return showErr('Unesite naziv ordinacije.');
-  if (!fullName)   return showErr('Unesite vaše ime i prezime.');
+  if (!isJoin && !clinicName) return showErr('Unesite naziv ordinacije.');
+  if (!fullName)   return showErr('Unesite ime i prezime.');
   if (!email)      return showErr('Unesite email adresu.');
   if (pass.length < 8) return showErr('Lozinka mora imati minimum 8 karaktera.');
   if (pass !== pass2)  return showErr('Lozinke se ne poklapaju.');
 
   const btn = document.getElementById('regBtn');
-  btn.disabled = true; btn.textContent = 'Kreiramo nalog…';
+  btn.disabled = true; btn.textContent = 'Kreiramo nalog\u2026';
 
-  // 1. Create auth user
   const { data: authData, error: authErr } = await sb.auth.signUp({
     email, password: pass,
     options: { data: { full_name: fullName } }
   });
 
   if (authErr) {
-    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
     return showErr(authErr.message);
   }
 
   const user = authData.user;
   if (!user) {
-    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
-    return showErr('Greška pri kreiranju naloga. Pokušajte ponovo.');
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
+    return showErr('Gre\u0161ka pri kreiranju naloga. Poku\u0161ajte ponovo.');
   }
 
-  // 2. Create clinic + doctor via secure function
-  const { data: clinicId, error: rpcErr } = await sb.rpc('register_clinic_and_doctor', {
-    p_clinic_name: clinicName,
-    p_full_name:   fullName,
-    p_email:       email,
-  });
+  if (isJoin) {
+    const { data: rpcData, error: rpcErr } = await sb.rpc('use_invite_token', {
+      p_token:     _urlToken,
+      p_full_name: fullName,
+      p_email:     email,
+    });
 
-  btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
 
-  if (rpcErr) {
-    return showErr('Greška pri kreiranju ordinacije: ' + rpcErr.message);
-  }
+    if (rpcErr || rpcData?.error) {
+      return showErr(rpcData?.error || rpcErr?.message || 'Gre\u0161ka pri kori\u0161\u0107enju pozivnice.');
+    }
 
-  // 5. Success
-  if (authData.session) {
-    // Email confirmation disabled — redirect straight to app
-    sucEl.textContent = '✓ Nalog uspešno kreiran! Preusmeravamo vas…';
+    sucEl.textContent = '\u2713 Zahtev je poslat! Administrator ordinacije treba da odobri va\u0161 nalog. Bićete obavešteni.';
     sucEl.style.display = 'block';
-    setTimeout(() => { window.location.href = '/app'; }, 1200);
+    btn.style.display = 'none';
+
   } else {
-    // Email confirmation required
-    sucEl.textContent = '✓ Nalog kreiran! Proverite email i potvrdite adresu, pa se prijavite u aplikaciji.';
-  
+    const { data: clinicId, error: rpcErr } = await sb.rpc('register_clinic_and_doctor', {
+      p_clinic_name: clinicName,
+      p_full_name:   fullName,
+      p_email:       email,
+    });
+
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
+
+    if (rpcErr) {
+      return showErr('Gre\u0161ka pri kreiranju ordinacije: ' + rpcErr.message);
+    }
+
+    if (authData.session) {
+      sucEl.textContent = '\u2713 Nalog uspe\u0161no kreiran! Preusmeravamo vas\u2026';
+      sucEl.style.display = 'block';
+      setTimeout(() => { window.location.href = '/app'; }, 1200);
+    } else {
+      sucEl.textContent = '\u2713 Nalog kreiran! Proverite email i potvrdite adresu, pa se prijavite.';
+      sucEl.style.display = 'block';
+      btn.style.display = 'none';
+    }
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('regErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>
