@@ -2084,8 +2084,63 @@ body {
             </div>
             <!-- Tooth chart — permanent (desktop) -->
             <div class="odo-wrap" id="odontogram"></div>
+            <!-- Per-appointment note (shown only when session active) -->
+            <div class="session-note-wrap" id="sessionNoteWrap" style="display:none">
+              <div class="session-note-label">📝 Napomena za ovaj termin</div>
+              <textarea class="session-note" id="sessionNoteInput"
+                placeholder="Nalazi, procedure, preporuke za ovaj termin…"
+                oninput="saveSessionNote()"></textarea>
+            </div>
+            <div class="odo-notes-wrap">
+              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate);margin-bottom:5px">Opšta napomena o pacijentu</div>
+              <textarea id="odoNotes" class="odo-notes" placeholder="Trajna napomena o pacijentu…" oninput="saveOdoNotes()"></textarea>
+            </div>
+          </div>
 
-    <!-- SERVICES -->
+          <!-- Milk teeth odontogram -->
+          <div class="pt-section">
+            <div class="pt-section-title" style="display:flex;align-items:center;gap:10px">
+              Mlečni zubi
+              <span style="font-size:0.68rem;font-weight:600;color:var(--slate);text-transform:none;letter-spacing:0">(FDI 51–85)</span>
+            </div>
+            <div class="odo-hint" id="odoHintMilk" style="font-size:0.75rem;color:var(--slate);padding:7px 18px;border-bottom:1px solid var(--line);background:var(--off)">
+              Koristite istu paletu gore za bojenje mlečnih zuba
+            </div>
+            <div class="odo-wrap" id="odontogramMilk"></div>
+            <div class="odo-notes-wrap">
+              <textarea id="odoNotesMilk" class="odo-notes" placeholder="Napomena za mlečne zube…" oninput="saveOdoNotesMilk()"></textarea>
+            </div>
+          </div>
+
+          <!-- X-rays -->
+          <div class="pt-section">
+            <div class="pt-section-title" style="display:flex;align-items:center;gap:12px">
+              Snimci
+              <button class="cal-add-btn" style="margin-left:auto;font-size:0.75rem;padding:5px 12px"
+                onclick="document.getElementById('xrayFileInput').click()">
+                + Dodaj snimak
+              </button>
+            </div>
+            <input type="file" id="xrayFileInput" accept="image/*,.dcm" multiple
+              style="display:none" onchange="handleXrayUpload(event)">
+            <div class="xray-dropzone" id="xrayDropzone"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="handleXrayDrop(event)">
+              <div class="xray-drop-icon">🦷</div>
+              <div class="xray-drop-text">Prevucite snimke ovde ili <span class="xray-drop-link" onclick="document.getElementById('xrayFileInput').click()">kliknite da izaberete</span></div>
+              <div class="xray-drop-sub">JPG, PNG, WEBP — do 20MB po snimku</div>
+            </div>
+            <div id="xrayUploadProgress" style="display:none">
+              <div class="xray-progress-bar"><div class="xray-progress-fill" id="xrayProgressFill"></div></div>
+              <div class="xray-progress-label" id="xrayProgressLabel">Učitavanje…</div>
+            </div>
+            <div class="xray-grid" id="xrayGrid"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
     <div class="panel" id="panelServices">
       <div class="list-panel-inner">
         <div class="list-header">
