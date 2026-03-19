@@ -208,6 +208,8 @@ body {
 .panels { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 .panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
 #panelPatients { overflow-y: auto !important; overflow-x: hidden !important; }
+#panelPatients .pt-section { overflow: visible; }
+#panelPatients .odo-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .panel.active { display: flex; }
 
 /* ── CALENDAR PANEL ────────────────────────────── */
@@ -763,7 +765,7 @@ body {
 .pt-info-value { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
 
 .pt-section { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.pt-section .odo-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.pt-section .odo-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 0; }
 .pt-section-title {
   font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--slate);
@@ -4043,8 +4045,18 @@ function showPatientList() {
 }
 
 async function loadPatientAppointments(patientId) {
-  const p = allPatients.find(x => x.id === patientId);
-  if (!p) return;
+  let p = allPatients.find(x => x.id === patientId);
+  if (!p) {
+    // Patient not in cache — fetch directly
+    const { data } = await sb.from('patients').select('*').eq('id', patientId).maybeSingle();
+    if (!data) {
+      const list = document.getElementById('ptApptList');
+      if (list) list.innerHTML = '<div class="pt-empty">Nema evidentiranih termina. Dodajte novi termin.</div>';
+      return;
+    }
+    p = data;
+    allPatients.push(p);
+  }
   const { data: appts } = await sb.from('appointments')
     .select('*')
     .eq('patient_name', p.first_name + ' ' + p.last_name)
