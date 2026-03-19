@@ -3715,6 +3715,7 @@ function toothDiagramSVG(num, diag, ther) {
   }
 
   // therDominant — check all surfaces for whole-tooth therapy
+  const isMissing    = SURFACES.some(sf => d[sf]==='missing' || t[sf]==='missing');
   const therDominant = SURFACES.map(sf => t[sf]).find(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)) || null;
   const diagDominant = d['O'] || d['M'] || null;
 
