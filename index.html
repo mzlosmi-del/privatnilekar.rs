@@ -848,9 +848,9 @@ body {
   font-size: 0.65rem; font-weight: 800; color: var(--slate); line-height: 1; text-align: center;
 }
 /* Desktop tooth size — generous */
-.odo-tooth-diagram { width: 52px; height: 56px; position: relative; flex-shrink: 0; }
+.odo-tooth-diagram { width: 76px; height: 56px; position: relative; flex-shrink: 0; }
 .odo-tooth-diagram svg {
-  width: 52px; height: 56px; display: block;
+  width: 76px; height: 56px; display: block;
   transition: filter 0.12s; overflow: visible;
 }
 .odo-tooth-wrap:hover .odo-tooth-diagram svg {
@@ -3714,16 +3714,12 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
     return html;
   }
 
-  // therDominant — check all surfaces for whole-tooth therapy
   const isMissing    = SURFACES.some(sf => d[sf]==='missing' || t[sf]==='missing');
-  const therDominant = SURFACES.map(sf => t[sf]).find(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)) || null;
+  // Collect ALL whole-tooth therapy statuses (a tooth can have endo + crown etc.)
+  const therWholeAll = [...new Set(SURFACES.map(sf => t[sf]).filter(v => v && v !== 'healthy' && WHOLE_TOOTH_STATUSES.has(v)))];
   const diagDominant = d['O'] || d['M'] || null;
 
-  // ── BADGE SYSTEM ─────────────────────────────────────────────
-  // Whole-tooth statuses render as colored badges OUTSIDE the tooth.
-  // Top-right corner for therapy, top-left for diagnosis whole-tooth.
-  // This keeps surface colors fully visible underneath.
-
+  // ── BADGE SYSTEM ──────────────────────────────────────────────
   const BADGE_LABELS = {
     crown:'Kr', implant:'Im', endo:'E', bridge:'Mo', veneer:'Fa',
     post_core:'Kč', extraction:'Ex', whitening:'W', missing:'X',
@@ -3735,7 +3731,6 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
     const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
     const cx = x + w / 2;
     const ty = y + 9.5;
-    // When flipped (lower teeth), counter-rotate text so it reads correctly
     const textTransform = flip
       ? `transform="scale(1,-1) translate(0,${-(2 * ty)})"` : '';
     return `<rect x="${x}" y="${y}" width="${w}" height="13" rx="4"
@@ -3745,34 +3740,49 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
               font-family="Arial,sans-serif" ${textTransform} pointer-events="none">${label}</text>`;
   }
 
-  // Badge y-position: top for upper teeth, bottom for lower (which are flipped)
+  // Badge y-position: top for upper, bottom for lower (flipped via CSS)
   const badgeY = flip ? sz - 11 : 0;
+  const BW = 14; // badge width unit
+  const BGAP = 2; // gap between badges
 
-  // Therapy whole-tooth badge — top-right
+  // Therapy badges — stacked right-to-left from right edge
   const therWholeMark = (() => {
-    if (!therDominant || therDominant === 'healthy') return '';
-    const ts = statusStyle(therDominant);
-    const label = BADGE_LABELS[therDominant] || '?';
-    // Missing / extraction: also draw X on tooth body
-    if (therDominant === 'missing')
-      return `<line x1="12" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
-              <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
-              ${makeBadge(label, ts.fill, ts.border, 38, badgeY)}`;
-    if (therDominant === 'extraction')
-      return `<line x1="16" y1="12" x2="36" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              <line x1="36" y1="12" x2="16" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
-              ${makeBadge(label, ts.fill, ts.border, 38, badgeY)}`;
-    return makeBadge(label, ts.fill, ts.border, 38, badgeY);
+    if (!therWholeAll.length) return '';
+    let result = '';
+    let xPos = sz + 10; // start from right, moving left
+
+    // Special body marks for missing/extraction (use first found)
+    const hasMissing   = therWholeAll.includes('missing');
+    const hasExtract   = therWholeAll.includes('extraction');
+    if (hasMissing)
+      result += `<line x1="12" y1="8" x2="40" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>
+                 <line x1="40" y1="8" x2="12" y2="42" stroke="#9ca3af" stroke-width="2.5" pointer-events="none"/>`;
+    else if (hasExtract) {
+      const ts = statusStyle('extraction');
+      result += `<line x1="16" y1="12" x2="36" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>
+                 <line x1="36" y1="12" x2="16" y2="38" stroke="${ts.border}" stroke-width="2.5" stroke-linecap="round" pointer-events="none"/>`;
+    }
+
+    // Draw a badge for each whole-tooth therapy, right-aligned, wrapping if needed
+    therWholeAll.forEach((v, i) => {
+      const ts = statusStyle(v);
+      const label = BADGE_LABELS[v] || '?';
+      const w = label.length <= 2 ? 16 : label.length <= 3 ? 20 : 24;
+      // Stack badges right of the tooth: first at x=sz+2, next further right
+      const bx = sz + 2 + i * (BW + BGAP);
+      result += makeBadge(label, ts.fill, ts.border, bx, badgeY);
+    });
+    return result;
   })();
 
-  // Diagnosis whole-tooth badge — top-left (dashed outline style)
+  // Diagnosis whole-tooth badge — top-left + dashed outline
   const diagWholeMark = (() => {
     if (!diagDominant || diagDominant === 'healthy') return '';
     const ds = statusStyle(diagDominant);
     const label = BADGE_LABELS[diagDominant] || '?';
     return `<path d="${crown}" fill="none" stroke="${ds.border}" stroke-width="1.8"
               stroke-dasharray="4 3" opacity="0.6" pointer-events="none"/>
-            ${makeBadge(label, ds.fill, ds.border, 0, badgeY)}`;
+            ${makeBadge(label, ds.fill, ds.border, -18, badgeY)}`;
   })();
 
   const missingMark = isMissing ? `
@@ -3784,7 +3794,7 @@ function toothDiagramSVG(num, diag, ther, flip = false) {
   // Cervical line — separates crown from root area
   const cervLine = `<path d="M 14,42 Q 26,44 38,42" stroke="#e5e7eb" stroke-width="0.8" fill="none" pointer-events="none"/>`;
 
-  return `<svg viewBox="-2 -2 ${sz+14} ${sz+2}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg viewBox="-22 -2 ${sz+80} ${sz+2}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <clipPath id="${clipId}"><path d="${crown}"/></clipPath>
   </defs>
