@@ -2612,10 +2612,11 @@ async function initApp(user) {
 }
 
 // ── PENDING APPROVAL SCREEN ──────────────────────────────────────
+let _pendingPollInterval = null;
+
 function showPendingScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.remove('visible');
-  // Remove existing pending screen if any
   document.getElementById('pendingApprovalScreen')?.remove();
   const div = document.createElement('div');
   div.id = 'pendingApprovalScreen';
@@ -2626,12 +2627,27 @@ function showPendingScreen() {
     <div class="pending-desc">
       Vaš zahtev za pristup je primljen.<br>
       Administrator ordinacije treba da odobri vaš nalog.<br>
-      Pokušajte ponovo nakon što dobijete potvrdu.
+      Stranica će se automatski osvežiti čim budete odobreni.
     </div>
-    <div class="pending-badge">⧖ Nalog na čekanju</div>
+    <div class="pending-badge" id="pendingStatusBadge">⧖ Nalog na čekanju</div>
     <button class="pending-logout" onclick="doLogout()">Odjavite se</button>
   `;
   document.body.appendChild(div);
+
+  // Poll every 5 seconds — reload initApp when approved
+  clearInterval(_pendingPollInterval);
+  _pendingPollInterval = setInterval(async () => {
+    if (!doctor?.id) return;
+    const { data } = await sb.from('doctors').select('status').eq('id', doctor.id).maybeSingle();
+    if (data?.status === 'active') {
+      clearInterval(_pendingPollInterval);
+      const badge = document.getElementById('pendingStatusBadge');
+      if (badge) badge.textContent = '✓ Odobreno! Učitavamo aplikaciju…';
+      document.getElementById('pendingApprovalScreen')?.remove();
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) await initApp(session.user);
+    }
+  }, 5000);
 }
 
 // ── PENDING DOCTORS NOTIFICATION ─────────────────────────────────
@@ -2723,6 +2739,7 @@ document.addEventListener('click', e => {
 });
 
 async function doLogout() {
+  clearInterval(_pendingPollInterval);
   await sb.auth.signOut();
   doctor = null;
   window.location.href = '/';
