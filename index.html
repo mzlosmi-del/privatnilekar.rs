@@ -331,7 +331,7 @@ body {
 }
 .cal-slot:hover { background: rgba(37,99,235,0.04); }
 .cal-slot.half-hour { border-bottom: 1px solid var(--line); }
-.cal-slot.past { opacity: 0.45; cursor: default; }
+.cal-slot.past { opacity: 0.3; cursor: default; background: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.018) 4px, rgba(0,0,0,0.018) 8px); }
 .cal-slot.past:hover { background: transparent; }
 
 /* Appointment blocks */
@@ -1917,7 +1917,7 @@ body {
             <th>Ime i prezime</th>
             <th>Datum rodjenja</th>
             <th>Telefon</th>
-            <th>Poslednji pregled</th>
+            <th>Poslednji termin</th>
             <th></th>
           </tr></thead>
           <tbody id="patientTableBody"></tbody>
@@ -2834,7 +2834,7 @@ async function renderCalendar() {
   requestAnimationFrame(() => {
     const scroller = document.querySelector('.cal-scroll');
     if (scroller) {
-      scroller.scrollTop = 2 * SLOT_H_USED;
+      scroller.scrollTop = 4 * SLOT_H; // 08:00
       if (scroller._scrollSyncFn) scroller.removeEventListener('scroll', scroller._scrollSyncFn);
       scroller._scrollSyncFn = () => {
         hdr.style.transform = `translateX(-${scroller.scrollLeft}px)`;
@@ -3104,6 +3104,7 @@ async function openDetail(type, id) {
     html += detailRow('🕐', 'Vreme',     entry.time_from + ' · ' + entry.duration + ' min');
     html += detailRow('📊', 'Status',    badgeHtml(entry.status));
     if (entry.note) html += detailRow('📝', 'Napomena', entry.note);
+    if (entry.odo_note) html += detailRow('🦷', 'Nalaz iz sesije', entry.odo_note);
     if (entry.odo_note) html += detailRow('🦷', 'Nalaz', entry.odo_note);
   } else {
     html += detailRow('🚫', 'Blokada', entry.label || 'Nedostupno');
@@ -3302,7 +3303,7 @@ const TOOTH_STATUSES = [
 const WHOLE_TOOTH_STATUSES = new Set([
   'healthy','crown','endo','missing','implant','bridge',
   'veneer','post_core','recession','mobility','abscess',
-  'attrition','erosion','impacted','temporary',
+  'attrition','erosion','impacted',
   'extraction','whitening'
 ]);
 
@@ -3730,6 +3731,12 @@ function openUpgradeModal() {
   openModal('upgradeModal');
 }
 
+function openUpgradeEmail() {
+  const clinicName = clinic?.name || doctor?.full_name || '';
+  const subject = encodeURIComponent('Pro plan - ' + clinicName);
+  window.location.href = 'mailto:hello@privatnilekar.rs?subject=' + subject;
+}
+
 function renderPlanBar(count) {
   const limit = getPatientLimit();
   const bar   = document.getElementById('planUsageBar');
@@ -3777,8 +3784,10 @@ function renderPatientTable(list) {
       </td>
     </tr>`).join('');
   list.forEach(async p => {
+    const today = todayLocal();
     const { data } = await sb.from('appointments').select('date')
       .eq('patient_name', p.first_name + ' ' + p.last_name)
+      .lte('date', today)
       .order('date', {ascending:false}).limit(1);
     const el = document.getElementById('last-appt-' + p.id);
     if (el) el.textContent = data?.[0]?.date ? fmtDate(data[0].date) : '—';
@@ -4043,6 +4052,22 @@ async function savePatient() {
   closeModal('patientModal');
   editingPatientId = null;
   await renderPatients();
+  // Refresh banner/info immediately if this patient is currently open
+  if (currentPatientId) {
+    const updated = allPatients.find(x => x.id === currentPatientId);
+    if (updated) {
+      document.getElementById('ptMedBanner').innerHTML = buildMedWarningBanner(updated);
+      document.getElementById('ptDetailName').textContent = updated.first_name + ' ' + updated.last_name;
+      document.getElementById('ptInfoStrip').innerHTML = [
+        updated.dob   ? { l:'Datum rodjenja', v:fmtDate(updated.dob) } : null,
+        updated.phone ? { l:'Telefon',        v:updated.phone }        : null,
+        updated.email ? { l:'Email',          v:updated.email }        : null,
+        updated.notes ? { l:'Napomene',       v:updated.notes }        : null,
+      ].filter(Boolean).map(x =>
+        `<div class="pt-info-item"><div class="pt-info-label">${x.l}</div><div class="pt-info-value">${x.v}</div></div>`
+      ).join('');
+    }
+  }
 }
 
 async function deletePatient(id) {
@@ -4297,8 +4322,8 @@ function tdmSelectTab(idx) {
     (WHOLE_TOOTH_STATUSES.has(status) ? ' · Ceo zub' : ' · ' + SURFACE_LABELS[tab.surface]);
 
   // Fields
-  document.getElementById('tdpDate').value         = existing.proc_date    || activeSessionAppt?.date || '';
-  document.getElementById('tdpDoctor').value        = existing.doctor_name  || doctor?.full_name || '';
+  document.getElementById('tdpDate').value        = existing.proc_date   || (tdpRecordId ? '' : activeSessionAppt?.date || '');
+  document.getElementById('tdpDoctor').value       = existing.doctor_name || (tdpRecordId ? '' : doctor?.full_name || '');
   document.getElementById('tdpMaterial').value      = existing.material     || '';
   document.getElementById('tdpShade').value         = existing.shade        || '';
   document.getElementById('tdpCanals').value        = existing.canals       || '';
@@ -4557,7 +4582,7 @@ function cwizRender() {
   document.getElementById('cwizSkipBtn').style.display  = step.skippable ? 'block' : 'none';
   const nextBtn = document.getElementById('cwizNextBtn');
   nextBtn.disabled = false;
-  nextBtn.textContent = isSummary ? '🚀 Pokreni kalendar' : 'Dalje →';
+  nextBtn.textContent = isSummary ? '✓ Potvrdi' : 'Dalje →';
 
   const body = document.getElementById('cwizBody');
   body.innerHTML = '';
@@ -4775,7 +4800,7 @@ function cwizBodySummary() {
       ) : ''}
   </div>
   <div style="margin-top:14px;padding:12px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r);font-size:0.8rem;color:#15803d;font-weight:600">
-    ✓ Sve je spremno! Kliknite "Pokreni kalendar" da počnete.
+    ✓ Sve je spremno! Kliknite "Potvrdi" da završite podešavanje.
   </div>`;
 }
 
@@ -5656,16 +5681,17 @@ async function updateXrayDate(id, taken_at) {
           <div class="upgrade-feature">Kompletan odontogram i istorija</div>
           <div class="upgrade-feature">Prioritetna podrška</div>
         </div>
-        <a href="mailto:hello@privatnilekar.rs?subject=Pro plan - ${clinic?.name || ''}"
+        <button id="upgradeEmailBtn"
           style="display:block;width:100%;padding:12px;background:var(--blue);color:#fff;
           border-radius:var(--r);font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;
-          text-decoration:none;text-align:center;transition:background 0.12s;box-sizing:border-box"
+          border:none;cursor:pointer;transition:background 0.12s;box-sizing:border-box"
           onmouseover="this.style.background='var(--blue-mid)'"
-          onmouseout="this.style.background='var(--blue)'">
+          onmouseout="this.style.background='var(--blue)'"
+          onclick="openUpgradeEmail()">
           Kontaktirajte nas →
-        </a>
+        </button>
         <div style="margin-top:12px;font-size:0.75rem;color:var(--slate);text-align:center">
-          hello@privatnilekar.rs · Aktivacija u roku od 24h
+          hello&#64;privatnilekar.rs &middot; Aktivacija u roku od 24h
         </div>
       </div>
     </div>
