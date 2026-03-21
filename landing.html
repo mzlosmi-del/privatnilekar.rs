@@ -781,11 +781,7 @@ footer {
     <div class="modal-body">
       <!-- Register form -->
       <div id="formRegister">
-        <div class="mfield" id="regClinicLabel" style="display:none">
-          <label>Naziv ordinacije *</label>
-          <input id="regClinic" type="text" placeholder="npr. Stomatološka ordinacija Dr. Marković">
-        </div>
-        <div id="regClinicField" style="display:none"></div>
+
         <div class="mfield">
           <label>Vaše ime i prezime *</label>
           <input id="regName" type="text" placeholder="Dr. Ime Prezime">
@@ -838,16 +834,14 @@ function openRegisterModal(isJoin = false) {
   if (isJoin && _urlToken) {
     document.getElementById('modalTitle').textContent = 'Pridružite se ordinaciji';
     document.getElementById('modalSub').textContent   = 'Registrujte se da biste prihvatili pozivnicu';
-    document.getElementById('regClinicField').style.display = 'none';
-    document.getElementById('regClinicLabel').style.display = 'none';
+
   } else {
     document.getElementById('modalTitle').textContent = 'Registracija';
     document.getElementById('modalSub').textContent   = 'Kreirajte nalog za vašu ordinaciju';
-    document.getElementById('regClinicField').style.display = 'block';
-    document.getElementById('regClinicLabel').style.display = 'block';
+
   }
   document.getElementById('registerOverlay').classList.add('open');
-  setTimeout(() => document.getElementById(_urlToken ? 'regName' : 'regClinic')?.focus(), 100);
+  setTimeout(() => document.getElementById('regName')?.focus(), 100);
 }
 
 function closeModal() {
@@ -863,7 +857,6 @@ function goToApp() {
 // ── Registration ───────────────────────────────────
 async function doRegister() {
   const isJoin     = !!_urlToken;
-  const clinicName = document.getElementById('regClinic').value.trim();
   const fullName   = document.getElementById('regName').value.trim();
   const email      = document.getElementById('regEmail').value.trim();
   const pass       = document.getElementById('regPass').value;
