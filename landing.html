@@ -774,14 +774,14 @@ footer {
     <div class="modal-head">
       <div>
         <div class="modal-title" id="modalTitle">Registracija</div>
-        <div class="modal-sub" id="modalSub">Kreirajte nalog za vašu ordinaciju</div>
+        <div class="modal-sub" id="modalSub">Kreirajte nalog — ordinaciju ćete podesiti u sledećem koraku</div>
       </div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
       <!-- Register form -->
       <div id="formRegister">
-        <div class="mfield" id="regClinicLabel">
+        <div class="mfield" id="regClinicLabel" style="display:none">
           <label>Naziv ordinacije *</label>
           <input id="regClinic" type="text" placeholder="npr. Stomatološka ordinacija Dr. Marković">
         </div>
@@ -874,7 +874,6 @@ async function doRegister() {
   errEl.style.display = 'none';
   sucEl.style.display = 'none';
 
-  if (!isJoin && !clinicName) return showErr('Unesite naziv ordinacije.');
   if (!fullName)   return showErr('Unesite ime i prezime.');
   if (!email)      return showErr('Unesite email adresu.');
   if (pass.length < 8) return showErr('Lozinka mora imati minimum 8 karaktera.');
@@ -920,23 +919,29 @@ async function doRegister() {
     btn.style.display = 'none';
 
   } else {
-    const { data: clinicId, error: rpcErr } = await sb.rpc('register_clinic_and_doctor', {
-      p_clinic_name: clinicName,
-      p_full_name:   fullName,
-      p_email:       email,
-    });
+    // Simple registration — just create the auth user.
+    // The doctor row is created by the app on first login,
+    // and the clinic wizard runs automatically when there is no clinic.
+    btn.disabled = false; btn.textContent = 'Kreiraj nalog →';
 
-    btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
-
-    if (rpcErr) {
-      return showErr('Greška pri kreiranju ordinacije: ' + rpcErr.message);
-    }
-
-    // Sign in immediately — works once email confirmation is disabled in Supabase
+    // Sign in immediately if no session yet
     let session = authData.session;
     if (!session) {
       const { data: signInData, error: signInErr } = await sb.auth.signInWithPassword({ email, password: pass });
-      if (!signInErr) session = signInData.session;
+      if (signInErr) return showErr('Nalog kreiran ali prijava nije uspela. Pokušajte da se prijavite ručno.');
+      session = signInData.session;
+    }
+
+    // Create doctor row manually (no clinic yet — wizard will handle it)
+    if (session) {
+      await sb.from('doctors').upsert({
+        id:        session.user.id,
+        full_name: fullName,
+        email:     email,
+        role:      'owner',
+        status:    'active',
+        clinic_id: null,
+      }, { onConflict: 'id' });
     }
 
     sucEl.textContent = '✓ Nalog uspešno kreiran! Preusmeravamo vas…';
