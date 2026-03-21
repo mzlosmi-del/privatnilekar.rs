@@ -926,18 +926,19 @@ async function doRegister() {
     btn.disabled = false; btn.textContent = 'Kreiraj nalog \u2192';
 
     if (rpcErr) {
-      return showErr('Gre\u0161ka pri kreiranju ordinacije: ' + rpcErr.message);
+      return showErr('Greška pri kreiranju ordinacije: ' + rpcErr.message);
     }
 
-    if (authData.session) {
-      sucEl.textContent = '\u2713 Nalog uspe\u0161no kreiran! Preusmeravamo vas\u2026';
-      sucEl.style.display = 'block';
-      setTimeout(() => { window.location.href = '/app'; }, 1200);
-    } else {
-      sucEl.textContent = '\u2713 Nalog kreiran! Proverite email i potvrdite adresu, pa se prijavite.';
-      sucEl.style.display = 'block';
-      btn.style.display = 'none';
+    // Sign in immediately — works once email confirmation is disabled in Supabase
+    let session = authData.session;
+    if (!session) {
+      const { data: signInData, error: signInErr } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (!signInErr) session = signInData.session;
     }
+
+    sucEl.textContent = '✓ Nalog uspešno kreiran! Preusmeravamo vas…';
+    sucEl.style.display = 'block';
+    setTimeout(() => { window.location.href = '/app'; }, 1200);
   }
 }
 
