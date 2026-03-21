@@ -3395,7 +3395,8 @@ async function deleteEntry(type, id) {
 
 // ── SERVICES ──────────────────────────────────────────
 async function loadServices() {
-  const { data } = await sb.from('services').select('*').order('name');
+  if (!clinic) { allServices = []; populateServiceDropdown(); return; }
+  const { data } = await sb.from('services').select('*').eq('clinic_id', clinic.id).order('name');
   allServices = data || [];
   populateServiceDropdown();
 }
@@ -3469,9 +3470,9 @@ async function saveService() {
   btn.disabled = true; btn.textContent = 'Čuvam…';
   let error;
   if (editingSvcId) {
-    ({ error } = await sb.from('services').update({ name, description: desc, duration: dur }).eq('id', editingSvcId));
+    ({ error } = await sb.from('services').update({ name, description: desc, duration: dur }).eq('id', editingSvcId).eq('clinic_id', clinic.id));
   } else {
-    ({ error } = await sb.from('services').insert({ name, description: desc, duration: dur }));
+    ({ error } = await sb.from('services').insert({ name, description: desc, duration: dur, clinic_id: clinic.id }));
   }
   btn.disabled = false; btn.textContent = editingSvcId ? 'Sačuvaj izmene →' : 'Sačuvaj →';
   if (error) return showErr('svcErr', error.message);
@@ -3483,7 +3484,7 @@ async function saveService() {
 
 async function deleteSvc(id) {
   if (!confirm('Obrisati ovu uslugu?')) return;
-  await sb.from('services').delete().eq('id', id);
+  await sb.from('services').delete().eq('id', id).eq('clinic_id', clinic.id);
   await loadServices();
   renderServices();
 }
