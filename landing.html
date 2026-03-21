@@ -826,8 +826,11 @@ window.addEventListener('scroll', () => {
 
 // ── Check for invite token in URL ──────────────────
 const _urlToken = new URLSearchParams(window.location.search).get('token');
+const _autoRegister = new URLSearchParams(window.location.search).get('register');
 if (_urlToken) {
   document.addEventListener('DOMContentLoaded', () => openRegisterModal(true));
+} else if (_autoRegister) {
+  document.addEventListener('DOMContentLoaded', () => openRegisterModal(false));
 }
 
 // ── Modal ──────────────────────────────────────────
